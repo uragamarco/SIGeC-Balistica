@@ -406,7 +406,7 @@ def main():
     
     logger.info("=" * 60)
     logger.info("SIGeC-Balisticar - Sistema de Evaluación Automatizada")
-    logger.info("Versión 2.0.0")
+    logger.info("Versión 0.1.3")
     logger.info("=" * 60)
     
     try:

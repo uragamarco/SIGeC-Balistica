@@ -4,12 +4,12 @@ Módulo GUI para Sistema Balístico Forense SIGeC-Balistica
 Interfaz de usuario moderna y profesional
 """
 
-__version__ = "2.0.0"
+__version__ = "0.1.3"
 __author__ = "SIGeC-BalisticaDevelopment Team"
 
 # Importaciones principales
 from .main_window import MainWindow
-from .styles import SIGeC-BalisticaTheme, apply_SIGeC-Balistica_theme
+from .styles import SIGeCBallisticaTheme, apply_SIGeC_Balistica_theme
 from .shared_widgets import (
     ImageDropZone, 
     ResultCard, 
@@ -20,8 +20,8 @@ from .shared_widgets import (
 
 __all__ = [
     'MainWindow',
-    'SIGeC-BalisticaTheme', 
-    'apply_SIGeC-Balistica_theme',
+    'SIGeCBallisticaTheme', 
+    'apply_SIGeC_Balistica_theme',
     'ImageDropZone',
     'ResultCard',
     'CollapsiblePanel', 

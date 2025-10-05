@@ -202,10 +202,10 @@ Este proyecto está bajo licencia MIT. Ver `LICENSE` para más detalles.
 ## Soporte
 
 Para soporte técnico o consultas:
-- **Email**: marco@sigec-balistica.dev
+- **Email**: marcouraga.1992@gmail.com
 - **Issues**: GitHub Issues
 - **Documentación**: Ver carpeta `DOCS/`
 
 ---
 
-**SIGeC-Balistica v2.0.0** - Sistema Integrado de Gestión y Control Balístico
+**SIGeC-Balistica v0.1.3** - Sistema Integrado de Gestión y Control Balístico
