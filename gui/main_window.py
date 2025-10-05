@@ -28,7 +28,7 @@ except ImportError:
         LANGUAGE = "es"
 
 # Importar estilos y widgets
-from .styles import SIGeC-BalisticaTheme, apply_SIGeC-Balistica_theme
+from .styles import SIGeCBallisticaTheme, apply_SIGeC_Balistica_theme
 from .shared_widgets import StepIndicator, ProgressCard
 from .settings_dialog import SettingsDialog
 from .history_dialog import HistoryDialog
