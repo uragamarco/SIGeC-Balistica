@@ -1,0 +1,41 @@
+database:
+  backup_enabled: true
+  backup_interval_hours: 24
+  backup_path: database/backups
+  db_path: database
+  faiss_index_path: database/faiss_index
+  sqlite_path: database/ballistics.db
+gui:
+  auto_save: true
+  language: es
+  theme: default
+  window_height: 800
+  window_width: 1200
+image_processing:
+  max_image_size: 2048
+  orb_features: 5000
+  output_path: output
+  resize_images: true
+  roi_detection_method: simple
+  sift_features: 1000
+  supported_formats:
+  - .jpg
+  - .jpeg
+  - .png
+  - .tif
+  - .tiff
+  - .bmp
+  temp_path: temp
+logging:
+  backup_count: 5
+  console_output: true
+  file_path: logs/ballistics.log
+  level: INFO
+  log_path: logs
+  max_file_size: 10MB
+matching:
+  distance_threshold: 0.75
+  matcher_type: BF
+  max_results: 5
+  min_matches: 10
+  similarity_threshold: 0.3
