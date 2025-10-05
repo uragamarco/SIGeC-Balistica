@@ -1,5 +1,5 @@
 """
-Monitor de GPU para SEACABAr
+Monitor de GPU para SIGeC-Balisticar
 Sistema de monitoreo continuo de memoria y rendimiento GPU
 
 Este módulo implementa:
@@ -9,7 +9,7 @@ Este módulo implementa:
 - Métricas de rendimiento GPU
 - Dashboard de monitoreo
 
-Autor: Sistema SEACABA
+Autor: Sistema SIGeC-Balistica
 Fecha: 2024
 """
 

@@ -77,7 +77,7 @@ git push -u origin main
 - `DOCS/` - Carpeta con documentación técnica completa
 - `DOCS/README.md` - Documentación técnica
 - `DOCS/deployment_summary.md` - Resumen de despliegue
-- `DOCS/plan_desarrollo_seacabar.md` - Plan de desarrollo
+- `DOCS/plan_desarrollo_SIGeC-Balisticar.md` - Plan de desarrollo
 
 ### Código Fuente:
 - `gui/` - Interfaz gráfica de usuario

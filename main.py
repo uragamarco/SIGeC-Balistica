@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-SEACABAr - Sistema Experto de Análisis de Cartuchos y Balas Automático
+SIGeC-Balisticar - Sistema Experto de Análisis de Cartuchos y Balas Automático
 =====================================================================
 
 Aplicación principal que integra todas las funcionalidades del sistema forense balístico:
@@ -10,7 +10,7 @@ Aplicación principal que integra todas las funcionalidades del sistema forense 
 - Gestión de base de datos de evidencia balística
 - Generación de reportes forenses con estándares NIST y conclusiones AFTE
 
-Autor: SEACABAr Team
+Autor: SIGeC-Balisticar Team
 Fecha: Octubre 2025
 Versión: 2.0.0
 """
@@ -156,8 +156,8 @@ def setup_environment():
         logger.debug(f"✓ Directorio: {dir_path}")
     
     # Configurar variables de entorno
-    os.environ['SEACABAR_ROOT'] = str(project_root)
-    os.environ['SEACABAR_DATA'] = str(project_root / "data")
+    os.environ['SIGeC-BalisticaR_ROOT'] = str(project_root)
+    os.environ['SIGeC-BalisticaR_DATA'] = str(project_root / "data")
     
     logger.info("✓ Entorno configurado")
 
@@ -183,14 +183,14 @@ def create_application():
         app = QApplication(sys.argv)
         
         # Configurar propiedades de la aplicación
-        app.setApplicationName("SEACABAr")
-        app.setApplicationDisplayName("SEACABAr - Sistema de Evaluación Automatizada")
+        app.setApplicationName("SIGeC-Balisticar")
+        app.setApplicationDisplayName("SIGeC-Balisticar - Sistema de Evaluación Automatizada")
         app.setApplicationVersion("2.0.0")
-        app.setOrganizationName("SEACABAr Team")
-        app.setOrganizationDomain("seacabar.org")
+        app.setOrganizationName("SIGeC-Balisticar Team")
+        app.setOrganizationDomain("SIGeC-Balisticar.org")
         
         # Configurar icono de la aplicación
-        icon_path = project_root / "resources" / "icons" / "seacabar.png"
+        icon_path = project_root / "resources" / "icons" / "SIGeC-Balisticar.png"
         if icon_path.exists():
             app.setWindowIcon(QIcon(str(icon_path)))
         
@@ -212,11 +212,11 @@ def create_main_window():
     try:
         from PyQt5.QtWidgets import QApplication
         from gui.main_window import MainWindow
-        from gui.styles import apply_seacaba_theme
+        from gui.styles import apply_SIGeC_Balistica_theme
         
         # Aplicar tema
         app = QApplication.instance()
-        apply_seacaba_theme(app)
+        apply_SIGeC_Balistica_theme(app)
         
         # Crear ventana principal
         window = MainWindow()
@@ -285,7 +285,7 @@ def parse_arguments():
     """Parsea argumentos de línea de comandos"""
     
     parser = argparse.ArgumentParser(
-        description="SEACABAr - Sistema de Evaluación Automatizada de Características Biométricas",
+        description="SIGeC-Balisticar - Sistema de Evaluación Automatizada de Características Biométricas",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Ejemplos de uso:
@@ -329,7 +329,7 @@ Ejemplos de uso:
     parser.add_argument(
         '--version',
         action='version',
-        version='SEACABAr 2.0.0'
+        version='SIGeC-Balisticar 2.0.0'
     )
     
     return parser.parse_args()
@@ -405,7 +405,7 @@ def main():
     logger = get_logger("main")
     
     logger.info("=" * 60)
-    logger.info("SEACABAr - Sistema de Evaluación Automatizada")
+    logger.info("SIGeC-Balisticar - Sistema de Evaluación Automatizada")
     logger.info("Versión 2.0.0")
     logger.info("=" * 60)
     
@@ -478,7 +478,7 @@ def main():
         return 1
     
     finally:
-        logger.info("Finalizando SEACABAr...")
+        logger.info("Finalizando SIGeC-Balisticar...")
 
 if __name__ == "__main__":
     exit_code = main()

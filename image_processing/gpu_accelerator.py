@@ -1,6 +1,6 @@
 """
 Aceleración GPU para Algoritmos de Procesamiento de Imágenes
-Sistema Balístico Forense SEACABA
+Sistema Balístico Forense SIGeC-Balistica
 
 Este módulo implementa aceleración GPU para operaciones intensivas de procesamiento
 de imágenes utilizando OpenCV GPU (cv2.cuda) y CuPy para operaciones NumPy.
@@ -13,7 +13,7 @@ Características:
 - Gestión de memoria GPU
 - Benchmarking de rendimiento
 
-Autor: Sistema SEACABA
+Autor: Sistema SIGeC-Balistica
 Fecha: 2024
 """
 

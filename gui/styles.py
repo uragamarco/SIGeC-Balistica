@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Sistema de estilos moderno para SEACABAr
+Sistema de estilos moderno para SIGeC-Balistica
 Implementa Material Design con colores profesionales
 """
 
@@ -8,8 +8,8 @@ from PyQt5.QtWidgets import QApplication
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QFont, QPalette, QColor
 
-class SEACABArTheme:
-    """Tema visual moderno para SEACABAr"""
+class SIGeCBallisticaTheme:
+    """Tema visual moderno para SIGeC-Balistica"""
     
     # Colores principales (Material Design)
     PRIMARY = "#1976D2"          # Azul profesional
@@ -500,37 +500,37 @@ class SEACABArTheme:
         }}
         """
 
-def apply_seacaba_theme(app: QApplication):
-    """Aplica el tema SEACABAr a la aplicación"""
+def apply_SIGeC_Balistica_theme(app: QApplication):
+    """Aplica el tema SIGeC-Balistica a la aplicación"""
     
     # Configurar fuente por defecto
     font = QFont("Segoe UI", 10)
     app.setFont(font)
     
     # Aplicar stylesheet
-    app.setStyleSheet(SEACABArTheme.get_stylesheet())
+    app.setStyleSheet(SIGeCBallisticaTheme.get_stylesheet())
     
     # Configurar paleta de colores
     palette = QPalette()
     
     # Colores de ventana
-    palette.setColor(QPalette.Window, QColor(SEACABArTheme.BACKGROUND))
-    palette.setColor(QPalette.WindowText, QColor(SEACABArTheme.TEXT_PRIMARY))
+    palette.setColor(QPalette.Window, QColor(SIGeCBallisticaTheme.BACKGROUND))
+    palette.setColor(QPalette.WindowText, QColor(SIGeCBallisticaTheme.TEXT_PRIMARY))
     
     # Colores de base
-    palette.setColor(QPalette.Base, QColor(SEACABArTheme.SURFACE))
-    palette.setColor(QPalette.AlternateBase, QColor(SEACABArTheme.SURFACE_VARIANT))
+    palette.setColor(QPalette.Base, QColor(SIGeCBallisticaTheme.SURFACE))
+    palette.setColor(QPalette.AlternateBase, QColor(SIGeCBallisticaTheme.SURFACE_VARIANT))
     
     # Colores de texto
-    palette.setColor(QPalette.Text, QColor(SEACABArTheme.TEXT_PRIMARY))
-    palette.setColor(QPalette.BrightText, QColor(SEACABArTheme.TEXT_ON_PRIMARY))
+    palette.setColor(QPalette.Text, QColor(SIGeCBallisticaTheme.TEXT_PRIMARY))
+    palette.setColor(QPalette.BrightText, QColor(SIGeCBallisticaTheme.TEXT_ON_PRIMARY))
     
     # Colores de botones
-    palette.setColor(QPalette.Button, QColor(SEACABArTheme.PRIMARY))
-    palette.setColor(QPalette.ButtonText, QColor(SEACABArTheme.TEXT_ON_PRIMARY))
+    palette.setColor(QPalette.Button, QColor(SIGeCBallisticaTheme.PRIMARY))
+    palette.setColor(QPalette.ButtonText, QColor(SIGeCBallisticaTheme.TEXT_ON_PRIMARY))
     
     # Colores de highlight
-    palette.setColor(QPalette.Highlight, QColor(SEACABArTheme.PRIMARY))
-    palette.setColor(QPalette.HighlightedText, QColor(SEACABArTheme.TEXT_ON_PRIMARY))
+    palette.setColor(QPalette.Highlight, QColor(SIGeCBallisticaTheme.PRIMARY))
+    palette.setColor(QPalette.HighlightedText, QColor(SIGeCBallisticaTheme.TEXT_ON_PRIMARY))
     
     app.setPalette(palette)

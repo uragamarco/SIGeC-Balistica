@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Pruebas de Integración Completas para SEACABAr.
+Pruebas de Integración Completas para SIGeC-Balisticar.
 Valida que todos los sistemas funcionen correctamente en conjunto.
 """
 
@@ -47,7 +47,7 @@ class TestCompleteIntegration:
         # Configuraciones
         config = {
             'workspace_dir': temp_workspace,
-            'project_name': 'SEACABAr_Test',
+            'project_name': 'SIGeC-Balisticar_Test',
             'enable_notifications': True,
             'enable_metrics': True,
             'enable_telemetry': True,
@@ -554,7 +554,7 @@ class TestClass:
         
         # Verificar configuración de CI/CD
         cicd_config = systems['cicd_system'].config
-        assert cicd_config.project_name == 'SEACABAr_Test'
+        assert cicd_config.project_name == 'SIGeC-Balisticar_Test'
         assert cicd_config.parallel_jobs > 0
         assert cicd_config.cleanup_after_days > 0
 

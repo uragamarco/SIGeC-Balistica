@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Sistema de Seguridad Avanzado para SEACABAr.
+Sistema de Seguridad Avanzado para SIGeC-Balisticar.
 Proporciona autenticación, autorización, auditoría y protección de datos.
 """
 

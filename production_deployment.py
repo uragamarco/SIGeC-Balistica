@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Sistema de Despliegue en Producción para SEACABAr.
+Sistema de Despliegue en Producción para SIGeC-Balisticar.
 Automatiza la preparación, validación y despliegue del sistema completo.
 """
 
@@ -38,17 +38,17 @@ class DeploymentStatus(Enum):
 @dataclass
 class DeploymentConfig:
     """Configuración de despliegue."""
-    project_name: str = "SEACABAr"
+    project_name: str = "SIGeC-Balisticar"
     version: str = "1.0.0"
     environment: str = "production"
     target_platform: str = "linux"
     python_version: str = "3.8+"
     
     # Directorios
-    source_dir: str = "/home/marco/SEACABAr"
-    build_dir: str = "/tmp/seacabar_build"
-    deploy_dir: str = "/home/marco/seacabar_production"
-    backup_dir: str = "/home/marco/seacabar_backups"
+    source_dir: str = "/home/marco/SIGeC-Balisticar"
+    build_dir: str = "/tmp/SIGeC-Balisticar_build"
+    deploy_dir: str = "/home/marco/SIGeC-Balisticar_production"
+    backup_dir: str = "/home/marco/SIGeC-Balisticar_backups"
     
     # Configuraciones de sistema
     create_service: bool = True
@@ -294,7 +294,7 @@ class BuildManager:
                 "debug": False,
                 "logging": {
                     "level": "INFO",
-                    "file": "logs/seacabar.log"
+                    "file": "logs/SIGeC-Balisticar.log"
                 },
                 "security": {
                     "enabled": True,
@@ -419,11 +419,11 @@ class DeploymentManager:
             shutil.copytree(build_path, deploy_path)
             
             # Crear script de inicio
-            startup_script = deploy_path / "start_seacabar.sh"
+            startup_script = deploy_path / "start_SIGeC-Balisticar.sh"
             startup_content = f"""#!/bin/bash
 cd {deploy_path}
 export PYTHONPATH={deploy_path}:$PYTHONPATH
-export SEACABAR_ENV=production
+export SIGeC-BalisticaR_ENV=production
 python main.py "$@"
 """
             
@@ -436,24 +436,24 @@ python main.py "$@"
             # Crear servicio systemd si se solicita
             if self.config.create_service:
                 service_content = f"""[Unit]
-Description=SEACABAr Ballistics Analysis System
+Description=SIGeC-Balisticar Ballistics Analysis System
 After=network.target
 
 [Service]
 Type=simple
-User=seacabar
+User=SIGeC-Balisticar
 WorkingDirectory={deploy_path}
 ExecStart={startup_script}
 Restart=always
 RestartSec=10
 Environment=PYTHONPATH={deploy_path}
-Environment=SEACABAR_ENV=production
+Environment=SIGeC-BalisticaR_ENV=production
 
 [Install]
 WantedBy=multi-user.target
 """
                 
-                service_file = Path("/tmp/seacabar.service")
+                service_file = Path("/tmp/SIGeC-Balisticar.service")
                 with open(service_file, 'w') as f:
                     f.write(service_content)
             
@@ -494,7 +494,7 @@ WantedBy=multi-user.target
             essential_files = [
                 "main.py",
                 "core/__init__.py",
-                "start_seacabar.sh",
+                "start_SIGeC-Balisticar.sh",
                 "config/production.yaml"
             ]
             
@@ -512,7 +512,7 @@ WantedBy=multi-user.target
                 )
             
             # Verificar permisos
-            startup_script = deploy_path / "start_seacabar.sh"
+            startup_script = deploy_path / "start_SIGeC-Balisticar.sh"
             if not os.access(startup_script, os.X_OK):
                 return DeploymentResult(
                     stage=DeploymentStage.VERIFICATION,
@@ -568,7 +568,7 @@ WantedBy=multi-user.target
     async def full_deployment(self) -> List[DeploymentResult]:
         """Ejecutar despliegue completo."""
         
-        print("🚀 Iniciando despliegue de SEACABAr en producción...")
+        print("🚀 Iniciando despliegue de SIGeC-Balisticar en producción...")
         
         # Etapa 1: Validación del sistema
         print("\n📋 Etapa 1: Validando requisitos del sistema...")
@@ -694,7 +694,7 @@ async def main():
         if successful == total:
             print(f"\n🎉 ¡Despliegue completado exitosamente! ({successful}/{total} etapas)")
             print(f"📍 Aplicación desplegada en: {config.deploy_dir}")
-            print(f"🚀 Para iniciar: {config.deploy_dir}/start_seacabar.sh")
+            print(f"🚀 Para iniciar: {config.deploy_dir}/start_SIGeC-Balisticar.sh")
         else:
             print(f"\n⚠️ Despliegue parcialmente completado ({successful}/{total} etapas)")
             failed_stages = [r.stage.value for r in results if r.status == DeploymentStatus.FAILED]

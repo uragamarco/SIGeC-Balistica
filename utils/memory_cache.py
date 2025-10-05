@@ -1,5 +1,5 @@
 """
-Sistema de caché inteligente para optimizar el rendimiento del sistema SEACABAr
+Sistema de caché inteligente para optimizar el rendimiento del sistema SIGeC-Balisticar
 """
 
 import time

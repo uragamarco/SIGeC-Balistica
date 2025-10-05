@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Sistema de CI/CD y Despliegue Automatizado para SEACABAr.
+Sistema de CI/CD y Despliegue Automatizado para SIGeC-Balisticar.
 Proporciona pipelines automatizados, contenedorización y despliegue continuo.
 """
 
@@ -106,7 +106,7 @@ class DeploymentConfig:
 @dataclass
 class CICDConfig:
     """Configuración del sistema CI/CD."""
-    project_name: str = "SEACABAr"
+    project_name: str = "SIGeC-Balisticar"
     repository_url: str = ""
     branch: str = "main"
     workspace_dir: str = "/tmp/cicd_workspace"
@@ -278,7 +278,7 @@ class ContainerManager:
                          requirements_file: str = "requirements.txt") -> str:
         """Crear Dockerfile automático."""
         
-        dockerfile_content = f'''# Dockerfile generado automáticamente para SEACABAr
+        dockerfile_content = f'''# Dockerfile generado automáticamente para SIGeC-Balisticar
 FROM {base_image}
 
 # Configurar directorio de trabajo
@@ -300,8 +300,8 @@ RUN pip install --no-cache-dir -r {requirements_file}
 COPY . .
 
 # Crear usuario no-root
-RUN useradd -m -u 1000 seacabar && chown -R seacabar:seacabar /app
-USER seacabar
+RUN useradd -m -u 1000 SIGeC-Balisticar && chown -R SIGeC-Balisticar:SIGeC-Balisticar /app
+USER SIGeC-Balisticar
 
 # Exponer puerto
 EXPOSE 8000
@@ -558,7 +558,7 @@ class DeploymentManager:
         compose_config = {
             'version': '3.8',
             'services': {
-                'seacabar': {
+                'SIGeC-Balisticar': {
                     'image': f"{deployment_config.image_name}:{deployment_config.image_tag}",
                     'ports': ['8000:8000'],
                     'environment': deployment_config.environment_variables,
@@ -581,7 +581,7 @@ class DeploymentManager:
         
         # Agregar recursos si se especifican
         if deployment_config.resources:
-            compose_config['services']['seacabar']['deploy'] = {
+            compose_config['services']['SIGeC-Balisticar']['deploy'] = {
                 'resources': deployment_config.resources
             }
         
@@ -600,17 +600,17 @@ class DeploymentManager:
             'apiVersion': 'apps/v1',
             'kind': 'Deployment',
             'metadata': {
-                'name': 'seacabar',
-                'labels': {'app': 'seacabar'}
+                'name': 'SIGeC-Balisticar',
+                'labels': {'app': 'SIGeC-Balisticar'}
             },
             'spec': {
                 'replicas': deployment_config.replicas,
-                'selector': {'matchLabels': {'app': 'seacabar'}},
+                'selector': {'matchLabels': {'app': 'SIGeC-Balisticar'}},
                 'template': {
-                    'metadata': {'labels': {'app': 'seacabar'}},
+                    'metadata': {'labels': {'app': 'SIGeC-Balisticar'}},
                     'spec': {
                         'containers': [{
-                            'name': 'seacabar',
+                            'name': 'SIGeC-Balisticar',
                             'image': f"{deployment_config.image_name}:{deployment_config.image_tag}",
                             'ports': [{'containerPort': 8000}],
                             'env': [
@@ -639,11 +639,11 @@ class DeploymentManager:
             'apiVersion': 'v1',
             'kind': 'Service',
             'metadata': {
-                'name': 'seacabar-service',
-                'labels': {'app': 'seacabar'}
+                'name': 'SIGeC-Balisticar-service',
+                'labels': {'app': 'SIGeC-Balisticar'}
             },
             'spec': {
-                'selector': {'app': 'seacabar'},
+                'selector': {'app': 'SIGeC-Balisticar'},
                 'ports': [{'port': 80, 'targetPort': 8000}],
                 'type': 'LoadBalancer'
             }
@@ -698,10 +698,10 @@ kubectl apply -f k8s-deployment.yaml
 kubectl apply -f k8s-service.yaml
 
 # Esperar rollout
-kubectl rollout status deployment/seacabar
+kubectl rollout status deployment/SIGeC-Balisticar
 
 # Verificar pods
-kubectl get pods -l app=seacabar
+kubectl get pods -l app=SIGeC-Balisticar
 
 echo "Despliegue Kubernetes completado exitosamente"
 '''
@@ -781,7 +781,7 @@ echo "Despliegue Kubernetes completado exitosamente"
         try:
             # Despliegue simple para desarrollo
             exit_code, stdout, stderr = await self.executor.execute(
-                f"docker run -d -p 8000:8000 --name seacabar-dev "
+                f"docker run -d -p 8000:8000 --name SIGeC-Balisticar-dev "
                 f"{deployment_config.image_name}:{deployment_config.image_tag}",
                 timeout=300
             )
@@ -862,7 +862,7 @@ echo "Despliegue Kubernetes completado exitosamente"
         try:
             # Rollback usando Kubernetes
             exit_code, stdout, stderr = await self.executor.execute(
-                "kubectl rollout undo deployment/seacabar",
+                "kubectl rollout undo deployment/SIGeC-Balisticar",
                 timeout=300
             )
             
@@ -1241,7 +1241,7 @@ async def run_cicd_pipeline(repository_url: str = "", branch: str = "main",
         'repository_url': repository_url,
         'branch': branch,
         'workspace_dir': workspace_dir,
-        'project_name': 'SEACABAr',
+        'project_name': 'SIGeC-Balisticar',
         'container_platform': ContainerPlatform.DOCKER
     }
     
@@ -1252,7 +1252,7 @@ if __name__ == "__main__":
     # Ejemplo de uso
     import argparse
     
-    parser = argparse.ArgumentParser(description="Sistema CI/CD SEACABAr")
+    parser = argparse.ArgumentParser(description="Sistema CI/CD SIGeC-Balisticar")
     parser.add_argument("--action", choices=["pipeline", "deploy", "github", "gitlab"], 
                        default="pipeline", help="Acción a ejecutar")
     parser.add_argument("--repo", help="URL del repositorio")
@@ -1268,7 +1268,7 @@ if __name__ == "__main__":
         'repository_url': args.repo or "",
         'branch': args.branch,
         'workspace_dir': args.workspace,
-        'project_name': 'SEACABAr',
+        'project_name': 'SIGeC-Balisticar',
         'container_platform': ContainerPlatform.DOCKER,
         'registry_url': 'localhost:5000'
     }

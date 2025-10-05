@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 Pestaña de Base de Datos Balística
-Sistema SEACABAr - Análisis de Cartuchos y Balas Automático
+Sistema SIGeC-Balisticar - Análisis de Cartuchos y Balas Automático
 
 Gestión completa de base de datos balística con:
 - Búsqueda por características balísticas específicas
@@ -1510,8 +1510,8 @@ if __name__ == "__main__":
     app = QApplication(sys.argv)
     
     # Aplicar tema
-    from .styles import apply_seacaba_theme
-    apply_seacaba_theme(app)
+    from .styles import apply_SIGeC_Balistica_theme
+    apply_SIGeC_Balistica_theme(app)
     
     # Crear y mostrar pestaña
     tab = DatabaseTab()

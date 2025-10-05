@@ -1,5 +1,5 @@
 """
-Consolidador de Sistema de Configuración para SEACABAr
+Consolidador de Sistema de Configuración para SIGeC-Balisticar
 Sistema unificado para migrar y consolidar todas las configuraciones dispersas
 
 Este módulo implementa:
@@ -9,7 +9,7 @@ Este módulo implementa:
 - Backup automático de configuraciones existentes
 - Resolución de conflictos entre configuraciones
 
-Autor: Sistema SEACABA
+Autor: Sistema SIGeC-Balistica
 Fecha: 2024
 """
 
@@ -72,7 +72,7 @@ class MigrationReport:
 
 class ConfigConsolidator:
     """
-    Consolidador de configuraciones del sistema SEACABAr
+    Consolidador de configuraciones del sistema SIGeC-Balisticar
     """
     
     def __init__(self, project_root: Optional[Path] = None):

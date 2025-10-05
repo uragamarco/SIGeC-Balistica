@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
 """
-Sistema de Benchmark Completo - SEACABAr
+Sistema de Benchmark Completo - SIGeC-Balisticar
 ========================================
 
 Script para medir el rendimiento del sistema después de las optimizaciones
 implementadas. Incluye benchmarks de memoria, CPU, GPU y operaciones de matching.
 
-Autor: SEACABAr Team
+Autor: SIGeC-Balisticar Team
 Fecha: 2024
 """
 
@@ -360,7 +360,7 @@ class SystemBenchmark:
     def print_summary(self, report: SystemBenchmarkReport):
         """Imprime un resumen del benchmark"""
         print("\n" + "="*60)
-        print("REPORTE DE BENCHMARK DEL SISTEMA SEACABAr")
+        print("REPORTE DE BENCHMARK DEL SISTEMA SIGeC-Balisticar")
         print("="*60)
         print(f"Timestamp: {report.timestamp}")
         print(f"Puntuación General: {report.overall_performance_score:.1f}/100")
@@ -387,7 +387,7 @@ class SystemBenchmark:
 
 def main():
     """Función principal"""
-    print("Iniciando Sistema de Benchmark SEACABAr...")
+    print("Iniciando Sistema de Benchmark SIGeC-Balisticar...")
     
     # Configurar logging
     logging.basicConfig(

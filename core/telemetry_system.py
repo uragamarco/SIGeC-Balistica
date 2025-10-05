@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Sistema de telemetría para SEACABAr.
+Sistema de telemetría para SIGeC-Balisticar.
 Recopila datos de uso, rendimiento y eventos para análisis y mejora del sistema.
 """
 

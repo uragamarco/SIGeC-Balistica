@@ -159,7 +159,7 @@ El proyecto SIGeC-Balistica (Sistema Integrado de Gestión y Control Balístico)
 
 ### Archivos Principales
 ```
-SEACABAr/
+SIGeC-Balisticar/
 ├── main.py                 # Punto de entrada ✅
 ├── config.yaml            # Configuración principal ✅
 ├── requirements.txt        # Dependencias ✅
@@ -223,7 +223,7 @@ SEACABAr/
 
 ## Contacto y Soporte
 
-- **Desarrollador Principal**: Marco (marco@seacabar.dev)
+- **Desarrollador Principal**: Marco (marco@SIGeC-Balisticar.dev)
 - **Repositorio**: GitHub (configurado y listo)
 - **Documentación**: Carpeta `DOCS/`
 - **Issues**: GitHub Issues para reportes

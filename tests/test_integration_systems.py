@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Pruebas de integración para todos los sistemas de SEACABAr.
+Pruebas de integración para todos los sistemas de SIGeC-Balisticar.
 Valida que los componentes funcionen correctamente en conjunto.
 """
 

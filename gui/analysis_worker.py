@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Analysis Worker Thread - SEACABAr GUI
+Analysis Worker Thread - SIGeC-Balisticar GUI
 =====================================
 
 Worker thread para realizar análisis individual de imágenes en segundo plano,
-integrando completamente con el backend existente del sistema SEACABAr.
+integrando completamente con el backend existente del sistema SIGeC-Balisticar.
 
 Características:
 - Procesamiento en hilo separado para mantener la GUI responsiva
@@ -15,7 +15,7 @@ Características:
 - Manejo robusto de errores
 - Progreso detallado en tiempo real
 
-Autor: SEACABAr Team
+Autor: SIGeC-Balisticar Team
 Fecha: Octubre 2025
 """
 

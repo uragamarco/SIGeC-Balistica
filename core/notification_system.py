@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Sistema de notificaciones inteligente para SEACABAr.
+Sistema de notificaciones inteligente para SIGeC-Balisticar.
 Maneja notificaciones de errores, alertas y eventos del sistema.
 """
 

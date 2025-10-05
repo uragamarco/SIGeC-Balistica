@@ -1,5 +1,5 @@
 """
-Pool de Memoria GPU para SEACABAr
+Pool de Memoria GPU para SIGeC-Balisticar
 Sistema de gestión de memoria GPU con pre-allocación y reutilización
 
 Este módulo implementa un sistema de pool de memoria GPU que permite:
@@ -9,7 +9,7 @@ Este módulo implementa un sistema de pool de memoria GPU que permite:
 - Métricas de uso en tiempo real
 - Optimización para operaciones balísticas
 
-Autor: Sistema SEACABA
+Autor: Sistema SIGeC-Balistica
 Fecha: 2024
 """
 

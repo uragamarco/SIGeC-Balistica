@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Comparison Worker Thread - SEACABAr GUI (OPTIMIZADO)
+Comparison Worker Thread - SIGeC-Balisticar GUI (OPTIMIZADO)
 ====================================================
 
 Worker thread optimizado para realizar análisis comparativo de imágenes en segundo plano,
@@ -15,7 +15,7 @@ Optimizaciones implementadas:
 - Pool de threads para operaciones paralelas
 - Cache de resultados intermedios
 
-Autor: SEACABAr Team
+Autor: SIGeC-Balisticar Team
 Fecha: Octubre 2025
 """
 
