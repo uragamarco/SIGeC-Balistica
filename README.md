@@ -1,44 +1,44 @@
-# SEACABAr v2.0.0
+# SIGeC-Balistica v2.0.0
 
-**Sistema de Evaluación Automatizada de Cartuchos de Armas Balísticas**
+**Sistema Integrado de Gestión y Control Balístico**
 
-## 📋 Descripción
+## Descripción
 
-SEACABAr es un sistema avanzado de análisis forense balístico que utiliza técnicas de visión por computadora, aprendizaje automático y análisis estadístico para la identificación y comparación automatizada de cartuchos de armas de fuego. El sistema está diseñado para asistir a peritos forenses en la evaluación de evidencia balística.
+SIGeC-Balistica es un sistema avanzado de análisis forense balístico que utiliza técnicas de visión por computadora, aprendizaje automático y análisis estadístico para la identificación y comparación automatizada de cartuchos de armas de fuego. El sistema está diseñado para asistir a peritos forenses en la evaluación de evidencia balística.
 
-## ✨ Características Principales
+## Características Principales
 
-### 🔍 Análisis de Imágenes
+### Análisis de Imágenes
 - **Procesamiento avanzado de imágenes**: Algoritmos optimizados para análisis de cartuchos
 - **Detección automática de ROI**: Identificación inteligente de regiones de interés
 - **Múltiples algoritmos**: ORB, SIFT, LBP y técnicas híbridas
 - **Soporte multi-formato**: JPG, PNG, TIFF, BMP
 
-### 🎯 Matching y Comparación
+### Matching y Comparación
 - **Algoritmos unificados**: Sistema de matching híbrido optimizado
 - **Análisis CMC**: Implementación de Cumulative Match Characteristic
 - **Matching paralelo**: Procesamiento multi-hilo para mejor rendimiento
 - **Validación estadística**: Análisis de confiabilidad y precisión
 
-### 🗄️ Base de Datos
+### Base de Datos
 - **SQLite optimizado**: Base de datos local de alto rendimiento
 - **Índices FAISS**: Búsqueda vectorial ultra-rápida
 - **Backup automático**: Sistema de respaldo y recuperación
 - **Escalabilidad**: Manejo eficiente de grandes volúmenes de datos
 
-### 📊 Análisis Estadístico
+### Análisis Estadístico
 - **Integración NIST**: Compatibilidad con estándares NIST
 - **Visualizaciones avanzadas**: Gráficos interactivos y reportes
 - **Métricas forenses**: Análisis de calidad y confiabilidad
 - **Exportación de reportes**: Formatos PDF, HTML, Excel
 
-### 🖥️ Interfaz Gráfica
+### Interfaz Gráfica
 - **PyQt5**: Interfaz moderna y responsiva
 - **Diseño intuitivo**: Flujo de trabajo optimizado para peritos
 - **Visualización en tiempo real**: Resultados inmediatos
 - **Configuración flexible**: Parámetros ajustables por el usuario
 
-## 🚀 Instalación
+## Instalación
 
 ### Requisitos del Sistema
 - **Python**: 3.8 o superior
@@ -65,10 +65,10 @@ Principales librerías:
 3. Configurar `config.yaml` según necesidades
 4. Ejecutar `python main.py`
 
-## 📁 Estructura del Proyecto
+## Estructura del Proyecto
 
 ```
-SEACABAr/
+SIGeC-Balistica/
 ├── api/                    # API y sistema de optimización
 ├── assets/                 # Recursos gráficos
 ├── common/                 # Módulos compartidos
@@ -85,7 +85,7 @@ SEACABAr/
 └── main.py                 # Punto de entrada
 ```
 
-## 🔧 Uso
+## Uso
 
 ### Inicio Rápido
 ```bash
@@ -106,7 +106,7 @@ El archivo `config.yaml` permite personalizar:
 - Opciones de interfaz
 - Niveles de logging
 
-## 📈 Rendimiento
+## Rendimiento
 
 ### Benchmarks
 - **Procesamiento**: ~2-5 segundos por imagen (CPU)
@@ -120,7 +120,7 @@ El archivo `config.yaml` permite personalizar:
 - Índices vectoriales FAISS
 - Gestión eficiente de memoria
 
-## 🧪 Testing
+## Testing
 
 ```bash
 # Ejecutar todas las pruebas
@@ -138,7 +138,7 @@ pytest tests/performance/
 - Pruebas de rendimiento: Benchmarks
 - Pruebas de GUI: Interfaz de usuario
 
-## 📊 Validación Científica
+## Validación Científica
 
 ### Estándares NIST
 - Compatibilidad con NIST Ballistics Toolmark Database
@@ -152,14 +152,14 @@ pytest tests/performance/
 - **F1-Score**: Medida armónica
 - **CMC**: Curvas de matching acumulativo
 
-## 🔒 Seguridad
+## Seguridad
 
 - Manejo seguro de datos sensibles
 - Logging auditado
 - Validación de entrada
 - Gestión de errores robusta
 
-## 📝 Documentación
+## Documentación
 
 ### Documentos Técnicos
 - `DOCS/README.md`: Documentación completa
@@ -169,7 +169,7 @@ pytest tests/performance/
 ### API Reference
 Documentación completa de APIs disponible en el código fuente con docstrings detallados.
 
-## 🤝 Contribución
+## Contribución
 
 ### Desarrollo
 1. Fork del repositorio
@@ -184,28 +184,28 @@ Documentación completa de APIs disponible en el código fuente con docstrings d
 - Type hints recomendados
 - Cobertura de pruebas > 80%
 
-## 📄 Licencia
+## Licencia
 
 Este proyecto está bajo licencia MIT. Ver `LICENSE` para más detalles.
 
 ## 👥 Autores
 
-- **Marco** - Desarrollo principal - marco@seacabar.dev
+- **Marco** - Desarrollo principal - marco@sigec-balistica.dev
 
-## 🙏 Agradecimientos
+## Agradecimientos
 
 - Comunidad NIST por estándares y datasets
 - Contribuidores de OpenCV y scikit-image
 - Equipo de desarrollo de PyQt5
 - Comunidad forense por feedback y validación
 
-## 📞 Soporte
+## Soporte
 
 Para soporte técnico o consultas:
-- **Email**: marco@seacabar.dev
+- **Email**: marco@sigec-balistica.dev
 - **Issues**: GitHub Issues
 - **Documentación**: Ver carpeta `DOCS/`
 
 ---
 
-**SEACABAr v2.0.0** - Sistema de Evaluación Automatizada de Cartuchos de Armas Balísticas
+**SIGeC-Balistica v2.0.0** - Sistema Integrado de Gestión y Control Balístico

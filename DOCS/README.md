@@ -1,10 +1,10 @@
-# SEACABAr - Sistema Experto de Análisis de Cartuchos y Balas Automático
+# SIGeC-Balistica - Sistema Integrado de Gestión y Control Balístico
 
-Sistema experto para el análisis forense automatizado de cartuchos y balas utilizando técnicas de visión por computadora, aprendizaje automático y deep learning.
+Sistema integrado para el análisis forense automatizado de cartuchos y balas utilizando técnicas de visión por computadora, aprendizaje automático y deep learning.
 
 ## Descripción
 
-SEACABAr es una herramienta avanzada de análisis balístico forense que permite:
+SIGeC-Balistica es una herramienta avanzada de análisis balístico forense que permite:
 
 - Extracción automática de características de cartuchos y balas
 - Comparación y matching de evidencia balística
@@ -15,7 +15,7 @@ SEACABAr es una herramienta avanzada de análisis balístico forense que permite
 ## Estructura del Proyecto
 
 ```
-SEACABAr/
+SIGeC-Balistica/
 ├── assets/                     # Recursos e imágenes de prueba
 ├── database/                   # Gestión de base de datos y vectores
 ├── deep_learning/              # Modelos de deep learning
@@ -36,7 +36,7 @@ SEACABAr/
 1. Clonar el repositorio:
 ```bash
 git clone <repository-url>
-cd SEACABAr
+cd SIGeC-Balistica
 ```
 
 2. Crear entorno virtual:

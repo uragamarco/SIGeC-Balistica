@@ -90,10 +90,10 @@ class APIEndpointDoc:
 @dataclass
 class DocumentationConfig:
     """Configuración del sistema de documentación."""
-    project_name: str = "SEACABAr"
-    version: str = "1.0.0"
-    description: str = "Sistema de Análisis de Contenido Audiovisual Basado en IA"
-    author: str = "Equipo SEACABAr"
+    project_name: str = "SIGeC-Balistica"
+    version: str = "0.1.3"
+    description: str = "Sistema Integrado de Gestión y Control Balístico"
+    author: str = "Equipo SIGeC-Balistica"
     output_dir: str = "docs/generated"
     template_dir: str = "docs/templates"
     include_private: bool = False

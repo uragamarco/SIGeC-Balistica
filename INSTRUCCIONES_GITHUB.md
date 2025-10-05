@@ -1,11 +1,16 @@
-# Instrucciones para Crear Repositorio GitHub - SEACABAr
+# Instrucciones para Crear Repositorio GitHub - SIGeC-Balistica
 
-## 📋 Pasos para Crear el Repositorio en GitHub
+## Información del Proyecto
+- **Nombre**: SIGeC-Balistica
+- **Descripción**: Sistema Integral de Gestión Criminalística - Módulo Balístico
+- **Versión**: v0.1.3
+- **Tipo**: Repositorio público
 
-### Opción 1: Usando la Interfaz Web de GitHub
+## Opción 1: Crear Repositorio desde la Interfaz Web de GitHub
 
-1. **Ir a GitHub.com**
-   - Navegar a https://github.com
+### Pasos:
+1. **Acceder a GitHub**
+   - Ir a https://github.com
    - Iniciar sesión en tu cuenta
 
 2. **Crear Nuevo Repositorio**
@@ -13,144 +18,178 @@
    - Seleccionar "New repository"
 
 3. **Configurar el Repositorio**
-   - **Repository name**: `SEACABAr`
-   - **Description**: `Sistema de Evaluación Automatizada de Cartuchos de Armas Balísticas - Forensic Ballistics Analysis System`
+   - **Repository name**: `SIGeC-Balistica`
+   - **Description**: `Sistema Integral de Gestión Criminalística - Módulo Balístico v0.1.3`
    - **Visibility**: Public ✅
    - **Initialize repository**: NO marcar ninguna opción (ya tenemos archivos locales)
 
 4. **Crear el Repositorio**
    - Hacer clic en "Create repository"
 
-### Opción 2: Instalar GitHub CLI (Recomendado)
+## Opción 2: Crear Repositorio usando GitHub CLI
 
+### Prerrequisitos:
 ```bash
-# Instalar GitHub CLI
+# Instalar GitHub CLI (si no está instalado)
+# Ubuntu/Debian:
+sudo apt update
 sudo apt install gh
+
+# O usando snap:
+sudo snap install gh
 
 # Autenticarse
 gh auth login
-
-# Crear repositorio
-gh repo create SEACABAr --public --description "Sistema de Evaluación Automatizada de Cartuchos de Armas Balísticas - Forensic Ballistics Analysis System" --source=.
 ```
 
-## 🔗 Conectar Repositorio Local con GitHub
+### Comando para crear el repositorio:
+```bash
+gh repo create SIGeC-Balistica --public --description "Sistema Integral de Gestión Criminalística - Módulo Balístico v0.1.3"
+```
 
-Una vez creado el repositorio en GitHub, ejecutar estos comandos en la terminal:
+## Conectar Repositorio Local con GitHub
+
+### Una vez creado el repositorio en GitHub, ejecutar:
 
 ```bash
-# Navegar al directorio del proyecto
-cd /home/marco/SEACABAr
+# Agregar el remote origin
+git remote add origin https://github.com/TU_USUARIO/SIGeC-Balistica.git
 
-# Agregar el repositorio remoto (reemplazar USERNAME con tu usuario de GitHub)
-git remote add origin https://github.com/USERNAME/SEACABAr.git
-
-# Verificar que el remoto se agregó correctamente
+# Verificar que el remote se agregó correctamente
 git remote -v
 
-# Subir el código al repositorio
+# Hacer push de la rama principal
+git branch -M main
 git push -u origin main
 ```
 
-## 📁 Archivos que se Subirán
+## Archivos Incluidos en el Repositorio
 
-### ✅ Archivos Incluidos
-- Todo el código fuente del proyecto
-- Documentación (README.md, INFORME_ESTADO_PROYECTO.md)
-- Archivos de configuración
-- Tests y utilidades
-- Dependencias (requirements.txt)
+### Archivos Principales:
+- `README.md` - Documentación principal del proyecto
+- `main.py` - Archivo principal de la aplicación
+- `requirements.txt` - Dependencias de Python
+- `config.yaml` - Configuración principal
+- `pytest.ini` - Configuración de pruebas
 
-### ❌ Archivos Excluidos (por .gitignore)
-- `uploads/` - Datos de muestra sensibles
-- `venv_test/` - Entorno virtual de desarrollo
-- `cache/` - Archivos temporales
-- `data/` - Datos de usuario
-- `database/ballistics.db*` - Base de datos local
-- `config/backups/` - Respaldos de configuración
-- Archivos de logs y temporales
+### Documentación:
+- `INFORME_ESTADO_PROYECTO.md` - Estado actual del desarrollo
+- `DOCS/` - Carpeta con documentación técnica completa
+- `DOCS/README.md` - Documentación técnica
+- `DOCS/deployment_summary.md` - Resumen de despliegue
+- `DOCS/plan_desarrollo_seacabar.md` - Plan de desarrollo
 
-## 🏷️ Configuración Adicional Recomendada
+### Código Fuente:
+- `gui/` - Interfaz gráfica de usuario
+- `core/` - Núcleo del sistema
+- `image_processing/` - Procesamiento de imágenes
+- `matching/` - Algoritmos de comparación
+- `nist_standards/` - Estándares NIST
+- `database/` - Sistema de base de datos
+- `deep_learning/` - Modelos de aprendizaje profundo
+- `common/` - Utilidades comunes
+- `utils/` - Herramientas auxiliares
 
-### Topics/Tags para el Repositorio
-Agregar estos topics en GitHub para mejor descubrimiento:
-- `forensics`
-- `ballistics`
-- `computer-vision`
-- `image-processing`
-- `pyqt5`
-- `opencv`
-- `machine-learning`
-- `nist-standards`
-- `forensic-science`
-- `ballistic-analysis`
+### Archivos de Configuración:
+- `config/` - Configuraciones del sistema
+- `scripts/` - Scripts de utilidad
+- `tests/` - Suite de pruebas
 
-### Configurar Branch Protection (Opcional)
-Para proyectos colaborativos:
-1. Ir a Settings → Branches
-2. Agregar regla para `main` branch
-3. Configurar protecciones según necesidades
+### Archivos Excluidos (.gitignore):
+- `__pycache__/` - Cache de Python
+- `*.pyc` - Archivos compilados de Python
+- `.pytest_cache/` - Cache de pytest
+- `logs/` - Archivos de log
+- `temp/` - Archivos temporales
+- `.env` - Variables de entorno
+- `INSTRUCCIONES_GITHUB.md` - Este archivo de instrucciones
 
-### Configurar Issues Templates (Opcional)
-Crear templates para:
-- Bug reports
-- Feature requests
-- Documentation improvements
+## Configuraciones Adicionales Recomendadas
 
-## 📊 Verificación Post-Subida
+### 1. Configurar Topics (Etiquetas)
+En la página del repositorio en GitHub:
+- Ir a "Settings" → "General"
+- En la sección "Topics", agregar:
+  - `balistica`
+  - `forense`
+  - `criminalistica`
+  - `python`
+  - `opencv`
+  - `nist-standards`
+  - `image-processing`
+  - `deep-learning`
 
-Después de subir el código, verificar:
+### 2. Configurar Branch Protection
+- Ir a "Settings" → "Branches"
+- Agregar regla para la rama `main`:
+  - ✅ Require pull request reviews before merging
+  - ✅ Require status checks to pass before merging
 
-1. **Archivos principales presentes**:
-   - ✅ README.md
-   - ✅ INFORME_ESTADO_PROYECTO.md
-   - ✅ main.py
-   - ✅ requirements.txt
-   - ✅ config.yaml
+### 3. Configurar Issues Templates
+- Crear templates para:
+  - Bug reports
+  - Feature requests
+  - Documentation improvements
 
-2. **Estructura de carpetas correcta**:
-   - ✅ gui/
-   - ✅ database/
-   - ✅ matching/
-   - ✅ core/
-   - ✅ tests/
+## Verificación Post-Subida
 
-3. **Archivos sensibles excluidos**:
-   - ❌ uploads/ (no debe aparecer)
-   - ❌ venv_test/ (no debe aparecer)
-   - ❌ *.db files (no deben aparecer)
-
-## 🚀 Comandos de Referencia Rápida
-
+### Verificar que todo se subió correctamente:
 ```bash
-# Estado del repositorio
+# Verificar el estado del repositorio
 git status
 
-# Ver archivos que se subirán
-git ls-files
+# Ver el historial de commits
+git log --oneline -10
 
-# Ver archivos ignorados
-git ls-files --others --ignored --exclude-standard
+# Verificar archivos remotos
+git ls-remote origin
+```
 
-# Subir cambios futuros
+### Verificar en GitHub:
+1. **Archivos**: Confirmar que todos los archivos están presentes
+2. **README**: Verificar que se muestra correctamente en la página principal
+3. **Releases**: Considerar crear un release para v0.1.3
+4. **Issues**: Verificar que están habilitados
+5. **Wiki**: Considerar habilitar para documentación adicional
+
+## Comandos de Referencia Rápida
+
+```bash
+# Clonar el repositorio (para otros desarrolladores)
+git clone https://github.com/TU_USUARIO/SIGeC-Balistica.git
+
+# Actualizar repositorio local
+git pull origin main
+
+# Agregar cambios y hacer commit
 git add .
 git commit -m "Descripción del cambio"
 git push origin main
 
-# Clonar el repositorio (para otros usuarios)
-git clone https://github.com/USERNAME/SEACABAr.git
+# Crear y cambiar a nueva rama
+git checkout -b nueva-funcionalidad
+git push -u origin nueva-funcionalidad
+
+# Ver estado del repositorio
+git status
+git log --oneline -5
 ```
 
-## 📞 Soporte
+## Información de Soporte
 
-Si encuentras problemas:
-1. Verificar que Git esté configurado correctamente
-2. Verificar conexión a internet
-3. Verificar permisos de GitHub
-4. Consultar documentación de Git/GitHub
+- **Documentación**: Ver carpeta `DOCS/` para documentación técnica completa
+- **Issues**: Usar el sistema de issues de GitHub para reportar problemas
+- **Contribuciones**: Ver `README.md` para guías de contribución
+- **Licencia**: Verificar archivo de licencia en el repositorio
+
+## Notas Importantes
+
+1. **Seguridad**: No incluir credenciales, API keys o información sensible
+2. **Tamaño**: El repositorio actual es aproximadamente 50MB
+3. **Compatibilidad**: Compatible con Python 3.8+
+4. **Dependencias**: Ver `requirements.txt` para lista completa
+5. **Testing**: Ejecutar `pytest` antes de hacer push
 
 ---
 
-**Nota**: Reemplazar `USERNAME` con tu nombre de usuario real de GitHub en todos los comandos.
-
-*Instrucciones generadas para SEACABAr v2.0.0*
+**SIGeC-Balistica v0.1.3** - Sistema Integral de Gestión Criminalística - Módulo Balístico

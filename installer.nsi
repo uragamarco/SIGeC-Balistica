@@ -1,17 +1,17 @@
 
-; SEACABAr Installer Script
-; Sistema de Análisis Balístico Automatizado
+; SIGeC-Balistica Installer Script
+; Sistema Integral de Gestión Criminalística - Módulo Balístico
 
-!define APPNAME "SEACABAr"
+!define APPNAME "SIGeC-Balistica"
 !define COMPANYNAME "Laboratorio de Balística Forense"
-!define DESCRIPTION "Sistema de Análisis Balístico Automatizado"
-!define VERSIONMAJOR 1
-!define VERSIONMINOR 0
-!define VERSIONBUILD 0
+!define DESCRIPTION "Sistema Integral de Gestión Criminalística - Módulo Balístico"
+!define VERSIONMAJOR 0
+!define VERSIONMINOR 1
+!define VERSIONBUILD 3
 
-!define HELPURL "https://github.com/seacabar/seacabar"
-!define UPDATEURL "https://github.com/seacabar/seacabar/releases"
-!define ABOUTURL "https://github.com/seacabar/seacabar"
+!define HELPURL "https://github.com/sigec-balistica/sigec-balistica"
+!define UPDATEURL "https://github.com/sigec-balistica/sigec-balistica/releases"
+!define ABOUTURL "https://github.com/sigec-balistica/sigec-balistica"
 
 !define INSTALLSIZE 500000
 
@@ -21,7 +21,7 @@ InstallDir "$PROGRAMFILES\${APPNAME}"
 
 Name "${APPNAME}"
 Icon "assets\icon.ico"
-outFile "SEACABAr_Installer.exe"
+outFile "SIGeC-Balistica_Installer.exe"
 
 !include LogicLib.nsh
 
@@ -44,19 +44,19 @@ function .onInit
     !insertmacro VerifyUserIsAdmin
 functionEnd
 
-section "SEACABAr (requerido)"
+section "SIGeC-Balistica (requerido)"
     sectionIn RO
     setOutPath $INSTDIR
     
     ; Copiar archivos del programa
-    file /r "dist\SEACABAr\*"
+    file /r "dist\SIGeC-Balistica\*"
     
     ; Crear acceso directo en el escritorio
-    createShortCut "$DESKTOP\${APPNAME}.lnk" "$INSTDIR\SEACABAr.exe"
+    createShortCut "$DESKTOP\${APPNAME}.lnk" "$INSTDIR\SIGeC-Balistica.exe"
     
     ; Crear acceso directo en el menú inicio
     createDirectory "$SMPROGRAMS\${APPNAME}"
-    createShortCut "$SMPROGRAMS\${APPNAME}\${APPNAME}.lnk" "$INSTDIR\SEACABAr.exe"
+    createShortCut "$SMPROGRAMS\${APPNAME}\${APPNAME}.lnk" "$INSTDIR\SIGeC-Balistica.exe"
     createShortCut "$SMPROGRAMS\${APPNAME}\Desinstalar.lnk" "$INSTDIR\uninstall.exe"
     
     ; Registro de Windows
@@ -64,7 +64,7 @@ section "SEACABAr (requerido)"
     writeRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\${APPNAME}" "UninstallString" "$INSTDIR\uninstall.exe"
     writeRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\${APPNAME}" "QuietUninstallString" "$INSTDIR\uninstall.exe /S"
     writeRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\${APPNAME}" "InstallLocation" "$INSTDIR"
-    writeRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\${APPNAME}" "DisplayIcon" "$INSTDIR\SEACABAr.exe"
+    writeRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\${APPNAME}" "DisplayIcon" "$INSTDIR\SIGeC-Balistica.exe"
     writeRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\${APPNAME}" "Publisher" "${COMPANYNAME}"
     writeRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\${APPNAME}" "HelpLink" "${HELPURL}"
     writeRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\${APPNAME}" "URLUpdateInfo" "${UPDATEURL}"

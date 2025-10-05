@@ -1,4 +1,4 @@
-# SEACABAr - Sistema Experto de Análisis Comparativo de Armas Balísticas
+# SIGeC-Balistica - Sistema Integrado de Gestión y Control Balístico
 # Archivo unificado de dependencias
 # Versión: 2.0.0
 

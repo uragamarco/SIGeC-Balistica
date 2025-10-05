@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Diálogo de Ayuda - SEACABAr
-===========================
+Diálogo de Ayuda - SIGeC-Balistica
+==================================
 
 Sistema completo de ayuda y documentación que incluye:
 - Guía de usuario paso a paso
@@ -12,7 +12,7 @@ Sistema completo de ayuda y documentación que incluye:
 - Información del sistema
 - Soporte técnico
 
-Autor: SEACABAr Team
+Autor: SIGeC-Balistica Team
 Fecha: Octubre 2025
 """
 
@@ -193,9 +193,9 @@ class UserGuideWidget(HelpContentWidget):
     def get_introduction_content(self) -> str:
         """Contenido de introducción"""
         return """
-        <h2>Bienvenido a SEACABAr</h2>
+        <h2>Bienvenido a SIGeC-Balistica</h2>
         
-        <p><strong>SEACABAr</strong> es un sistema avanzado de análisis de huellas dactilares que combina 
+        <p><strong>SIGeC-Balistica</strong> es un sistema avanzado de análisis balístico forense que combina 
         técnicas estadísticas modernas con estándares NIST para proporcionar análisis forenses precisos 
         y confiables.</p>
         
@@ -242,7 +242,7 @@ class UserGuideWidget(HelpContentWidget):
         </ol>
         
         <h3>Primera Configuración</h3>
-        <p>Al iniciar SEACABAr por primera vez:</p>
+        <p>Al iniciar SIGeC-Balistica por primera vez:</p>
         <ol>
             <li>Se ejecutará el asistente de configuración inicial</li>
             <li>Configure la ruta de la base de datos</li>
@@ -633,19 +633,19 @@ class FAQWidget(HelpContentWidget):
         return """
         <h2>Preguntas Generales</h2>
         
-        <h3>¿Qué es SEACABAr?</h3>
-        <p>SEACABAr es un sistema avanzado de análisis estadístico de huellas dactilares que combina 
+        <h3>¿Qué es SIGeC-Balistica?</h3>
+        <p>SIGeC-Balistica es un sistema avanzado de análisis balístico forense que combina 
         técnicas modernas de procesamiento de imágenes con estándares NIST para análisis forenses.</p>
         
         <h3>¿Qué formatos de imagen soporta?</h3>
-        <p>SEACABAr soporta PNG, JPEG, TIFF, BMP y WSQ. Se recomienda PNG para mejor calidad.</p>
+        <p>SIGeC-Balistica soporta PNG, JPEG, TIFF, BMP y WSQ. Se recomienda PNG para mejor calidad.</p>
         
         <h3>¿Es compatible con estándares NIST?</h3>
-        <p>Sí, SEACABAr está completamente integrado con estándares NIST y puede generar reportes 
+        <p>Sí, SIGeC-Balistica está completamente integrado con estándares NIST y puede generar reportes 
         compatibles con requisitos forenses.</p>
         
-        <h3>¿Puedo usar SEACABAr en modo offline?</h3>
-        <p>Sí, SEACABAr funciona completamente offline. Solo requiere conexión para actualizaciones 
+        <h3>¿Puedo usar SIGeC-Balistica en modo offline?</h3>
+        <p>Sí, SIGeC-Balistica funciona completamente offline. Solo requiere conexión para actualizaciones 
         y sincronización con servicios externos opcionales.</p>
         
         <h3>¿Qué precisión tiene el sistema?</h3>
@@ -906,7 +906,7 @@ class SystemInfoWidget(HelpContentWidget):
 INFORMACIÓN DEL SISTEMA
 ======================
 
-Aplicación: SEACABAr v1.0.0
+Aplicación: SIGeC-Balistica v0.1.3
 Fecha de compilación: Octubre 2025
 
 SISTEMA OPERATIVO

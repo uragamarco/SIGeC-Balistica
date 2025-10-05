@@ -1,8 +1,8 @@
-# Plan de Desarrollo SEACABAr - Optimizaciones y Mejoras
+# Plan de Desarrollo SIGeC-Balistica - Optimizaciones y Mejoras
 
 ## Resumen Ejecutivo
 
-Este documento presenta el plan de desarrollo para implementar las optimizaciones críticas identificadas en el análisis del sistema SEACABAr. Las mejoras están organizadas en 5 fases principales con prioridades definidas para maximizar el impacto en el rendimiento y la estabilidad del sistema.
+Este documento presenta el plan de desarrollo para implementar las optimizaciones críticas identificadas en el análisis del sistema SIGeC-Balistica. Las mejoras están organizadas en 5 fases principales con prioridades definidas para maximizar el impacto en el rendimiento y la estabilidad del sistema.
 
 ## Objetivos del Plan
 
