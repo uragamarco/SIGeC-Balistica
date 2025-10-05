@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 """
 Script de Pruebas Integral para Módulos de Procesamiento de Imágenes
-Sistema Balístico Forense SEACABAr
+Sistema Balístico Forense SIGeC-Balistica
 
 Este script realiza pruebas exhaustivas de todos los módulos de procesamiento
 de imágenes utilizando las muestras NIST FADB disponibles.
@@ -33,7 +33,7 @@ import matplotlib.pyplot as plt
 import pandas as pd
 
 # Agregar el directorio raíz al path
-sys.path.append('/home/marco/SEACABAr')
+sys.path.append('/home/marco/SIGeC-Balistica')
 
 # Importar módulos del sistema
 try:

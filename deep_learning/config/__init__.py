@@ -1,5 +1,5 @@
 """
-Sistema de Configuración para Deep Learning SEACABAr
+Sistema de Configuración para Deep Learning SIGeC-Balistica
 ===================================================
 
 Este módulo proporciona un sistema completo de configuración
@@ -11,12 +11,12 @@ Componentes principales:
 - Configuración de entrenamiento y evaluación
 - Perfiles de configuración predefinidos
 
-Autor: SEACABAr Team
+Autor: SIGeC-BalisticaTeam
 Versión: 1.0.0
 """
 
 __version__ = "1.0.0"
-__author__ = "SEACABAr Team"
+__author__ = "SIGeC-BalisticaTeam"
 
 # Importar componentes principales
 from .experiment_config import (

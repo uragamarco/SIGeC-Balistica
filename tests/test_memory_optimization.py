@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Tests de optimización de memoria para SEACABAr
+Tests de optimización de memoria para SIGeC-Balistica
 Valida el uso eficiente de memoria en procesamiento de imágenes por chunks
 """
 

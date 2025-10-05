@@ -1,14 +1,14 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Pruebas para el Sistema de Configuración Unificado - SEACABAr
+Pruebas para el Sistema de Configuración Unificado - SIGeC-Balistica
 ============================================================
 
 Suite completa de pruebas para validar el funcionamiento del sistema
 de configuración unificado, incluyendo validación, migración, y
 compatibilidad con configuraciones legacy.
 
-Autor: SEACABAr Team
+Autor: SIGeC-BalisticaTeam
 Fecha: Diciembre 2024
 """
 
@@ -351,12 +351,12 @@ class TestUnifiedConfig:
         (self.temp_path / "matching").mkdir()
         
         # Probar entorno de producción
-        with patch.dict(os.environ, {'SEACABAR_ENV': 'production'}):
+        with patch.dict(os.environ, {'SIGeC-Balistica_ENV': 'production'}):
             config = UnifiedConfig()
             assert config.environment == Environment.PRODUCTION
         
         # Probar entorno de testing
-        with patch.dict(os.environ, {'SEACABAR_ENV': 'testing'}):
+        with patch.dict(os.environ, {'SIGeC-Balistica_ENV': 'testing'}):
             config = UnifiedConfig()
             assert config.environment == Environment.TESTING
     
@@ -602,7 +602,7 @@ class TestLegacyMigration:
             shutil.rmtree(config_dir)
         
         # También limpiar el archivo de configuración global si existe
-        global_config = Path("/home/marco/SEACABAr/config/unified_config.yaml")
+        global_config = Path("/home/marco/SIGeC-Balistica/config/unified_config.yaml")
         if global_config.exists():
             global_config.unlink()
     

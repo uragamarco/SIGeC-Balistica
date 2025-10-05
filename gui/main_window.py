@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Ventana principal de SEACABAr
+Ventana principal de SIGeC-Balistica
 Interfaz moderna con tabs para análisis, comparación, base de datos y reportes
 """
 
@@ -23,12 +23,12 @@ except ImportError:
     class GUIConfig:
         WINDOW_WIDTH = 1200
         WINDOW_HEIGHT = 800
-        WINDOW_TITLE = "SEACABAr - Sistema de Análisis Forense"
+        WINDOW_TITLE = "SIGeC-Balistica- Sistema de Análisis Forense"
         THEME = "modern"
         LANGUAGE = "es"
 
 # Importar estilos y widgets
-from .styles import SEACABArTheme, apply_seacaba_theme
+from .styles import SIGeC-BalisticaTheme, apply_seacaba_theme
 from .shared_widgets import StepIndicator, ProgressCard
 from .settings_dialog import SettingsDialog
 from .history_dialog import HistoryDialog
@@ -36,7 +36,7 @@ from .help_dialog import HelpDialog
 from .about_dialog import AboutDialog
 
 class MainWindow(QMainWindow):
-    """Ventana principal de la aplicación SEACABAr"""
+    """Ventana principal de la aplicación SIGeC-Balistica"""
     
     # Señales para comunicación entre componentes
     analysisRequested = pyqtSignal(dict)
@@ -46,7 +46,7 @@ class MainWindow(QMainWindow):
     
     def __init__(self):
         super().__init__()
-        self.theme = SEACABArTheme()
+        self.theme = SIGeC-BalisticaTheme()
         self.current_analysis = None
         self.setup_ui()
         self.setup_menu_bar()
@@ -98,7 +98,7 @@ class MainWindow(QMainWindow):
         title_container = QVBoxLayout()
         title_container.setSpacing(0)
         
-        title_label = QLabel("SEACABAr")
+        title_label = QLabel("SIGeC-Balistica")
         title_label.setProperty("class", "title")
         title_container.addWidget(title_label)
         
@@ -293,7 +293,7 @@ class MainWindow(QMainWindow):
         
         help_menu.addSeparator()
         
-        about_action = QAction("&Acerca de SEACABAr", self)
+        about_action = QAction("&Acerca de SIGeC-Balistica", self)
         about_action.triggered.connect(self.show_about)
         help_menu.addAction(about_action)
         
@@ -390,7 +390,7 @@ class MainWindow(QMainWindow):
             backup_path, _ = QFileDialog.getSaveFileName(
                 self,
                 "Guardar Respaldo de Base de Datos",
-                f"seacabar_backup_{datetime.now().strftime('%Y%m%d_%H%M%S')}.db",
+                f"SIGeC-Balistica_backup_{datetime.now().strftime('%Y%m%d_%H%M%S')}.db",
                 "Base de Datos (*.db);;Todos los archivos (*)"
             )
             

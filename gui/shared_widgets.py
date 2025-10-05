@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Widgets compartidos para la interfaz SEACABAr
+Widgets compartidos para la interfaz SIGeC-Balistica
 Componentes reutilizables con diseño moderno
 """
 

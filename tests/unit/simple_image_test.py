@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 """
 Script de Pruebas Simplificado para Análisis de Módulos de Procesamiento de Imágenes
-Sistema Balístico Forense SEACABAr
+Sistema Balístico Forense SIGeC-Balistica
 
 Este script analiza el estado de los módulos de procesamiento de imágenes
 y realiza pruebas básicas con las muestras NIST FADB disponibles.
@@ -20,7 +20,7 @@ from typing import Dict, List, Tuple, Optional, Any
 from datetime import datetime
 
 # Agregar el directorio raíz al path
-sys.path.append('/home/marco/SEACABAr')
+sys.path.append('/home/marco/SIGeC-Balistica')
 
 class SimpleImageTester:
     """Clase simplificada para probar módulos de procesamiento de imágenes"""

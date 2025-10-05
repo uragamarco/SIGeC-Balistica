@@ -1,11 +1,11 @@
 """
-Configuración de Experimentos para Deep Learning SEACABAr
+Configuración de Experimentos para Deep Learning SIGeC-Balistica
 ========================================================
 
 Este módulo define las clases de configuración para experimentos,
 modelos, entrenamiento, datos y evaluación del sistema de deep learning.
 
-Autor: SEACABAr Team
+Autor: SIGeC-BalisticaTeam
 """
 
 import os

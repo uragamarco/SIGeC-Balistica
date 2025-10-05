@@ -2,7 +2,7 @@
 
 ## Función en el Proyecto
 
-El módulo `nist_standards` constituye el núcleo de cumplimiento normativo del sistema SEACABAr, implementando los estándares NIST (National Institute of Standards and Technology) y AFTE (Association of Firearm and Tool Mark Examiners) para análisis balístico forense. Su función principal es garantizar que todos los análisis, comparaciones y conclusiones cumplan con los protocolos forenses establecidos internacionalmente.
+El módulo `nist_standards` constituye el núcleo de cumplimiento normativo del sistema SIGeC-Balistica, implementando los estándares NIST (National Institute of Standards and Technology) y AFTE (Association of Firearm and Tool Mark Examiners) para análisis balístico forense. Su función principal es garantizar que todos los análisis, comparaciones y conclusiones cumplan con los protocolos forenses establecidos internacionalmente.
 
 ### Componentes Principales
 
@@ -204,4 +204,4 @@ El módulo `nist_standards` constituye el núcleo de cumplimiento normativo del 
 - **Mantenibilidad**: Buena - Código bien estructurado con adaptadores de migración
 - **Documentación**: Excelente - Documentación técnica y normativa completa
 
-El módulo `nist_standards` representa el pilar de cumplimiento normativo del sistema SEACABAr, con implementaciones robustas de estándares forenses internacionales. La migración crítica al núcleo unificado ha sido exitosa, manteniendo trazabilidad completa y compatibilidad total. El módulo está listo para uso en entornos forenses reales con validación continua de cumplimiento.
+El módulo `nist_standards` representa el pilar de cumplimiento normativo del sistema SIGeC-Balistica, con implementaciones robustas de estándares forenses internacionales. La migración crítica al núcleo unificado ha sido exitosa, manteniendo trazabilidad completa y compatibilidad total. El módulo está listo para uso en entornos forenses reales con validación continua de cumplimiento.

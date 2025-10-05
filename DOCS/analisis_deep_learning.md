@@ -1,8 +1,8 @@
-# Análisis del Módulo Deep Learning - SEACABAr
+# Análisis del Módulo Deep Learning - SIGeC-Balistica
 
 ## Función en el Proyecto
 
-El módulo `deep_learning` constituye el núcleo de inteligencia artificial del sistema SEACABAr, implementando modelos de aprendizaje profundo especializados para análisis balístico forense. Su función principal es proporcionar capacidades avanzadas de:
+El módulo `deep_learning` constituye el núcleo de inteligencia artificial del sistema SIGeC-Balistica, implementando modelos de aprendizaje profundo especializados para análisis balístico forense. Su función principal es proporcionar capacidades avanzadas de:
 
 ### Componentes Principales
 

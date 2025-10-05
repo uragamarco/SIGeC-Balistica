@@ -1,7 +1,7 @@
 _metadata:
   created: '2025-10-05T00:44:44.821466'
   environment: development
-  project_root: /home/marco/SEACABAr
+  project_root: /home/marco/SIGeC-Balistica
   version: 1.0.0
 database:
   backup_enabled: true

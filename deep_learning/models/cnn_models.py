@@ -1,5 +1,5 @@
 """
-Modelos CNN para extracción de características balísticas - SEACABAr
+Modelos CNN para extracción de características balísticas - SIGeC-Balistica
 ==================================================================
 
 Implementación de arquitecturas CNN especializadas para imágenes balísticas,

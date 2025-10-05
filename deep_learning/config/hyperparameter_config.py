@@ -1,10 +1,10 @@
 """
-Configuración de hiperparámetros para SEACABAr Deep Learning
+Configuración de hiperparámetros para SIGeC-BalisticaDeep Learning
 
 Este módulo define las clases de configuración para hiperparámetros,
 optimización y schedulers de learning rate.
 
-Author: SEACABAr Team
+Author: SIGeC-BalisticaTeam
 """
 
 from dataclasses import dataclass, field

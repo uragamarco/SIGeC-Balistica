@@ -2,7 +2,7 @@
 
 ## Función en el Proyecto
 
-El módulo `matching` constituye el motor de comparación y análisis de similitud del sistema SEACABAr, implementando algoritmos especializados para la identificación y comparación de características balísticas. Su función principal es determinar la similitud entre imágenes balísticas utilizando múltiples algoritmos de matching y técnicas estadísticas avanzadas.
+El módulo `matching` constituye el motor de comparación y análisis de similitud del sistema SIGeC-Balistica, implementando algoritmos especializados para la identificación y comparación de características balísticas. Su función principal es determinar la similitud entre imágenes balísticas utilizando múltiples algoritmos de matching y técnicas estadísticas avanzadas.
 
 ### Componentes Principales
 
@@ -173,4 +173,4 @@ El módulo `matching` constituye el motor de comparación y análisis de similit
 - **Mantenibilidad**: Media - Código bien estructurado pero complejo
 - **Documentación**: Buena - Documentación técnica presente pero incompleta
 
-El módulo `matching` representa el núcleo algorítmico del sistema SEACABAr para comparación balística, con implementaciones sofisticadas basadas en estándares NIST pero que requieren consolidación y validación forense completa para uso en producción.
+El módulo `matching` representa el núcleo algorítmico del sistema SIGeC-Balisticapara comparación balística, con implementaciones sofisticadas basadas en estándares NIST pero que requieren consolidación y validación forense completa para uso en producción.

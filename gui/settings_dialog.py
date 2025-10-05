@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Diálogo de Configuración - SEACABAr
+Diálogo de Configuración - SIGeC-Balistica
 ===================================
 
 Diálogo para configurar las preferencias del sistema, incluyendo:
@@ -11,7 +11,7 @@ Diálogo para configurar las preferencias del sistema, incluyendo:
 - Configuración de exportación
 - Configuración avanzada
 
-Autor: SEACABAr Team
+Autor: SIGeC-BalisticaTeam
 Fecha: Octubre 2025
 """
 
@@ -538,7 +538,7 @@ class AdvancedConfigTab(ConfigurationTab):
         file_path, _ = QFileDialog.getSaveFileName(
             self,
             "Exportar Configuración",
-            "seacabar_config.json",
+            "SIGeC-Balistica_config.json",
             "JSON (*.json);;Todos los archivos (*)"
         )
         
@@ -572,7 +572,7 @@ class SettingsDialog(QDialog):
     
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.setWindowTitle("Configuración - SEACABAr")
+        self.setWindowTitle("Configuración - SIGeC-Balistica")
         self.setModal(True)
         self.resize(800, 600)
         

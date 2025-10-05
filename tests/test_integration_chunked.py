@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Tests de integración para el sistema de procesamiento por chunks de SEACABAr
+Tests de integración para el sistema de procesamiento por chunks de SIGeC-Balistica
 Valida la integración completa entre todos los componentes
 """
 

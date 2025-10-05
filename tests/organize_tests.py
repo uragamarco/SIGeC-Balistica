@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 """
 Script de Organización de Archivos de Prueba
-Sistema Balístico Forense SEACABAr
+Sistema Balístico Forense SIGeC-Balistica
 
 Consolida archivos de prueba duplicados y crea una estructura organizada.
 """
@@ -16,7 +16,7 @@ from datetime import datetime
 class TestOrganizer:
     """Organizador de archivos de prueba"""
     
-    def __init__(self, root_dir: str = "/home/marco/SEACABAr"):
+    def __init__(self, root_dir: str = "/home/marco/SIGeC-Balistica"):
         self.root_dir = Path(root_dir)
         self.tests_dir = self.root_dir / "tests"
         self.backup_dir = self.root_dir / "test_backup" / datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -171,7 +171,7 @@ markers =
     def create_test_readme(self):
         """Crea documentación de la estructura de tests"""
         
-        readme_content = """# Estructura de Pruebas - SEACABAr
+        readme_content = """# Estructura de Pruebas - SIGeC-Balistica
 
 ## Organización de Directorios
 

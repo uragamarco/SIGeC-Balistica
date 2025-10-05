@@ -188,9 +188,9 @@ Documentación completa de APIs disponible en el código fuente con docstrings d
 
 Este proyecto está bajo licencia MIT. Ver `LICENSE` para más detalles.
 
-## 👥 Autores
+## Autores
 
-- **Marco** - Desarrollo principal - marco@sigec-balistica.dev
+- **Himo "Larry" Anon** - Desarrollo principal - marcouraga.1992@gmail.com
 
 ## Agradecimientos
 

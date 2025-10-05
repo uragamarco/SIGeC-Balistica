@@ -1,8 +1,8 @@
-# Análisis del Módulo Performance - SEACABAr
+# Análisis del Módulo Performance - SIGeC-Balistica
 
 ## Resumen Ejecutivo
 
-El módulo `performance` de SEACABAr funciona como el **sistema de benchmarking y optimización de rendimiento** del sistema balístico forense. Su función principal es evaluar y comparar el rendimiento entre procesamiento CPU y GPU para operaciones críticas de procesamiento de imágenes y matching de características.
+El módulo `performance` de SIGeC-Balisticafunciona como el **sistema de benchmarking y optimización de rendimiento** del sistema balístico forense. Su función principal es evaluar y comparar el rendimiento entre procesamiento CPU y GPU para operaciones críticas de procesamiento de imágenes y matching de características.
 
 ## Estructura del Módulo
 

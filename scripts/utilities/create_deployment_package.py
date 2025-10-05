@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Creador de Paquete de Despliegue Final - SEACABAr v1.0
+Creador de Paquete de Despliegue Final - SIGeC-Balisticav1.0
 Genera el paquete completo listo para distribución
 """
 
@@ -14,10 +14,10 @@ from datetime import datetime
 def create_deployment_package():
     """Crea el paquete de despliegue completo"""
     
-    print("🚀 Creando paquete de despliegue SEACABAr v1.0...")
+    print("🚀 Creando paquete de despliegue SIGeC-Balisticav1.0...")
     
     # Crear directorio de despliegue
-    deploy_dir = Path("SEACABAr_v1.0_Deployment")
+    deploy_dir = Path("SIGeC-Balistica_v1.0_Deployment")
     if deploy_dir.exists():
         shutil.rmtree(deploy_dir)
     deploy_dir.mkdir()
@@ -26,7 +26,7 @@ def create_deployment_package():
     
     # 1. Copiar ejecutable y dependencias
     print("📦 Copiando ejecutable...")
-    dist_source = Path("dist/SEACABAr")
+    dist_source = Path("dist/SIGeC-Balistica")
     if dist_source.exists():
         dist_dest = deploy_dir / "Executable"
         shutil.copytree(dist_source, dist_dest)
@@ -36,9 +36,9 @@ def create_deployment_package():
     
     # 2. Copiar instalador NSIS (si existe)
     print("📦 Copiando instalador...")
-    nsis_source = Path("SEACABAr_Installer.nsi")
+    nsis_source = Path("SIGeC-Balistica_Installer.nsi")
     if nsis_source.exists():
-        shutil.copy2(nsis_source, deploy_dir / "SEACABAr_Installer.nsi")
+        shutil.copy2(nsis_source, deploy_dir / "SIGeC-Balistica_Installer.nsi")
         print("   ✅ Script de instalador copiado")
     
     # 3. Copiar documentación
@@ -103,7 +103,7 @@ def create_deployment_package():
     # 7. Crear archivo de información del paquete
     print("📋 Creando información del paquete...")
     package_info = {
-        "name": "SEACABAr",
+        "name": "SIGeC-Balistica",
         "version": "1.0.0",
         "description": "Sistema Experto de Análisis Comparativo Automatizado Balístico para Argentina",
         "build_date": datetime.now().isoformat(),
@@ -111,8 +111,8 @@ def create_deployment_package():
         "architecture": "x64",
         "python_version": "3.8+",
         "package_contents": {
-            "executable": "Executable/SEACABAr.exe",
-            "installer_script": "SEACABAr_Installer.nsi",
+            "executable": "Executable/SIGeC-Balistica.exe",
+            "installer_script": "SIGeC-Balistica_Installer.nsi",
             "documentation": "Documentation/",
             "source_code": "Source_Code/",
             "build_scripts": "Build_Scripts/",
@@ -132,8 +132,8 @@ def create_deployment_package():
         "validation_status": "READY FOR PRODUCTION",
         "success_rate": "92.3%",
         "contact": {
-            "support": "soporte@seacabar.gov.ar",
-            "technical": "desarrollo@seacabar.gov.ar"
+            "support": "soporte@SIGeC-Balistica.gov.ar",
+            "technical": "desarrollo@SIGeC-Balistica.gov.ar"
         }
     }
     
@@ -159,7 +159,7 @@ def create_deployment_package():
     
     # 9. Crear archivo ZIP del paquete completo
     print("🗜️  Creando archivo ZIP...")
-    zip_name = f"SEACABAr_v1.0_Complete_Package_{datetime.now().strftime('%Y%m%d_%H%M%S')}.zip"
+    zip_name = f"SIGeC-Balistica_v1.0_Complete_Package_{datetime.now().strftime('%Y%m%d_%H%M%S')}.zip"
     
     with zipfile.ZipFile(zip_name, 'w', zipfile.ZIP_DEFLATED) as zipf:
         for root, dirs, files in os.walk(deploy_dir):
@@ -185,7 +185,7 @@ def create_deployment_package():
     print(f"📅 Fecha de creación: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
     
     print(f"\n✅ PAQUETE LISTO PARA DISTRIBUCIÓN")
-    print(f"📧 Enviar a: distribución@seacabar.gov.ar")
+    print(f"📧 Enviar a: distribución@SIGeC-Balistica.gov.ar")
     
     return deploy_dir, zip_name
 

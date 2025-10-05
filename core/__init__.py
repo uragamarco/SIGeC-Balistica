@@ -1,5 +1,5 @@
 """
-Core module for SEACABAr ballistic analysis system.
+Core module for SIGeC-Balisticaballistic analysis system.
 
 This module contains the unified pipeline and core orchestration components
 for integrating all ballistic analysis workflows.

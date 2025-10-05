@@ -1,8 +1,8 @@
-# Análisis del Módulo Common - SEACABAr
+# Análisis del Módulo Common - SIGeC-Balistica
 
 ## Función en el Proyecto
 
-El directorio `common` actúa como el núcleo estadístico centralizado del proyecto SEACABAr, proporcionando:
+El directorio `common` actúa como el núcleo estadístico centralizado del proyecto SIGeC-Balistica, proporcionando:
 
 ### Componentes Principales:
 

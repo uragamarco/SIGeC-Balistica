@@ -1,8 +1,8 @@
-# Análisis del Módulo Utils - SEACABAr
+# Análisis del Módulo Utils - SIGeC-Balistica
 
 ## Resumen Ejecutivo
 
-El módulo `utils` de SEACABAr funciona como el **núcleo de servicios transversales** del sistema balístico forense. Su función principal es proporcionar funcionalidades de soporte críticas incluyendo gestión de dependencias, logging centralizado, validaciones de seguridad, implementaciones de fallback y configuración de compatibilidad.
+El módulo `utils` de SIGeC-Balisticafunciona como el **núcleo de servicios transversales** del sistema balístico forense. Su función principal es proporcionar funcionalidades de soporte críticas incluyendo gestión de dependencias, logging centralizado, validaciones de seguridad, implementaciones de fallback y configuración de compatibilidad.
 
 ## Estructura del Módulo
 
@@ -38,7 +38,7 @@ def setup_logging(
 ### 2. Gestor de Dependencias (`dependency_manager.py`)
 ```python
 class DependencyManager:
-    """Gestor centralizado de dependencias para SEACABAr"""
+    """Gestor centralizado de dependencias para SIGeC-Balistica"""
 ```
 
 **Funcionalidades**:

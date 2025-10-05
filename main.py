@@ -285,7 +285,7 @@ def parse_arguments():
     """Parsea argumentos de línea de comandos"""
     
     parser = argparse.ArgumentParser(
-        description="SIGeC-Balisticar - Sistema de Evaluación Automatizada de Características Biométricas",
+        description="SIGeC-Balisticar - Sistema de Evaluación Automatizada de Características Balisticas",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Ejemplos de uso:

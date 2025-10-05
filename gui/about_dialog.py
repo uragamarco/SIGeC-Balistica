@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Diálogo Acerca de - SEACABAr
+Diálogo Acerca de - SIGeC-Balistica
 ============================
 
 Diálogo que muestra información sobre la aplicación, incluyendo:
@@ -10,7 +10,7 @@ Diálogo que muestra información sobre la aplicación, incluyendo:
 - Información de licencias
 - Agradecimientos y reconocimientos
 
-Autor: SEACABAr Team
+Autor: SIGeC-BalisticaTeam
 Fecha: Octubre 2025
 """
 
@@ -28,11 +28,11 @@ from PyQt5.QtCore import Qt, QUrl
 from PyQt5.QtGui import QFont, QPixmap, QPalette, QDesktopServices
 
 class AboutDialog(QDialog):
-    """Diálogo Acerca de SEACABAr"""
+    """Diálogo Acerca de SIGeC-Balistica"""
     
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.setWindowTitle("Acerca de SEACABAr")
+        self.setWindowTitle("Acerca de SIGeC-Balistica")
         self.setModal(True)
         self.setFixedSize(600, 500)
         
@@ -110,12 +110,12 @@ class AboutDialog(QDialog):
         # Información del título
         title_layout = QVBoxLayout()
         
-        app_name = QLabel("SEACABAr")
+        app_name = QLabel("SIGeC-Balistica")
         app_name.setObjectName("appTitle")
         app_name.setStyleSheet("font-size: 24px; font-weight: bold; color: #2196F3;")
         title_layout.addWidget(app_name)
         
-        app_subtitle = QLabel("Sistema Estadístico Avanzado de Comparación y Análisis de Biometría")
+        app_subtitle = QLabel("Sistema Integral de Gestión Criminalística - App Balística")
         app_subtitle.setStyleSheet("font-size: 12px; color: #666;")
         title_layout.addWidget(app_subtitle)
         
@@ -140,13 +140,13 @@ class AboutDialog(QDialog):
         app_layout = QGridLayout(app_info)
         
         info_data = [
-            ("Nombre:", "SEACABAr"),
-            ("Versión:", "1.0.0"),
+            ("Nombre:", "SIGeC-Balistica"),
+            ("Versión:", "0.1.3"),
             ("Fecha de lanzamiento:", "Octubre 2025"),
-            ("Desarrollador:", "SEACABAr Team"),
+            ("Desarrollador:", "Himo Anon"),
             ("Licencia:", "MIT License"),
-            ("Sitio web:", "https://seacabar.com"),
-            ("Soporte:", "soporte@seacabar.com")
+            ("Sitio web:", "https://sigec.com.ar/balistica_app/"),
+            ("Soporte:", "marcouraga.1992@gmail.com")
         ]
         
         for i, (label, value) in enumerate(info_data):
@@ -167,16 +167,16 @@ class AboutDialog(QDialog):
         description.setReadOnly(True)
         description.setMaximumHeight(150)
         description.setHtml("""
-        <p><strong>SEACABAr</strong> es un sistema avanzado de análisis estadístico de huellas dactilares 
+        <p><strong>SIGeC-Balistica</strong> es un sistema avanzado de análisis estadístico de Caracteristica Balistica 
         diseñado para profesionales forenses y de seguridad.</p>
         
         <p>El sistema combina técnicas modernas de procesamiento de imágenes, análisis estadístico 
         avanzado y cumplimiento con estándares NIST para proporcionar análisis precisos y confiables 
-        de evidencia biométrica.</p>
+        de evidencia Balistica.</p>
         
         <p><strong>Características principales:</strong></p>
         <ul>
-            <li>Análisis individual de huellas dactilares</li>
+            <li>Análisis individual de Caracteristica Balistica</li>
             <li>Comparación directa entre muestras</li>
             <li>Búsqueda en bases de datos</li>
             <li>Generación de reportes profesionales</li>
@@ -228,50 +228,50 @@ class AboutDialog(QDialog):
         
         <h4>Desarrollo Principal</h4>
         <ul>
-            <li><strong>Dr. María González</strong> - Directora del Proyecto</li>
-            <li><strong>Ing. Carlos Rodríguez</strong> - Arquitecto de Software</li>
-            <li><strong>Dra. Ana Martínez</strong> - Especialista en Biometría</li>
-            <li><strong>Ing. Luis Fernández</strong> - Desarrollador Frontend</li>
-            <li><strong>Ing. Patricia López</strong> - Desarrolladora Backend</li>
+            <li><strong>Dr. María Elsa Carolina Rodriguez</strong> - Directora del Prospecto</li>
+            <li><strong>Ing. Adelina "Pila" Uraga</strong> - Arquitecta del Soft-ware</li>
+            <li><strong>Dra. Juan Pedroz</strong> - Especialista en Esometría</li>
+            <li><strong>Ing. Maria Pia Perez</strong> - Desarrollador Frontend</li>
+            <li><strong>Ing. Abel Pereira</strong> - Desarrolladora Backend</li>
         </ul>
         
         <h4>Investigación y Algoritmos</h4>
         <ul>
-            <li><strong>Dr. Roberto Silva</strong> - Análisis Estadístico</li>
-            <li><strong>Dra. Carmen Ruiz</strong> - Procesamiento de Imágenes</li>
-            <li><strong>Dr. Miguel Torres</strong> - Machine Learning</li>
-            <li><strong>Ing. Elena Vargas</strong> - Optimización de Algoritmos</li>
+            <li><strong>Dr. Ismael Tores</strong> - Análisis Estadístico</li>
+            <li><strong>Dra. Barbara Brussa</strong> - Procesamiento de Imágenes</li>
+            <li><strong>Dr. Miguel Zaragoza</strong> - Machine Learning</li>
+            <li><strong>Ing. Ramiro Albornoz</strong> - Optimización de Algoritmos</li>
         </ul>
         
         <h4>Calidad y Pruebas</h4>
         <ul>
-            <li><strong>Ing. David Morales</strong> - QA Lead</li>
-            <li><strong>Ing. Sandra Jiménez</strong> - Tester Senior</li>
-            <li><strong>Ing. Alberto Herrera</strong> - Automatización de Pruebas</li>
+            <li><strong>Ing. Yave Remos</strong> - QA Lead</li>
+            <li><strong>Ing. Deja Mempaz</strong> - Tester Senior</li>
+            <li><strong>Ing. Algun Dias</strong> - Automatización de Pruebas</li>
         </ul>
         
         <h4>Documentación y Soporte</h4>
         <ul>
-            <li><strong>Lic. Isabel Castro</strong> - Documentación Técnica</li>
+            <li><strong>Lic. Yaqui Sieras</strong> - Documentación Técnica</li>
             <li><strong>Ing. Fernando Díaz</strong> - Soporte Técnico</li>
-            <li><strong>Lic. Mónica Peña</strong> - Capacitación de Usuarios</li>
+            <li><strong>Lic. Marco Uraga</strong> - Capacitación de Usuarios</li>
         </ul>
         
         <h4>Diseño y UX</h4>
         <ul>
-            <li><strong>Dis. Andrea Sánchez</strong> - Diseño de Interfaz</li>
-            <li><strong>Dis. Javier Mendoza</strong> - Experiencia de Usuario</li>
+            <li><strong>Dis. Abel Pereira</strong> - Diseño de Interfaz</li>
+            <li><strong>Dis. Abel Pereira</strong> - Experiencia de Usuario</li>
         </ul>
         
         <h4>Consultores Externos</h4>
         <ul>
-            <li><strong>Dr. James Wilson</strong> - Consultor NIST</li>
-            <li><strong>Dra. Sarah Johnson</strong> - Especialista Forense</li>
-            <li><strong>Prof. Antonio García</strong> - Asesor Académico</li>
+            <li><strong>Dr. Note Nemos</strong> - Consultor NIST</li>
+            <li><strong>Dra. Algun Dias</strong> - Especialista Forense</li>
+            <li><strong>Prof. Sera Dah</strong> - Asesor Académico</li>
         </ul>
         
         <p><em>Agradecemos a todos los miembros del equipo por su dedicación y 
-        contribución al desarrollo de SEACABAr.</em></p>
+        contribución al desarrollo de SIGeC-Balistica.</em></p>
         """)
         
         layout.addWidget(credits_text)
@@ -286,10 +286,10 @@ class AboutDialog(QDialog):
         license_text = QTextEdit()
         license_text.setReadOnly(True)
         license_text.setHtml("""
-        <h3>Licencia de SEACABAr</h3>
+        <h3>Licencia de SIGeC-Balistica</h3>
         
         <h4>MIT License</h4>
-        <p>Copyright (c) 2025 SEACABAr Team</p>
+        <p>Copyright (c) 2025 SIGeC-Balistica Team</p>
         
         <p>Permission is hereby granted, free of charge, to any person obtaining a copy
         of this software and associated documentation files (the "Software"), to deal
@@ -397,7 +397,7 @@ class AboutDialog(QDialog):
             <li><strong>Departamento de Identificación Policial</strong><br>
                 Por la validación en casos reales y sugerencias de mejora.</li>
             
-            <li><strong>Centro de Investigación Biométrica</strong><br>
+            <li><strong>Centro de Investigación Balistica</strong><br>
                 Por las pruebas de precisión y análisis comparativo.</li>
         </ul>
         
@@ -425,12 +425,12 @@ class AboutDialog(QDialog):
         <h4>Agradecimiento Especial</h4>
         <p>Un agradecimiento especial a todos los profesionales forenses, investigadores 
         y usuarios que han contribuido con su experiencia, sugerencias y retroalimentación 
-        para hacer de SEACABAr una herramienta más precisa, confiable y útil.</p>
+        para hacer de SIGeC-Balisticauna herramienta más precisa, confiable y útil.</p>
         
         <p>También agradecemos a las familias de nuestro equipo de desarrollo por su 
         paciencia y apoyo durante las largas horas de trabajo dedicadas a este proyecto.</p>
         
-        <p><em>Sin su apoyo y colaboración, SEACABAr no habría sido posible.</em></p>
+        <p><em>Sin su apoyo y colaboración, SIGeC-Balisticano habría sido posible.</em></p>
         """)
         
         layout.addWidget(thanks_text)
@@ -447,11 +447,11 @@ class AboutDialog(QDialog):
     
     def open_website(self):
         """Abre el sitio web oficial"""
-        QDesktopServices.openUrl(QUrl("https://seacabar.com"))
+        QDesktopServices.openUrl(QUrl("https://SIGeC-Balistica.com"))
     
     def open_github(self):
         """Abre el repositorio de GitHub"""
-        QDesktopServices.openUrl(QUrl("https://github.com/seacabar/seacabar"))
+        QDesktopServices.openUrl(QUrl("https://github.com/SIGeC-Balistica/SIGeC-Balistica"))
 
 # Función de conveniencia para mostrar el diálogo
 def show_about_dialog(parent=None):

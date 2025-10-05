@@ -1,11 +1,11 @@
 """
-Gestor de Configuraciones para Deep Learning SEACABAr
+Gestor de Configuraciones para Deep Learning SIGeC-Balistica
 ===================================================
 
 Este módulo proporciona funciones para gestionar, cargar y guardar
 configuraciones de experimentos de deep learning.
 
-Autor: SEACABAr Team
+Autor: SIGeC-BalisticaTeam
 """
 
 import os

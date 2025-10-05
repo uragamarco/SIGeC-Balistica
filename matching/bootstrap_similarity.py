@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Bootstrap Similarity Analysis Module for SEACABAr
+Bootstrap Similarity Analysis Module for SIGeC-Balistica
 Integra bootstrap sampling con métricas de similitud para intervalos de confianza robustos
 """
 

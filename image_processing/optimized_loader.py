@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Cargador Optimizado de Imágenes - SEACABAr
+Cargador Optimizado de Imágenes - SIGeC-Balistica
 ==========================================
 
 Sistema avanzado de carga de imágenes optimizado para imágenes grandes y gestión
@@ -16,7 +16,7 @@ Características principales:
 - Monitoreo de rendimiento y memoria
 - Compatibilidad con múltiples formatos (JPEG, PNG, TIFF, RAW)
 
-Autor: SEACABAr Team
+Autor: SIGeC-BalisticaTeam
 Versión: 1.0.0
 """
 

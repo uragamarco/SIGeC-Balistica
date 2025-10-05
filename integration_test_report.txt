@@ -1,4 +1,4 @@
-REPORTE DE INTEGRACIÓN GUI-BACKEND SEACABAr
+REPORTE DE INTEGRACIÓN GUI-BACKEND SIGeC-Balistica
 ==================================================
 Núcleo Estadístico: OK
 Integración NIST: OK

@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Backend Integration Module - SEACABAr GUI
+Backend Integration Module - SIGeC-BalisticaGUI
 ==========================================
 
 Módulo de integración que conecta la GUI moderna con el backend existente
-del sistema SEACABAr, proporcionando una interfaz unificada para:
+del sistema SIGeC-Balistica, proporcionando una interfaz unificada para:
 
 - Análisis estadístico unificado
 - Integración NIST
@@ -14,7 +14,7 @@ del sistema SEACABAr, proporcionando una interfaz unificada para:
 - Configuración unificada
 - Base de datos
 
-Autor: SEACABAr Team
+Autor: SIGeC-BalisticaTeam
 Fecha: Octubre 2025
 """
 

@@ -2,7 +2,7 @@
 
 ## Función en el Proyecto
 
-El módulo `image_processing` constituye el núcleo de procesamiento de imágenes del sistema SEACABAr, proporcionando capacidades especializadas para el análisis forense de imágenes balísticas. Su función principal es extraer características distintivas de casquillos y balas para facilitar la identificación y comparación balística.
+El módulo `image_processing` constituye el núcleo de procesamiento de imágenes del sistema SIGeC-Balistica, proporcionando capacidades especializadas para el análisis forense de imágenes balísticas. Su función principal es extraer características distintivas de casquillos y balas para facilitar la identificación y comparación balística.
 
 ### Componentes Principales
 
@@ -171,4 +171,4 @@ El módulo `image_processing` constituye el núcleo de procesamiento de imágene
 - **Mantenibilidad**: Media - Código bien estructurado pero complejo
 - **Documentación**: Básica - Requiere documentación técnica detallada
 
-El módulo `image_processing` representa el corazón técnico del sistema SEACABAr, con implementaciones sofisticadas pero que requieren consolidación y optimización para uso en producción.
+El módulo `image_processing` representa el corazón técnico del sistema SIGeC-Balistica, con implementaciones sofisticadas pero que requieren consolidación y optimización para uso en producción.

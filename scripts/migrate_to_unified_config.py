@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Script de Migración a Configuración Unificada - SEACABAr
+Script de Migración a Configuración Unificada - SIGeC-Balistica
 ========================================================
 
 Este script migra automáticamente todas las configuraciones dispersas
-del proyecto SEACABAr al nuevo sistema de configuración unificado,
+del proyecto SIGeC-Balisticaal nuevo sistema de configuración unificado,
 actualizando referencias hardcodeadas y consolidando archivos de configuración.
 
 Funcionalidades:
@@ -16,7 +16,7 @@ Funcionalidades:
 - Crea respaldos de archivos modificados
 - Genera reporte de migración
 
-Autor: SEACABAr Team
+Autor: SIGeC-BalisticaTeam
 Fecha: Diciembre 2024
 """
 
@@ -41,7 +41,7 @@ logger = logging.getLogger(__name__)
 class ConfigMigrator:
     """Migrador de configuraciones al sistema unificado"""
     
-    def __init__(self, project_root: str = "/home/marco/SEACABAr"):
+    def __init__(self, project_root: str = "/home/marco/SIGeC-Balistica"):
         """
         Inicializa el migrador
         
@@ -381,7 +381,7 @@ al nuevo sistema de configuración unificado.
 
 DEPRECADO: Use config.unified_config directamente en código nuevo.
 
-Autor: SEACABAr Team
+Autor: SIGeC-BalisticaTeam
 """
 
 import warnings
@@ -526,13 +526,13 @@ __all__ = [
 
 def main():
     """Función principal"""
-    print("Script de Migración a Configuración Unificada - SEACABAr")
+    print("Script de Migración a Configuración Unificada - SIGeC-Balistica")
     print("=" * 60)
     
     # Verificar que estamos en el directorio correcto
     project_root = Path.cwd()
     if not (project_root / "main.py").exists():
-        print("❌ Error: Ejecute este script desde el directorio raíz del proyecto SEACABAr")
+        print("❌ Error: Ejecute este script desde el directorio raíz del proyecto SIGeC-Balistica")
         sys.exit(1)
     
     # Confirmar migración

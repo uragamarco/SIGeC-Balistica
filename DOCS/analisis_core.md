@@ -1,8 +1,8 @@
-# Análisis del Módulo Core - SEACABAr
+# Análisis del Módulo Core - SIGeC-Balistica
 
 ## Función en el Proyecto
 
-El módulo `core` constituye el **núcleo orquestador** del sistema SEACABAr, implementando el pipeline científico unificado que integra todos los componentes del análisis balístico forense. Su función principal es coordinar el flujo completo de análisis desde la carga de imágenes hasta la conclusión AFTE.
+El módulo `core` constituye el **núcleo orquestador** del sistema SIGeC-Balistica, implementando el pipeline científico unificado que integra todos los componentes del análisis balístico forense. Su función principal es coordinar el flujo completo de análisis desde la carga de imágenes hasta la conclusión AFTE.
 
 ### Componentes Principales
 
@@ -139,4 +139,4 @@ El módulo `core` constituye el **núcleo orquestador** del sistema SEACABAr, im
 - ❌ **Pendiente**: Resolución de dependencias y optimización
 - ❌ **Crítico**: Testing y validación exhaustiva
 
-El módulo core representa el corazón del sistema SEACABAr, pero requiere refactorización significativa para resolver conflictos de dependencias y mejorar la robustez antes de ser considerado production-ready.
+El módulo core representa el corazón del sistema SIGeC-Balistica, pero requiere refactorización significativa para resolver conflictos de dependencias y mejorar la robustez antes de ser considerado production-ready.

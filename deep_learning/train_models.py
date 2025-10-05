@@ -733,7 +733,7 @@ def main():
     logger = logging.getLogger(__name__)
     
     try:
-        logger.info("=== Iniciando Sistema de Entrenamiento SEACABAr ===")
+        logger.info("=== Iniciando Sistema de Entrenamiento SIGeC-Balistica===")
         
         # Mostrar configuraciones disponibles
         logger.info("Configuraciones disponibles:")

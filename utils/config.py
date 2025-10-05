@@ -10,7 +10,7 @@ al nuevo sistema de configuración unificado.
 
 DEPRECADO: Use config.unified_config directamente en código nuevo.
 
-Autor: SEACABAr Team
+Autor: SIGeC-BalisticaTeam
 """
 
 import warnings

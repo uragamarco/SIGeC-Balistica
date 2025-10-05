@@ -1,8 +1,8 @@
-# Análisis del Módulo Database - SEACABAr
+# Análisis del Módulo Database - SIGeC-Balistica
 
 ## Función en el Proyecto
 
-El módulo `database` proporciona la **infraestructura de persistencia y búsqueda vectorial** para el sistema SEACABAr, combinando una base de datos relacional SQLite con un índice vectorial FAISS para almacenamiento y búsqueda eficiente de características balísticas.
+El módulo `database` proporciona la **infraestructura de persistencia y búsqueda vectorial** para el sistema SIGeC-Balistica, combinando una base de datos relacional SQLite con un índice vectorial FAISS para almacenamiento y búsqueda eficiente de características balísticas.
 
 ### Componentes Principales
 

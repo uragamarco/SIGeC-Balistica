@@ -59,7 +59,7 @@ class TestGUIComprehensive:
         )
         
         # Crear directorio temporal para pruebas
-        self.temp_dir = tempfile.mkdtemp(prefix="seacabar_gui_test_")
+        self.temp_dir = tempfile.mkdtemp(prefix="SIGeC-Balistica_gui_test_")
         print(f"📁 Directorio temporal: {self.temp_dir}")
         
         # Crear imágenes de prueba
@@ -135,7 +135,7 @@ class TestGUIComprehensive:
             assert self.window is not None, "Ventana principal no inicializada"
             
             # Verificar título
-            expected_title = "SEACABAr - Sistema de Análisis Balístico v1.0"
+            expected_title = "SIGeC-Balistica- Sistema de Análisis Balístico v1.0"
             assert self.window.windowTitle() == expected_title, f"Título incorrecto: {self.window.windowTitle()}"
             
             # Verificar que las pestañas están presentes

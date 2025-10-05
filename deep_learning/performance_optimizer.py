@@ -1,5 +1,5 @@
 """
-Optimizador de rendimiento para SEACABAr Deep Learning
+Optimizador de rendimiento para SIGeC-BalisticaDeep Learning
 ====================================================
 
 Herramientas para optimización de rendimiento CPU/GPU, análisis de memoria

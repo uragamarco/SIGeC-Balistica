@@ -79,7 +79,7 @@ def create_test_image_with_exif(image_path: str, dpi: int = 300):
                 piexif.ImageIFD.XResolution: (dpi, 1),
                 piexif.ImageIFD.YResolution: (dpi, 1),
                 piexif.ImageIFD.ResolutionUnit: 2,  # inches
-                piexif.ImageIFD.Software: "SEACABAr Test"
+                piexif.ImageIFD.Software: "SIGeC-BalisticaTest"
             }
         }
         

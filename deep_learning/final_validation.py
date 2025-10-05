@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Validación Final del Sistema de Deep Learning SEACABAr
+Validación Final del Sistema de Deep Learning SIGeC-Balistica
 ====================================================
 
 Script de validación completa que verifica todos los componentes
@@ -218,7 +218,7 @@ def test_config_manager():
 
 def main():
     """Ejecutar validación completa del sistema"""
-    print("🚀 VALIDACIÓN FINAL DEL SISTEMA DE DEEP LEARNING SEACABAr")
+    print("🚀 VALIDACIÓN FINAL DEL SISTEMA DE DEEP LEARNING SIGeC-Balistica")
     print("=" * 60)
     
     # Contadores de éxito

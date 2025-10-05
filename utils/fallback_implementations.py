@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
 """
-SEACABAr - Implementaciones de Fallback Robustas
+SIGeC-Balistica- Implementaciones de Fallback Robustas
 ===============================================
 
 Este módulo contiene implementaciones de fallback para dependencias opcionales,
 proporcionando funcionalidad alternativa cuando las librerías principales no están disponibles.
 
-Autor: SEACABAr Team
+Autor: SIGeC-BalisticaTeam
 Versión: 1.0.0
 """
 
@@ -145,7 +145,7 @@ class WebServiceFallback:
                     self.send_response(200)
                     self.send_header('Content-type', 'application/json')
                     self.end_headers()
-                    self.wfile.write(b'{"status": "ok", "service": "SEACABAr"}')
+                    self.wfile.write(b'{"status": "ok", "service": "SIGeC-Balistica"}')
                 else:
                     self.send_response(404)
                     self.end_headers()

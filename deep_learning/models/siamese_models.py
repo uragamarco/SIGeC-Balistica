@@ -1,5 +1,5 @@
 """
-Redes Siamese y Triplet para matching balístico - SEACABAr
+Redes Siamese y Triplet para matching balístico - SIGeC-Balistica
 =========================================================
 
 Implementación de arquitecturas especializadas para comparación de imágenes balísticas,

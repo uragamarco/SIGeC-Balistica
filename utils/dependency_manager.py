@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
 """
-SEACABAr - Sistema de Gestión de Dependencias
+SIGeC-Balistica- Sistema de Gestión de Dependencias
 ============================================
 
 Este módulo proporciona un sistema centralizado para gestionar dependencias,
 incluyendo validación automática, fallbacks robustos y manejo de dependencias opcionales.
 
-Autor: SEACABAr Team
+Autor: SIGeC-BalisticaTeam
 Versión: 1.0.0
 """
 
@@ -61,7 +61,7 @@ class DependencyInfo:
 
 class DependencyManager:
     """
-    Gestor centralizado de dependencias para SEACABAr
+    Gestor centralizado de dependencias para SIGeC-Balistica
     
     Características:
     - Validación automática de dependencias
@@ -467,7 +467,7 @@ def generate_dependency_report() -> Dict[str, Any]:
 
 if __name__ == "__main__":
     # Ejecutar verificación de dependencias
-    print("🔍 Verificando dependencias de SEACABAr...")
+    print("🔍 Verificando dependencias de SIGeC-Balistica...")
     
     report = generate_dependency_report()
     

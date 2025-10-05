@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 """
 Script de Pruebas Avanzadas para Módulos de Procesamiento de Imágenes
-Sistema Balístico Forense SEACABAr
+Sistema Balístico Forense SIGeC-Balistica
 
 Este script prueba funcionalidades avanzadas de cada módulo individualmente
 para identificar problemas específicos y oportunidades de mejora.
@@ -20,7 +20,7 @@ from typing import Dict, List, Tuple, Optional, Any
 from datetime import datetime
 
 # Agregar el directorio raíz al path
-sys.path.append('/home/marco/SEACABAr')
+sys.path.append('/home/marco/SIGeC-Balistica')
 
 class AdvancedModuleTester:
     """Clase para pruebas avanzadas de módulos individuales"""

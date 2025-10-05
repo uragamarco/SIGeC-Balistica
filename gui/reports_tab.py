@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Reports Tab - SEACABAr GUI
+Reports Tab - SIGeC-BalisticaGUI
 ==========================
 
 Pestaña para generación de reportes profesionales e interactivos.
@@ -15,7 +15,7 @@ Características:
 - Inclusión de visualizaciones y gráficos
 - Metadatos NIST completos
 
-Autor: SEACABAr Team
+Autor: SIGeC-BalisticaTeam
 Fecha: Octubre 2025
 """
 
@@ -176,8 +176,8 @@ class ReportGenerationWorker(QThread):
             'case_number': self.report_config.get('case_number', ''),
             'organization': self.report_config.get('organization', ''),
             'classification': self.report_config.get('classification', 'Confidencial'),
-            'system_version': 'SEACABAr v2.0',
-            'analysis_software': 'SEACABAr - Sistema de Evaluación Automatizada de Características Balísticas'
+            'system_version': 'SIGeC-Balisticav2.0',
+            'analysis_software': 'SIGeC-Balistica- Sistema de Evaluación Automatizada de Características Balísticas'
         }
         
         # Agregar metadatos NIST si están disponibles
@@ -205,7 +205,7 @@ class ReportGenerationWorker(QThread):
         if 'comparisons' in analysis_data:
             total_analyses += len(analysis_data['comparisons'])
         
-        summary_parts.append(f"Se realizaron un total de {total_analyses} análisis utilizando el sistema SEACABAr.")
+        summary_parts.append(f"Se realizaron un total de {total_analyses} análisis utilizando el sistema SIGeC-Balistica.")
         
         # Resultados principales
         if self.report_config.get('key_findings'):
@@ -221,7 +221,7 @@ class ReportGenerationWorker(QThread):
             "METODOLOGÍA",
             "============",
             "",
-            "El análisis se realizó utilizando el Sistema de Evaluación Automatizada de Características Balísticas (SEACABAr), "
+            "El análisis se realizó utilizando el Sistema de Evaluación Automatizada de Características Balísticas (SIGeC-Balistica), "
             "que implementa algoritmos avanzados de procesamiento de imágenes y análisis estadístico.",
             "",
             "ESTÁNDARES Y PROTOCOLOS:",
@@ -337,7 +337,7 @@ class ReportGenerationWorker(QThread):
             "CONCLUSIONES",
             "============",
             "",
-            "Basado en los análisis realizados con el sistema SEACABAr, se pueden establecer las siguientes conclusiones:",
+            "Basado en los análisis realizados con el sistema SIGeC-Balistica, se pueden establecer las siguientes conclusiones:",
             ""
         ]
         
@@ -378,7 +378,7 @@ class ReportGenerationWorker(QThread):
 APÉNDICE A: CONFIGURACIÓN TÉCNICA
 =================================
 
-Sistema: SEACABAr (Sistema de Evaluación Automatizada de Características Biométricas)
+Sistema: SIGeC-Balistica(Sistema de Evaluación Automatizada de Características Biométricas)
 Versión: 2.0
 Algoritmos utilizados: ORB, SIFT, SURF
 Análisis estadístico: Bootstrap sampling con 1000 iteraciones
@@ -415,7 +415,7 @@ APÉNDICE C: VISUALIZACIONES
 ==========================
 
 Todas las visualizaciones incluidas en este reporte han sido generadas automáticamente
-por el sistema SEACABAr y representan fielmente los datos analizados.
+por el sistema SIGeC-Balisticay representan fielmente los datos analizados.
 
 Tipos de visualizaciones incluidas:
 • Mapas de características extraídas
@@ -567,7 +567,7 @@ Tipos de visualizaciones incluidas:
 <body>
     <div class="header">
         <h1>{metadata['title']}</h1>
-        <div class="subtitle">Reporte de Análisis Forense - Sistema SEACABAr</div>
+        <div class="subtitle">Reporte de Análisis Forense - Sistema SIGeC-Balistica</div>
     </div>
     
     <div class="metadata">
@@ -607,7 +607,7 @@ Tipos de visualizaciones incluidas:
     </div>
     
     <div class="footer">
-        <p>Generado por SEACABAr v2.0 - Sistema de Evaluación Automatizada de Características Biométricas</p>
+        <p>Generado por SIGeC-Balisticav2.0 - Sistema de Evaluación Automatizada de Características Biométricas</p>
         <p>Este reporte contiene información confidencial y debe ser tratado según los protocolos de seguridad establecidos.</p>
     </div>
 </body>
@@ -1243,7 +1243,7 @@ class ReportsTab(QWidget):
         content = {
             'metadata': metadata,
             'executive_summary': "Este es un resumen ejecutivo de ejemplo para la vista previa del reporte.",
-            'methodology': "Metodología de análisis utilizando SEACABAr...",
+            'methodology': "Metodología de análisis utilizando SIGeC-Balistica...",
             'results': {
                 'individual': "Resultados de análisis individuales..." if config['include_individual_analysis'] else "",
                 'comparisons': "Resultados de comparaciones..." if config['include_comparisons'] else "",

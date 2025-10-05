@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """
-Tests para el Sistema de Gestión de Dependencias de SEACABAr
+Tests para el Sistema de Gestión de Dependencias de SIGeC-Balistica
 ===========================================================
 
-Autor: SEACABAr Team
+Autor: SIGeC-BalisticaTeam
 Versión: 1.0.0
 """
 

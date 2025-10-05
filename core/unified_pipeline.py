@@ -3,7 +3,7 @@ Pipeline Científico Unificado para Análisis Balístico
 ====================================================
 
 Este módulo implementa el pipeline completo de análisis balístico forense,
-integrando todos los componentes del sistema SEACABAr en un flujo unificado:
+integrando todos los componentes del sistema SIGeC-Balisticaen un flujo unificado:
 
 1. Preprocesamiento NIST
 2. Evaluación de calidad de imagen
@@ -160,7 +160,7 @@ class ScientificPipeline(LoggerMixin):
     """
     Pipeline científico unificado para análisis balístico forense
     
-    Integra todos los componentes del sistema SEACABAr en un flujo
+    Integra todos los componentes del sistema SIGeC-Balisticaen un flujo
     de trabajo científicamente validado y conforme a estándares NIST/AFTE.
     """
     

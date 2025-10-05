@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # =============================================================================
-# SCRIPT DE LIMPIEZA AUTOMÁTICA DEL REPOSITORIO SEACABAr
+# SCRIPT DE LIMPIEZA AUTOMÁTICA DEL REPOSITORIO SIGeC-Balistica
 # =============================================================================
 # Fecha: Diciembre 2024
 # Propósito: Eliminar archivos obsoletos, cache y directorios vacíos
@@ -36,18 +36,18 @@ error() {
 
 # Banner
 echo "============================================================================="
-echo "🧹 LIMPIEZA AUTOMÁTICA DEL REPOSITORIO SEACABAr"
+echo "🧹 LIMPIEZA AUTOMÁTICA DEL REPOSITORIO SIGeC-Balistica"
 echo "============================================================================="
 echo ""
 
 # Verificar que estamos en el directorio correcto
 if [[ ! -f "main.py" ]] || [[ ! -d "gui" ]] || [[ ! -d "matching" ]]; then
-    error "Error: No se detectó el directorio raíz de SEACABAr"
+    error "Error: No se detectó el directorio raíz de SIGeC-Balistica"
     error "Ejecute este script desde el directorio raíz del proyecto"
     exit 1
 fi
 
-log "Iniciando limpieza del repositorio SEACABAr..."
+log "Iniciando limpieza del repositorio SIGeC-Balistica..."
 
 # =============================================================================
 # 1. ELIMINAR ARCHIVOS CACHE DE PYTHON

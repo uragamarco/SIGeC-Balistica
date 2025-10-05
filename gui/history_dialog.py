@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Diálogo de Historial - SEACABAr
+Diálogo de Historial - SIGeC-Balistica
 ===============================
 
 Diálogo para visualizar y gestionar el historial de análisis y operaciones:
@@ -12,7 +12,7 @@ Diálogo para visualizar y gestionar el historial de análisis y operaciones:
 - Filtros y búsqueda en historial
 - Exportación de historial
 
-Autor: SEACABAr Team
+Autor: SIGeC-BalisticaTeam
 Fecha: Octubre 2025
 """
 
@@ -496,7 +496,7 @@ class HistoryDialog(QDialog):
     
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.setWindowTitle("Historial de Análisis - SEACABAr")
+        self.setWindowTitle("Historial de Análisis - SIGeC-Balistica")
         self.setModal(False)
         self.resize(1200, 800)
         
@@ -653,7 +653,7 @@ class HistoryDialog(QDialog):
         file_path, _ = QFileDialog.getSaveFileName(
             self,
             "Exportar Historial",
-            f"historial_seacabar_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json",
+            f"historial_SIGeC-Balistica_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json",
             "JSON (*.json);;CSV (*.csv);;Todos los archivos (*)"
         )
         

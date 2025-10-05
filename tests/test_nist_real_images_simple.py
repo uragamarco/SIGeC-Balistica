@@ -27,8 +27,8 @@ class NISTSimpleCalibrationTester:
     """Simplified test for spatial calibration with real NIST images and metadata."""
     
     def __init__(self):
-        self.excel_path = '/home/marco/SEACABAr/uploads/Muestras NIST FADB/Cary Persistence/StudyInfo.xlsx'
-        self.images_dir = '/home/marco/SEACABAr/uploads/Muestras NIST FADB/Cary Persistence/cc'
+        self.excel_path = '/home/marco/SIGeC-Balistica/uploads/Muestras NIST FADB/Cary Persistence/StudyInfo.xlsx'
+        self.images_dir = '/home/marco/SIGeC-Balistica/uploads/Muestras NIST FADB/Cary Persistence/cc'
         self.calibrator = SpatialCalibrator()
         
         # Load metadata

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Script para construir el instalador de Windows para SEACABAr
+Script para construir el instalador de Windows para SIGeC-Balistica
 Sistema de Análisis Balístico Automatizado
 """
 
@@ -94,7 +94,7 @@ exe = EXE(
     a.scripts,
     [],
     exclude_binaries=True,
-    name='SEACABAr',
+    name='SIGeC-Balistica',
     debug=False,
     bootloader_ignore_signals=False,
     strip=False,
@@ -116,19 +116,19 @@ coll = COLLECT(
     strip=False,
     upx=True,
     upx_exclude=[],
-    name='SEACABAr',
+    name='SIGeC-Balistica',
 )
 '''
     
-    with open('SEACABAr.spec', 'w', encoding='utf-8') as f:
+    with open('SIGeC-Balistica.spec', 'w', encoding='utf-8') as f:
         f.write(spec_content)
-    print("Archivo SEACABAr.spec creado")
+    print("Archivo SIGeC-Balistica.spec creado")
 
 def build_executable():
     """Construye el ejecutable usando PyInstaller"""
     try:
         print("Iniciando construcción del ejecutable...")
-        cmd = [sys.executable, '-m', 'PyInstaller', '--clean', 'SEACABAr.spec']
+        cmd = [sys.executable, '-m', 'PyInstaller', '--clean', 'SIGeC-Balistica.spec']
         result = subprocess.run(cmd, check=True, capture_output=True, text=True)
         print("Ejecutable construido exitosamente")
         print(result.stdout)
@@ -141,19 +141,19 @@ def build_executable():
 def create_installer_script():
     """Crea script NSIS para el instalador"""
     nsis_script = '''
-; SEACABAr Installer Script
+; SIGeC-BalisticaInstaller Script
 ; Sistema de Análisis Balístico Automatizado
 
-!define APPNAME "SEACABAr"
+!define APPNAME "SIGeC-Balistica"
 !define COMPANYNAME "Laboratorio de Balística Forense"
 !define DESCRIPTION "Sistema de Análisis Balístico Automatizado"
 !define VERSIONMAJOR 1
 !define VERSIONMINOR 0
 !define VERSIONBUILD 0
 
-!define HELPURL "https://github.com/seacabar/seacabar"
-!define UPDATEURL "https://github.com/seacabar/seacabar/releases"
-!define ABOUTURL "https://github.com/seacabar/seacabar"
+!define HELPURL "https://github.com/SIGeC-Balistica/SIGeC-Balistica"
+!define UPDATEURL "https://github.com/SIGeC-Balistica/SIGeC-Balistica/releases"
+!define ABOUTURL "https://github.com/SIGeC-Balistica/SIGeC-Balistica"
 
 !define INSTALLSIZE 500000
 
@@ -163,7 +163,7 @@ InstallDir "$PROGRAMFILES\\${APPNAME}"
 
 Name "${APPNAME}"
 Icon "assets\\icon.ico"
-outFile "SEACABAr_Installer.exe"
+outFile "SIGeC-Balistica_Installer.exe"
 
 !include LogicLib.nsh
 
@@ -186,19 +186,19 @@ function .onInit
     !insertmacro VerifyUserIsAdmin
 functionEnd
 
-section "SEACABAr (requerido)"
+section "SIGeC-Balistica(requerido)"
     sectionIn RO
     setOutPath $INSTDIR
     
     ; Copiar archivos del programa
-    file /r "dist\\SEACABAr\\*"
+    file /r "dist\\SIGeC-Balistica\\*"
     
     ; Crear acceso directo en el escritorio
-    createShortCut "$DESKTOP\\${APPNAME}.lnk" "$INSTDIR\\SEACABAr.exe"
+    createShortCut "$DESKTOP\\${APPNAME}.lnk" "$INSTDIR\\SIGeC-Balistica.exe"
     
     ; Crear acceso directo en el menú inicio
     createDirectory "$SMPROGRAMS\\${APPNAME}"
-    createShortCut "$SMPROGRAMS\\${APPNAME}\\${APPNAME}.lnk" "$INSTDIR\\SEACABAr.exe"
+    createShortCut "$SMPROGRAMS\\${APPNAME}\\${APPNAME}.lnk" "$INSTDIR\\SIGeC-Balistica.exe"
     createShortCut "$SMPROGRAMS\\${APPNAME}\\Desinstalar.lnk" "$INSTDIR\\uninstall.exe"
     
     ; Registro de Windows
@@ -206,7 +206,7 @@ section "SEACABAr (requerido)"
     writeRegStr HKLM "Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\${APPNAME}" "UninstallString" "$INSTDIR\\uninstall.exe"
     writeRegStr HKLM "Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\${APPNAME}" "QuietUninstallString" "$INSTDIR\\uninstall.exe /S"
     writeRegStr HKLM "Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\${APPNAME}" "InstallLocation" "$INSTDIR"
-    writeRegStr HKLM "Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\${APPNAME}" "DisplayIcon" "$INSTDIR\\SEACABAr.exe"
+    writeRegStr HKLM "Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\${APPNAME}" "DisplayIcon" "$INSTDIR\\SIGeC-Balistica.exe"
     writeRegStr HKLM "Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\${APPNAME}" "Publisher" "${COMPANYNAME}"
     writeRegStr HKLM "Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\${APPNAME}" "HelpLink" "${HELPURL}"
     writeRegStr HKLM "Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\${APPNAME}" "URLUpdateInfo" "${UPDATEURL}"
@@ -259,7 +259,7 @@ def create_assets_dir():
 
 def main():
     """Función principal del script de construcción"""
-    print("=== SEACABAr - Constructor de Instalador ===")
+    print("=== SIGeC-Balistica- Constructor de Instalador ===")
     print("Sistema de Análisis Balístico Automatizado\n")
     
     # Verificar que estamos en el directorio correcto
@@ -286,7 +286,7 @@ def main():
         
         print("\n=== Construcción Completada ===")
         print("Archivos generados:")
-        print("- dist/SEACABAr/: Directorio con el ejecutable")
+        print("- dist/SIGeC-Balistica/: Directorio con el ejecutable")
         print("- installer.nsi: Script para crear instalador NSIS")
         print("\nPara crear el instalador final:")
         print("1. Instale NSIS (Nullsoft Scriptable Install System)")

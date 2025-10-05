@@ -1,8 +1,8 @@
-"""Common Statistical Core Module for SEACABA
+"""Common Statistical Core Module for SIGeC-Balistica
 ==========================================
 
 Este módulo proporciona funcionalidades estadísticas unificadas y centralizadas
-para todo el sistema SEACABA, manteniendo compatibilidad con interfaces existentes
+para todo el sistema SIGeC-Balistica, manteniendo compatibilidad con interfaces existentes
 y preservando trazabilidad NIST.
 
 Componentes principales:
@@ -11,7 +11,7 @@ Componentes principales:
 - Clases de datos para resultados estadísticos
 - Utilidades para bootstrap y análisis estadístico
 
-Autor: SEACABA Development Team
+Autor: SIGeC-Balistica Development Team
 Fecha: 2024
 Licencia: MIT
 """

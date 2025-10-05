@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Sistema de Configuración Unificado - SEACABAr
+Sistema de Configuración Unificado - SIGeC-Balistica
 ============================================
 
 Sistema centralizado de configuración que unifica todas las configuraciones
-dispersas del proyecto SEACABAr, proporcionando validación, migración automática
+dispersas del proyecto SIGeC-Balistica, proporcionando validación, migración automática
 y gestión de configuraciones por entorno.
 
 Características:
@@ -16,7 +16,7 @@ Características:
 - Configuración por variables de entorno
 - Sistema de respaldo y recuperación
 
-Autor: SEACABAr Team
+Autor: SIGeC-BalisticaTeam
 Fecha: Octubre 2025
 """
 
@@ -457,7 +457,7 @@ class NISTConfig:
 
 class UnifiedConfig:
     """
-    Sistema de configuración unificado para SEACABAr
+    Sistema de configuración unificado para SIGeC-Balistica
     
     Centraliza todas las configuraciones del sistema y proporciona:
     - Validación automática
@@ -515,7 +515,7 @@ class UnifiedConfig:
     
     def _detect_environment(self) -> Environment:
         """Detecta el entorno de ejecución"""
-        env_var = os.getenv('SEACABAR_ENV', 'development').lower()
+        env_var = os.getenv('SIGeC-Balistica_ENV', 'development').lower()
         
         if env_var in ['prod', 'production']:
             return Environment.PRODUCTION
@@ -534,7 +534,7 @@ class UnifiedConfig:
         # Buscar desde el directorio actual hacia arriba
         current = Path.cwd()
         
-        # Buscar indicadores del proyecto SEACABAr
+        # Buscar indicadores del proyecto SIGeC-Balistica
         indicators = ['main.py', 'gui', 'matching', 'requirements.txt']
         
         for parent in [current] + list(current.parents):
@@ -896,7 +896,7 @@ if __name__ == "__main__":
         config = UnifiedConfig()
         
         # Mostrar configuración actual
-        print("=== Configuración Unificada SEACABAr ===")
+        print("=== Configuración Unificada SIGeC-Balistica===")
         print(f"Entorno: {config.environment.value}")
         print(f"Archivo de configuración: {config.config_path}")
         print(f"Directorio del proyecto: {config.project_root}")

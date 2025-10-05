@@ -6,7 +6,7 @@ Test de Integración Backend-Frontend
 Prueba la integración completa entre los módulos de backend y frontend
 usando datos reales de imágenes balísticas.
 
-Autor: Sistema de Análisis Balístico SEACABAr
+Autor: Sistema de Análisis Balístico SIGeC-Balistica
 Fecha: 2024
 """
 
@@ -60,7 +60,7 @@ class BackendFrontendIntegrationTester:
         print("🔧 Configurando entorno de pruebas...")
         
         # Crear directorio temporal
-        self.temp_dir = tempfile.mkdtemp(prefix="seacabar_test_")
+        self.temp_dir = tempfile.mkdtemp(prefix="SIGeC-Balistica_test_")
         print(f"  📁 Directorio temporal: {self.temp_dir}")
         
         # Configurar base de datos temporal

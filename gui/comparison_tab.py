@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 Pestaña de Análisis Comparativo Balístico
-Sistema SEACABAr - Análisis de Cartuchos y Balas Automático
+Sistema SIGeC-Balistica- Análisis de Cartuchos y Balas Automático
 
 Dos modos especializados:
 1. Comparación Directa (Evidencia A vs Evidencia B) con análisis CMC

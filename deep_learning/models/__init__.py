@@ -1,5 +1,5 @@
 """
-Módulo de modelos de Deep Learning - SEACABAr
+Módulo de modelos de Deep Learning - SIGeC-Balistica
 ===========================================
 
 Este módulo contiene todas las arquitecturas de modelos especializadas para balística:
@@ -18,7 +18,7 @@ Componentes principales:
 """
 
 __version__ = "1.0.0"
-__author__ = "SEACABAr Team"
+__author__ = "SIGeC-BalisticaTeam"
 
 from .cnn_models import (
     BallisticCNN,

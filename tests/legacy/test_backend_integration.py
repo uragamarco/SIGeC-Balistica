@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 Script de diagnóstico para probar la integración de módulos del backend
-Autor: Sistema SEACABAr
+Autor: Sistema SIGeC-Balistica
 Fecha: 28 de Septiembre 2025
 """
 

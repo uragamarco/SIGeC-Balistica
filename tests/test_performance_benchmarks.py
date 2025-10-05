@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Benchmarks de rendimiento para SEACABAr
+Benchmarks de rendimiento para SIGeC-Balistica
 Tests de rendimiento para procesamiento de imágenes por chunks
 """
 

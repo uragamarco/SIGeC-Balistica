@@ -9,7 +9,7 @@ de modelos de deep learning en análisis balístico, incluyendo:
 - Métricas de clasificación jerárquica
 - Análisis de similitud y distancia
 
-Autor: SEACABAr Team
+Autor: SIGeC-BalisticaTeam
 """
 
 import numpy as np

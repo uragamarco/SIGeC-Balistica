@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 Diálogo de Selección de Modelos de Deep Learning
-Sistema SEACABAr - Análisis de Cartuchos y Balas Automático
+Sistema SIGeC-Balistica- Análisis de Cartuchos y Balas Automático
 
 Permite seleccionar y configurar modelos de deep learning para análisis balístico.
 """

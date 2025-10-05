@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Sistema de Lazy Loading Avanzado - SEACABAr
+Sistema de Lazy Loading Avanzado - SIGeC-Balistica
 ===========================================
 
 Sistema inteligente de carga perezosa (lazy loading) para imágenes, diseñado para
@@ -16,7 +16,7 @@ Características principales:
 - Integración con sistemas de archivos y bases de datos
 - Monitoreo de rendimiento y uso de memoria
 
-Autor: SEACABAr Team
+Autor: SIGeC-BalisticaTeam
 Versión: 1.0.0
 """
 
