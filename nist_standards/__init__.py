@@ -55,7 +55,7 @@ from .statistical_analysis import (
 )
 
 __version__ = "1.0.0"
-__author__ = "SEACABA Team"
+__author__ = "SIGeC-Balistica Team"
 __description__ = "Implementación de Estándares NIST para Análisis Balístico Forense"
 
 # Configuración por defecto

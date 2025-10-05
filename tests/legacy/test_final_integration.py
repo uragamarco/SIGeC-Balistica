@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Test final de integración completa del sistema SEACABA
+Test final de integración completa del sistema SIGeC-Balistica
 """
 
 import sys
@@ -14,7 +14,7 @@ sys.path.insert(0, os.path.abspath('.'))
 
 def test_complete_integration():
     """Prueba completa de integración del sistema"""
-    print("=== PRUEBA FINAL DE INTEGRACIÓN SEACABA ===\n")
+    print("=== PRUEBA FINAL DE INTEGRACIÓN SIGeC-Balistica ===\n")
     
     # 1. Importar todos los módulos
     print("1. Importando módulos...")

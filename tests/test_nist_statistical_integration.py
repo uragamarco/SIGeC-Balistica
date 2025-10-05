@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 Tests de integración para Análisis Estadístico con Estándares NIST
-Sistema SEACABA - Análisis Balístico Forense
+Sistema SIGeC-Balistica - Análisis Balístico Forense
 """
 
 import unittest
@@ -409,11 +409,11 @@ class TestStatisticalReportGeneration(unittest.TestCase):
             if hasattr(self.nist_manager.statistical_analysis, 'generate_statistical_report'):
                 report = self.nist_manager.statistical_analysis.generate_statistical_report(
                     [mock_analysis_data],
-                    title="Reporte Estadístico Comprehensivo - SEACABA"
+                    title="Reporte Estadístico Comprehensivo - SIGeC-Balistica"
                 )
                 
                 self.assertIsInstance(report, str)
-                self.assertIn("SEACABA", report)
+                self.assertIn("SIGeC-Balistica", report)
                 self.assertIn("Bootstrap", report)
                 self.assertIn("Bonferroni", report)
                 

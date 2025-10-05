@@ -531,7 +531,7 @@ class NISTMetricsValidator:
         report = self.run_comprehensive_validation()
         
         report_text = f"""
-REPORTE DE CUMPLIMIENTO NIST - MIGRACIÓN ESTADÍSTICA SEACABA
+REPORTE DE CUMPLIMIENTO NIST - MIGRACIÓN ESTADÍSTICA SIGeC-Balistica
 ============================================================
 
 RESUMEN EJECUTIVO:
@@ -628,7 +628,7 @@ class TestNISTValidation(unittest.TestCase):
 
 
 if __name__ == "__main__":
-    print("SEACABA - Validación de Métricas NIST para Migración Estadística")
+    print("SIGeC-Balistica - Validación de Métricas NIST para Migración Estadística")
     print("=" * 70)
     
     # Ejecutar validación completa

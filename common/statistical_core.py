@@ -1,8 +1,8 @@
 """
-Unified Statistical Core Module for SEACABA
+Unified Statistical Core Module for SIGeC-Balistica
 ===========================================
 
-Este módulo centraliza todas las funcionalidades estadísticas del sistema SEACABA,
+Este módulo centraliza todas las funcionalidades estadísticas del sistema SIGeC-Balistica,
 proporcionando una interfaz unificada mientras mantiene compatibilidad hacia atrás
 con los módulos existentes.
 
@@ -20,7 +20,7 @@ Basado en:
 - NIST/SEMATECH e-Handbook of Statistical Methods
 - ISO 5725-2:2019 - Accuracy and precision of measurement methods
 
-Autor: SEACABA Development Team
+Autor: SIGeC-Balistica Development Team
 Fecha: 2024
 Licencia: MIT
 """
@@ -173,7 +173,7 @@ class MatchingBootstrapConfig:
 
 class UnifiedStatisticalAnalysis:
     """
-    Clase principal que unifica todas las funcionalidades estadísticas del sistema SEACABA.
+    Clase principal que unifica todas las funcionalidades estadísticas del sistema SIGeC-Balistica.
     
     Esta clase proporciona:
     1. Bootstrap sampling avanzado (compatible con nist_standards.statistical_analysis)
@@ -2144,7 +2144,7 @@ def calculate_bootstrap_confidence_interval(
 
 if __name__ == "__main__":
     # Test básico del módulo
-    print(f"SEACABA Unified Statistical Core v{__version__}")
+    print(f"SIGeC-Balistica Unified Statistical Core v{__version__}")
     
     # Test bootstrap
     analyzer = UnifiedStatisticalAnalysis(random_state=42)

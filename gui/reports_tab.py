@@ -1477,8 +1477,8 @@ if __name__ == "__main__":
     app = QApplication(sys.argv)
     
     # Aplicar tema
-    from .styles import apply_seacaba_theme
-    apply_seacaba_theme(app)
+    from .styles import apply_SIGeC-Balistica_theme
+    apply_SIGeC-Balistica_theme(app)
     
     # Crear y mostrar pestaña
     tab = ReportsTab()

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 Tests de integración para Análisis Estadístico con GUI
-Sistema SEACABA - Análisis Balístico Forense
+Sistema SIGeC-Balistica - Análisis Balístico Forense
 """
 
 import unittest

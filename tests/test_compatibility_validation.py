@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 Tests de Validación de Compatibilidad para Refactorización Estadística
-Sistema SEACABA - Análisis Balístico Forense
+Sistema SIGeC-Balistica - Análisis Balístico Forense
 
 Este módulo valida que los adaptadores de compatibilidad mantengan
 equivalencia funcional exacta con las implementaciones originales,

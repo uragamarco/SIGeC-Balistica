@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-SEACABA - Adaptadores de Compatibilidad para Refactorización Estadística
+SIGeC-Balistica - Adaptadores de Compatibilidad para Refactorización Estadística
 ========================================================================
 
 Este módulo proporciona adaptadores transparentes para mantener compatibilidad
@@ -15,7 +15,7 @@ Cumplimiento NIST:
 - NIST/SEMATECH e-Handbook (Análisis estadístico)
 - NIST SP 800-90A Rev. 1 (Generación de números aleatorios)
 
-Autor: Sistema SEACABA
+Autor: Sistema SIGeC-Balistica
 Fecha: 2024
 """
 
@@ -696,7 +696,7 @@ NIST_TRACEABILITY_INFO = {
 
 if __name__ == "__main__":
     # Test básico de adaptadores
-    print("Testing SEACABA Compatibility Adapters - Fase 1...")
+    print("Testing SIGeC-Balistica Compatibility Adapters - Fase 1...")
     
     # Test adaptador NIST
     try:

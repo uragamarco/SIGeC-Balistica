@@ -9,7 +9,7 @@ __author__ = "SIGeC-BalisticaDevelopment Team"
 
 # Importaciones principales
 from .main_window import MainWindow
-from .styles import SIGeC-BalisticaTheme, apply_seacaba_theme
+from .styles import SIGeC-BalisticaTheme, apply_SIGeC-Balistica_theme
 from .shared_widgets import (
     ImageDropZone, 
     ResultCard, 
@@ -21,7 +21,7 @@ from .shared_widgets import (
 __all__ = [
     'MainWindow',
     'SIGeC-BalisticaTheme', 
-    'apply_seacaba_theme',
+    'apply_SIGeC-Balistica_theme',
     'ImageDropZone',
     'ResultCard',
     'CollapsiblePanel', 

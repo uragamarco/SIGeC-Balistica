@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Test completo del flujo de trabajo de la aplicación SEACABA
+Test completo del flujo de trabajo de la aplicación SIGeC-Balistica
 Prueba la integración completa: carga → procesamiento → comparación → visualización
 """
 

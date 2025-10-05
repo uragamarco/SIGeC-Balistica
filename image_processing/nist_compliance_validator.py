@@ -8,7 +8,7 @@ Este módulo integra todos los aspectos de cumplimiento NIST para imágenes bal�
 - Generación de reportes de cumplimiento
 - Recomendaciones para mejora de calidad
 
-Autor: Sistema SEACABA
+Autor: Sistema SIGeC-Balistica
 Fecha: 2024
 """
 

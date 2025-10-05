@@ -1,6 +1,6 @@
 """
 Ejemplo de Integración - Procesamiento Paralelo de ROIs
-Sistema Balístico Forense SEACABA
+Sistema Balístico Forense SIGeC-Balistica
 
 Este ejemplo demuestra cómo integrar el procesamiento paralelo
 en aplicaciones reales del sistema balístico forense.

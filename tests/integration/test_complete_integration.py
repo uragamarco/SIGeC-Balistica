@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Script de pruebas de integración completa para el sistema SEACABA
+Script de pruebas de integración completa para el sistema SIGeC-Balistica
 Valida el flujo completo desde preprocesamiento hasta extracción de características
 """
 
@@ -277,7 +277,7 @@ def generate_integration_report(preprocess_results, extraction_results, workflow
 
 def main():
     """Función principal"""
-    print("Iniciando pruebas de integración completa del sistema SEACABA...")
+    print("Iniciando pruebas de integración completa del sistema SIGeC-Balistica...")
     print("="*60)
     
     # Ejecutar todas las pruebas

@@ -53,7 +53,7 @@ from .compatibility_adapters import (
 )
 
 __version__ = "1.0.0"
-__author__ = "SEACABA Development Team"
+__author__ = "SIGeC-Balistica Development Team"
 __license__ = "MIT"
 
 # Interfaces públicas principales

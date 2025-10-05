@@ -28,7 +28,7 @@ except ImportError:
         LANGUAGE = "es"
 
 # Importar estilos y widgets
-from .styles import SIGeC-BalisticaTheme, apply_seacaba_theme
+from .styles import SIGeC-BalisticaTheme, apply_SIGeC-Balistica_theme
 from .shared_widgets import StepIndicator, ProgressCard
 from .settings_dialog import SettingsDialog
 from .history_dialog import HistoryDialog
@@ -512,7 +512,7 @@ class MainWindow(QMainWindow):
             self.backend.reload_configuration()
             
             # Actualizar tema si cambió
-            apply_seacaba_theme(self)
+            apply_SIGeC-Balistica_theme(self)
             
             # Notificar a las pestañas sobre cambios de configuración
             for i in range(self.tab_widget.count()):
@@ -573,7 +573,7 @@ def main():
     app = QApplication(sys.argv)
     
     # Aplicar tema
-    apply_seacaba_theme(app)
+    apply_SIGeC-Balistica_theme(app)
     
     # Crear y mostrar ventana principal
     window = MainWindow()

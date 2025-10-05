@@ -9,7 +9,7 @@ imágenes balísticas, incluyendo:
 - Conversión entre unidades (píxeles/mm, DPI)
 - Cumplimiento de estándares NIST (mínimo 1000 DPI)
 
-Autor: Sistema SEACABA
+Autor: Sistema SIGeC-Balistica
 Fecha: 2024
 """
 

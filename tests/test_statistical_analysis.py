@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 Tests comprehensivos para el módulo de Análisis Estadístico Avanzado
-Sistema SEACABA - Análisis Balístico Forense
+Sistema SIGeC-Balistica - Análisis Balístico Forense
 """
 
 import unittest
@@ -400,7 +400,7 @@ class TestIntegrationStatisticalAnalysis(unittest.TestCase):
             all_results = [bootstrap_result] + test_results + [correction_result]
             report = self.statistical_analysis.generate_statistical_report(
                 all_results,
-                title="Análisis Estadístico Completo - SEACABA"
+                title="Análisis Estadístico Completo - SIGeC-Balistica"
             )
             
             # Verificaciones
@@ -409,7 +409,7 @@ class TestIntegrationStatisticalAnalysis(unittest.TestCase):
             self.assertIsInstance(correction_result, MultipleComparisonResult)
             self.assertIsInstance(power, float)
             self.assertIsInstance(report, str)
-            self.assertIn("SEACABA", report)
+            self.assertIn("SIGeC-Balistica", report)
             
         except Exception as e:
             self.skipTest(f"Flujo completo no disponible: {e}")

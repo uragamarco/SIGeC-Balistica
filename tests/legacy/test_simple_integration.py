@@ -259,7 +259,7 @@ class TestSimpleIntegration(unittest.TestCase):
 
 if __name__ == '__main__':
     print("=" * 60)
-    print("SEACABA - Test Simplificado de Integración")
+    print("SIGeC-Balistica - Test Simplificado de Integración")
     print("=" * 60)
     
     # Configurar entorno para GUI headless
