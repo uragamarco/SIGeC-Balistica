@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Procesador de Imágenes por Chunks - SIGeC-Balisticar
+Procesador de Imágenes por Chunks - SIGeC-Balistica
 ===========================================
 
 Sistema optimizado para procesamiento de imágenes grandes mediante fragmentación
@@ -15,7 +15,7 @@ Características principales:
 - Monitoreo de uso de memoria en tiempo real
 - Compatibilidad con pipelines existentes
 
-Autor: SIGeC-Balisticar Team
+Autor: SIGeC-Balistica Team
 Versión: 1.0.0
 """
 

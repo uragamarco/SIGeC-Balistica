@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Sistema de Optimización de Rendimiento para SIGeC-Balisticar.
+Sistema de Optimización de Rendimiento para SIGeC-Balistica.
 Implementa técnicas avanzadas de optimización para mejorar el rendimiento general del sistema.
 """
 
@@ -608,7 +608,7 @@ class PerformanceOptimizer:
 async def main():
     """Función principal de demostración."""
     
-    print("🚀 Iniciando Sistema de Optimización de Rendimiento SIGeC-Balisticar")
+    print("🚀 Iniciando Sistema de Optimización de Rendimiento SIGeC-Balistica")
     
     # Configuración de optimización
     config = OptimizationConfig(

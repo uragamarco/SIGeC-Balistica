@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Sistema de notificaciones inteligente para SIGeC-Balisticar.
+Sistema de notificaciones inteligente para SIGeC-Balistica.
 Maneja notificaciones de errores, alertas y eventos del sistema.
 """
 

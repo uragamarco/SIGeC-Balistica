@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Comparison Worker Thread - SIGeC-Balisticar GUI (OPTIMIZADO)
+Comparison Worker Thread - SIGeC-Balistica GUI (OPTIMIZADO)
 ====================================================
 
 Worker thread optimizado para realizar análisis comparativo de imágenes en segundo plano,
@@ -15,7 +15,7 @@ Optimizaciones implementadas:
 - Pool de threads para operaciones paralelas
 - Cache de resultados intermedios
 
-Autor: SIGeC-Balisticar Team
+Autor: SIGeC-Balistica Team
 Fecha: Octubre 2025
 """
 

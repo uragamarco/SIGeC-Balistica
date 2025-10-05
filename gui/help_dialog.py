@@ -490,7 +490,7 @@ image_processing:
         <h4>Base de Datos</h4>
         <pre><code>
 database:
-  path: "data/SIGeC-Balisticar.db"
+  path: "data/SIGeC-Balistica.db"
   backup:
     enabled: true
     interval: 24  # horas
@@ -512,9 +512,9 @@ nist:
         
         <h3>Variables de Entorno</h3>
         <ul>
-            <li><code>SIGeC-BalisticaR_CONFIG_PATH</code>: Ruta del archivo de configuración</li>
-            <li><code>SIGeC-BalisticaR_DATA_PATH</code>: Directorio de datos</li>
-            <li><code>SIGeC-BalisticaR_LOG_LEVEL</code>: Nivel de logging</li>
+            <li><code>SIGeC-Balistica_CONFIG_PATH</code>: Ruta del archivo de configuración</li>
+            <li><code>SIGeC-Balistica_DATA_PATH</code>: Directorio de datos</li>
+            <li><code>SIGeC-Balistica_LOG_LEVEL</code>: Nivel de logging</li>
         </ul>
         """
     
@@ -524,10 +524,10 @@ nist:
         <h2>Integración con Sistemas Externos</h2>
         
         <h3>API REST</h3>
-        <p>SIGeC-Balisticar puede exponerse como servicio REST:</p>
+        <p>SIGeC-Balistica puede exponerse como servicio REST:</p>
         <pre><code>
 # Iniciar servidor API
-python -m SIGeC-Balisticar.api --port 8080
+python -m SIGeC-Balistica.api --port 8080
 
 # Endpoints disponibles
 POST /api/v1/analyze
@@ -556,12 +556,12 @@ GET  /api/v1/status
         <h3>SDK y Librerías</h3>
         <pre><code>
 # Instalación del SDK
-pip install SIGeC-Balisticar-sdk
+pip install SIGeC-Balistica-sdk
 
 # Uso básico
-from SIGeC-Balisticar_sdk import SIGeC-BalisticarClient
+from SIGeC-Balistica_sdk import SIGeC-BalisticaClient
 
-client = SIGeC-BalisticarClient("http://localhost:8080")
+client = SIGeC-BalisticaClient("http://localhost:8080")
 result = client.analyze_image("fingerprint.png")
         </code></pre>
         """
@@ -673,7 +673,7 @@ class FAQWidget(HelpContentWidget):
         ubicación en Configuración > Base de Datos.</p>
         
         <h3>¿Puedo instalar en un servidor?</h3>
-        <p>Sí, SIGeC-Balisticar puede ejecutarse en modo servidor. Use <code>python main.py --headless</code> 
+        <p>Sí, SIGeC-Balistica puede ejecutarse en modo servidor. Use <code>python main.py --headless</code> 
         para modo sin interfaz gráfica.</p>
         """
     
@@ -742,7 +742,7 @@ class FAQWidget(HelpContentWidget):
         en Configuración > Base de Datos.</p>
         
         <h3>¿Puedo importar datos de otros sistemas?</h3>
-        <p>Sí, SIGeC-Balisticar soporta importación desde formatos ANSI/NIST y CSV. 
+        <p>Sí, SIGeC-Balistica soporta importación desde formatos ANSI/NIST y CSV. 
         Use Archivo > Importar Datos.</p>
         
         <h3>¿Cómo busco registros específicos?</h3>
@@ -792,7 +792,7 @@ class FAQWidget(HelpContentWidget):
         o ajuste los parámetros de detección.</p>
         
         <h3>"Error de base de datos bloqueada"</h3>
-        <p>Cierre otras instancias de SIGeC-Balisticar o reinicie la aplicación. 
+        <p>Cierre otras instancias de SIGeC-Balistica o reinicie la aplicación. 
         Si persiste, verifique permisos de archivo.</p>
         
         <h3>"Fallo en la comparación"</h3>
@@ -980,7 +980,7 @@ Estado: {self.get_backend_status()}
     def refresh_logs_info(self):
         """Actualiza la información de logs"""
         try:
-            log_file = "SIGeC-Balisticar.log"
+            log_file = "SIGeC-Balistica.log"
             if os.path.exists(log_file):
                 with open(log_file, 'r', encoding='utf-8') as f:
                     # Leer las últimas 100 líneas
@@ -1007,7 +1007,7 @@ Estado: {self.get_backend_status()}
         
         if reply == QMessageBox.Yes:
             try:
-                log_file = "SIGeC-Balisticar.log"
+                log_file = "SIGeC-Balistica.log"
                 if os.path.exists(log_file):
                     open(log_file, 'w').close()  # Vaciar archivo
                 
@@ -1047,9 +1047,9 @@ class SupportWidget(HelpContentWidget):
         contact_group = QGroupBox("Información de Contacto")
         contact_layout = QFormLayout(contact_group)
         
-        contact_layout.addRow("Email:", QLabel("soporte@SIGeC-Balisticar.com"))
-        contact_layout.addRow("Teléfono:", QLabel("+1-800-SIGeC-BalisticaR"))
-        contact_layout.addRow("Web:", QLabel('<a href="https://SIGeC-Balisticar.com">https://SIGeC-Balisticar.com</a>'))
+        contact_layout.addRow("Email:", QLabel("soporte@SIGeC-Balistica.com"))
+        contact_layout.addRow("Teléfono:", QLabel("+1-800-SIGeC-Balistica"))
+        contact_layout.addRow("Web:", QLabel('<a href="https://SIGeC-Balistica.com">https://SIGeC-Balistica.com</a>'))
         
         layout.addWidget(contact_group)
         
@@ -1102,11 +1102,11 @@ class SupportWidget(HelpContentWidget):
         links_layout = QVBoxLayout(links_group)
         
         links = [
-            ("Documentación Online", "https://docs.SIGeC-Balisticar.com"),
-            ("Foro de Usuarios", "https://forum.SIGeC-Balisticar.com"),
-            ("Base de Conocimiento", "https://kb.SIGeC-Balisticar.com"),
-            ("Actualizaciones", "https://updates.SIGeC-Balisticar.com"),
-            ("Canal de YouTube", "https://youtube.com/SIGeC-Balisticar")
+            ("Documentación Online", "https://docs.SIGeC-Balistica.com"),
+            ("Foro de Usuarios", "https://forum.SIGeC-Balistica.com"),
+            ("Base de Conocimiento", "https://kb.SIGeC-Balistica.com"),
+            ("Actualizaciones", "https://updates.SIGeC-Balistica.com"),
+            ("Canal de YouTube", "https://youtube.com/SIGeC-Balistica")
         ]
         
         for text, url in links:
@@ -1167,7 +1167,7 @@ Directorio de trabajo: {os.getcwd()}
     def send_support_email(self):
         """Abre el cliente de email para enviar soporte"""
         try:
-            subject = f"Soporte SIGeC-Balisticar - {self.problem_type.currentText()}"
+            subject = f"Soporte SIGeC-Balistica - {self.problem_type.currentText()}"
             body = f"""
 Tipo de Problema: {self.problem_type.currentText()}
 
@@ -1179,7 +1179,7 @@ Sistema: {platform.system()} {platform.version()}
 Python: {sys.version.split()[0]}
             """.strip()
             
-            mailto_url = f"mailto:soporte@SIGeC-Balisticar.com?subject={subject}&body={body}"
+            mailto_url = f"mailto:soporte@SIGeC-Balistica.com?subject={subject}&body={body}"
             QDesktopServices.openUrl(QUrl(mailto_url))
             
         except Exception as e:
@@ -1190,7 +1190,7 @@ class HelpDialog(QDialog):
     
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.setWindowTitle("Ayuda - SIGeC-Balisticar")
+        self.setWindowTitle("Ayuda - SIGeC-Balistica")
         self.setModal(False)
         self.resize(1000, 700)
         

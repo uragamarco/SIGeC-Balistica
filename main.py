@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-SIGeC-Balisticar - Sistema Experto de Análisis de Cartuchos y Balas Automático
+SIGeC-Balistica - Sistema Experto de Análisis de Cartuchos y Balas Automático
 =====================================================================
 
 Aplicación principal que integra todas las funcionalidades del sistema forense balístico:
@@ -10,7 +10,7 @@ Aplicación principal que integra todas las funcionalidades del sistema forense 
 - Gestión de base de datos de evidencia balística
 - Generación de reportes forenses con estándares NIST y conclusiones AFTE
 
-Autor: SIGeC-Balisticar Team
+Autor: SIGeC-Balistica Team
 Fecha: Octubre 2025
 Versión: 2.0.0
 """
@@ -156,8 +156,8 @@ def setup_environment():
         logger.debug(f"✓ Directorio: {dir_path}")
     
     # Configurar variables de entorno
-    os.environ['SIGeC-BalisticaR_ROOT'] = str(project_root)
-    os.environ['SIGeC-BalisticaR_DATA'] = str(project_root / "data")
+    os.environ['SIGeC-Balistica_ROOT'] = str(project_root)
+    os.environ['SIGeC-Balistica_DATA'] = str(project_root / "data")
     
     logger.info("✓ Entorno configurado")
 
@@ -183,14 +183,14 @@ def create_application():
         app = QApplication(sys.argv)
         
         # Configurar propiedades de la aplicación
-        app.setApplicationName("SIGeC-Balisticar")
-        app.setApplicationDisplayName("SIGeC-Balisticar - Sistema de Evaluación Automatizada")
+        app.setApplicationName("SIGeC-Balistica")
+        app.setApplicationDisplayName("SIGeC-Balistica - Sistema de Evaluación Automatizada")
         app.setApplicationVersion("2.0.0")
-        app.setOrganizationName("SIGeC-Balisticar Team")
-        app.setOrganizationDomain("SIGeC-Balisticar.org")
+        app.setOrganizationName("SIGeC-Balistica Team")
+        app.setOrganizationDomain("SIGeC-Balistica.org")
         
         # Configurar icono de la aplicación
-        icon_path = project_root / "resources" / "icons" / "SIGeC-Balisticar.png"
+        icon_path = project_root / "resources" / "icons" / "SIGeC-Balistica.png"
         if icon_path.exists():
             app.setWindowIcon(QIcon(str(icon_path)))
         
@@ -285,7 +285,7 @@ def parse_arguments():
     """Parsea argumentos de línea de comandos"""
     
     parser = argparse.ArgumentParser(
-        description="SIGeC-Balisticar - Sistema de Evaluación Automatizada de Características Balisticas",
+        description="SIGeC-Balistica - Sistema de Evaluación Automatizada de Características Balisticas",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Ejemplos de uso:
@@ -329,7 +329,7 @@ Ejemplos de uso:
     parser.add_argument(
         '--version',
         action='version',
-        version='SIGeC-Balisticar 2.0.0'
+        version='SIGeC-Balistica 2.0.0'
     )
     
     return parser.parse_args()
@@ -405,7 +405,7 @@ def main():
     logger = get_logger("main")
     
     logger.info("=" * 60)
-    logger.info("SIGeC-Balisticar - Sistema de Evaluación Automatizada")
+    logger.info("SIGeC-Balistica - Sistema de Evaluación Automatizada")
     logger.info("Versión 0.1.3")
     logger.info("=" * 60)
     
@@ -478,7 +478,7 @@ def main():
         return 1
     
     finally:
-        logger.info("Finalizando SIGeC-Balisticar...")
+        logger.info("Finalizando SIGeC-Balistica...")
 
 if __name__ == "__main__":
     exit_code = main()

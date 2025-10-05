@@ -1,5 +1,5 @@
 """
-Consolidador de Sistema de Configuración para SIGeC-Balisticar
+Consolidador de Sistema de Configuración para SIGeC-Balistica
 Sistema unificado para migrar y consolidar todas las configuraciones dispersas
 
 Este módulo implementa:
@@ -72,7 +72,7 @@ class MigrationReport:
 
 class ConfigConsolidator:
     """
-    Consolidador de configuraciones del sistema SIGeC-Balisticar
+    Consolidador de configuraciones del sistema SIGeC-Balistica
     """
     
     def __init__(self, project_root: Optional[Path] = None):

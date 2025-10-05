@@ -1,5 +1,5 @@
 """
-Monitor de GPU para SIGeC-Balisticar
+Monitor de GPU para SIGeC-Balistica
 Sistema de monitoreo continuo de memoria y rendimiento GPU
 
 Este módulo implementa:

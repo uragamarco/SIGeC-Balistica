@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Pruebas de Integración Simples para SIGeC-Balisticar.
+Pruebas de Integración Simples para SIGeC-Balistica.
 Valida funcionalidad básica sin dependencias problemáticas.
 """
 
@@ -118,7 +118,7 @@ class TestSimpleIntegration:
         """Probar manejo básico de configuraciones JSON."""
         
         test_config = {
-            "project_name": "SIGeC-Balisticar",
+            "project_name": "SIGeC-Balistica",
             "version": "1.0.0",
             "modules": {
                 "error_handling": {"enabled": True},
@@ -137,7 +137,7 @@ class TestSimpleIntegration:
             loaded_config = json.load(f)
         
         assert loaded_config == test_config
-        assert loaded_config["project_name"] == "SIGeC-Balisticar"
+        assert loaded_config["project_name"] == "SIGeC-Balistica"
         assert loaded_config["modules"]["caching"]["max_size"] == 1000
     
     def test_file_operations(self, temp_workspace):
@@ -235,29 +235,29 @@ class TestSimpleIntegration:
     def test_string_operations(self):
         """Probar operaciones con strings."""
         
-        test_string = "SIGeC-Balisticar Sistema de Análisis"
+        test_string = "SIGeC-Balistica Sistema de Análisis"
         
         # Operaciones básicas
         assert len(test_string) > 0
-        assert "SIGeC-Balisticar" in test_string
-        assert test_string.startswith("SIGeC-Balisticar")
+        assert "SIGeC-Balistica" in test_string
+        assert test_string.startswith("SIGeC-Balistica")
         assert test_string.endswith("Análisis")
         
         # Transformaciones
-        assert test_string.upper().startswith("SIGeC-BalisticaR")
+        assert test_string.upper().startswith("SIGeC-Balistica")
         assert test_string.lower().endswith("análisis")
         
         # División y unión
         words = test_string.split()
         assert len(words) == 4
-        assert words[0] == "SIGeC-Balisticar"
+        assert words[0] == "SIGeC-Balistica"
         
         rejoined = " ".join(words)
         assert rejoined == test_string
         
         # Formateo
         formatted = f"Proyecto: {words[0]}, Tipo: {words[1]}"
-        assert "SIGeC-Balisticar" in formatted
+        assert "SIGeC-Balistica" in formatted
         assert "Sistema" in formatted
     
     def test_datetime_operations(self):
@@ -291,7 +291,7 @@ class TestSimpleIntegration:
         """Probar manejo de variables de entorno."""
         
         # Establecer variable de entorno
-        test_var_name = "SIGeC-BalisticaR_TEST_VAR"
+        test_var_name = "SIGeC-Balistica_TEST_VAR"
         test_var_value = "test_value_123"
         
         os.environ[test_var_name] = test_var_value

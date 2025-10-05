@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Pruebas de integración para todos los sistemas de SIGeC-Balisticar.
+Pruebas de integración para todos los sistemas de SIGeC-Balistica.
 Valida que los componentes funcionen correctamente en conjunto.
 """
 

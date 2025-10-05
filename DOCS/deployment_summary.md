@@ -62,7 +62,7 @@ El sistema SIGeC-Balistica ha sido desplegado exitosamente en producción con to
 
 ### Estructura de Producción
 ```
-/home/marco/SIGeC-Balisticar_production/
+/home/marco/SIGeC-Balistica_production/
 ├── api/                    # APIs del sistema
 ├── core/                   # Módulos principales
 ├── data/                   # Datos y configuraciones
@@ -70,7 +70,7 @@ El sistema SIGeC-Balistica ha sido desplegado exitosamente en producción con to
 ├── monitoring/             # Sistema de monitoreo
 ├── main.py                 # Aplicación principal
 ├── requirements.txt        # Dependencias
-└── start_SIGeC-Balisticar.sh      # Script de inicio
+└── start_SIGeC-Balistica.sh      # Script de inicio
 ```
 
 ---
@@ -86,19 +86,19 @@ El sistema SIGeC-Balistica ha sido desplegado exitosamente en producción con to
 ### Comandos Disponibles
 ```bash
 # Iniciar el sistema
-./start_SIGeC-Balisticar.sh
+./start_SIGeC-Balistica.sh
 
 # Modo de prueba
-./start_SIGeC-Balisticar.sh --test
+./start_SIGeC-Balistica.sh --test
 
 # Ver versión
-./start_SIGeC-Balisticar.sh --version
+./start_SIGeC-Balistica.sh --version
 
 # Modo debug
-./start_SIGeC-Balisticar.sh --debug
+./start_SIGeC-Balistica.sh --debug
 
 # Modo headless
-./start_SIGeC-Balisticar.sh --headless
+./start_SIGeC-Balistica.sh --headless
 ```
 
 ---
@@ -113,9 +113,9 @@ El sistema SIGeC-Balistica ha sido desplegado exitosamente en producción con to
 
 ## Seguridad y Respaldos
 
-- **Directorio de respaldos:** `/home/marco/SIGeC-Balisticar_backups`
+- **Directorio de respaldos:** `/home/marco/SIGeC-Balistica_backups`
 - **Permisos:** Configurados correctamente para el usuario
-- **Logs de seguridad:** Habilitados en `/home/marco/SIGeC-Balisticar_production/logs`
+- **Logs de seguridad:** Habilitados en `/home/marco/SIGeC-Balistica_production/logs`
 
 ---
 
@@ -131,8 +131,8 @@ El sistema SIGeC-Balistica ha sido desplegado exitosamente en producción con to
 ## Soporte
 
 Para cualquier problema o consulta:
-- Revisar logs en: `/home/marco/SIGeC-Balisticar_production/logs/`
-- Ejecutar: `./start_SIGeC-Balisticar.sh --test` para diagnósticos
+- Revisar logs en: `/home/marco/SIGeC-Balistica_production/logs/`
+- Ejecutar: `./start_SIGeC-Balistica.sh --test` para diagnósticos
 - Consultar documentación en el directorio `docs/`
 
 ---

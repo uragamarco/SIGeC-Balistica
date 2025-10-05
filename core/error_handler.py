@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Sistema avanzado de manejo de errores y recuperación automática para SIGeC-Balisticar.
+Sistema avanzado de manejo de errores y recuperación automática para SIGeC-Balistica.
 Implementa fallbacks inteligentes, notificaciones y recuperación automática.
 """
 

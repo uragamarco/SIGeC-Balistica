@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Sistema de Optimización de APIs para SIGeC-Balisticar.
+Sistema de Optimización de APIs para SIGeC-Balistica.
 Proporciona compresión automática, paginación inteligente, rate limiting y optimizaciones de rendimiento.
 """
 
@@ -748,7 +748,7 @@ def create_optimized_app(config: Dict[str, Any] = None) -> FastAPI:
     
     # Crear aplicación
     app = FastAPI(
-        title="SIGeC-Balisticar API",
+        title="SIGeC-Balistica API",
         description="API optimizada con compresión, paginación y rate limiting",
         version="1.0.0"
     )

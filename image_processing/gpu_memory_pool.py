@@ -1,5 +1,5 @@
 """
-Pool de Memoria GPU para SIGeC-Balisticar
+Pool de Memoria GPU para SIGeC-Balistica
 Sistema de gestión de memoria GPU con pre-allocación y reutilización
 
 Este módulo implementa un sistema de pool de memoria GPU que permite:

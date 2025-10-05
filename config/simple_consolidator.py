@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Consolidador simplificado de configuraciones para SIGeC-Balisticar.
+Consolidador simplificado de configuraciones para SIGeC-Balistica.
 Versión robusta que maneja la consolidación sin errores complejos.
 """
 
@@ -174,5 +174,5 @@ def consolidate_system_simple(root_path: str = None) -> Dict[str, Any]:
     return consolidator.consolidate()
 
 if __name__ == "__main__":
-    result = consolidate_system_simple("/home/marco/SIGeC-Balisticar")
+    result = consolidate_system_simple("/home/marco/SIGeC-Balistica")
     print(f"\n🎉 Resultado: {result}")

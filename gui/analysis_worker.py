@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Analysis Worker Thread - SIGeC-Balisticar GUI
+Analysis Worker Thread - SIGeC-Balistica GUI
 =====================================
 
 Worker thread para realizar análisis individual de imágenes en segundo plano,
-integrando completamente con el backend existente del sistema SIGeC-Balisticar.
+integrando completamente con el backend existente del sistema SIGeC-Balistica.
 
 Características:
 - Procesamiento en hilo separado para mantener la GUI responsiva
@@ -15,7 +15,7 @@ Características:
 - Manejo robusto de errores
 - Progreso detallado en tiempo real
 
-Autor: SIGeC-Balisticar Team
+Autor: SIGeC-Balistica Team
 Fecha: Octubre 2025
 """
 

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Sistema de Caché Inteligente para SIGeC-Balisticar.
+Sistema de Caché Inteligente para SIGeC-Balistica.
 Proporciona caché adaptativo con invalidación automática, compresión y análisis de patrones.
 """
 

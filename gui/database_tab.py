@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 Pestaña de Base de Datos Balística
-Sistema SIGeC-Balisticar - Análisis de Cartuchos y Balas Automático
+Sistema SIGeC-Balistica - Análisis de Cartuchos y Balas Automático
 
 Gestión completa de base de datos balística con:
 - Búsqueda por características balísticas específicas

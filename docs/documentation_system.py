@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Sistema de Documentación Automática para SIGeC-Balisticar.
+Sistema de Documentación Automática para SIGeC-Balistica.
 Genera documentación técnica, guías de usuario y documentación de APIs automáticamente.
 """
 
@@ -1123,7 +1123,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Generar documentación automática")
     parser.add_argument("--source", "-s", default=".", help="Directorio fuente")
     parser.add_argument("--output", "-o", default="docs/generated", help="Directorio de salida")
-    parser.add_argument("--project", "-p", default="SIGeC-Balisticar", help="Nombre del proyecto")
+    parser.add_argument("--project", "-p", default="SIGeC-Balistica", help="Nombre del proyecto")
     parser.add_argument("--version", "-v", default="1.0.0", help="Versión del proyecto")
     parser.add_argument("--private", action="store_true", help="Incluir elementos privados")
     

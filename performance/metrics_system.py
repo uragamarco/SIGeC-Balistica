@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Sistema de métricas de rendimiento para SIGeC-Balisticar.
+Sistema de métricas de rendimiento para SIGeC-Balistica.
 Monitorea y recopila métricas en tiempo real del sistema.
 """
 
