@@ -1,7 +1,10 @@
 #!/usr/bin/env python3
 """
-Ventana principal de SIGeC-Balistica
-Interfaz moderna con tabs para análisis, comparación, base de datos y reportes
+Ventana Principal - SIGeC-Balisticar
+===================================
+
+Ventana principal de la aplicación que contiene todas las pestañas
+y funcionalidades del sistema de análisis balístico.
 """
 
 import sys
@@ -35,6 +38,8 @@ from .history_dialog import HistoryDialog
 from .help_dialog import HelpDialog
 from .about_dialog import AboutDialog
 
+# Importaciones básicas del sistema
+
 class MainWindow(QMainWindow):
     """Ventana principal de la aplicación SIGeC-Balistica"""
     
@@ -46,7 +51,8 @@ class MainWindow(QMainWindow):
     
     def __init__(self):
         super().__init__()
-        self.theme = SIGeC-BalisticaTheme()
+        
+        self.theme = SIGeCBallisticaTheme()
         self.current_analysis = None
         self.setup_ui()
         self.setup_menu_bar()
@@ -54,7 +60,7 @@ class MainWindow(QMainWindow):
         self.setup_connections()
         
     def setup_ui(self):
-        """Configura la interfaz principal"""
+        """Configura la interfaz principal mejorada"""
         # Configuración de ventana
         self.setWindowTitle(GUIConfig.WINDOW_TITLE)
         self.setMinimumSize(1000, 700)
@@ -70,64 +76,16 @@ class MainWindow(QMainWindow):
         main_layout.setSpacing(0)
         
         # Header con información del sistema
-        self.setup_header()
-        main_layout.addWidget(self.header_frame)
+        # self.setup_header()
+        # main_layout.addWidget(self.header_frame)
         
         # Tabs principales
         self.setup_tabs()
         main_layout.addWidget(self.tab_widget)
         
-    def setup_header(self):
-        """Configura el header con información del sistema"""
-        self.header_frame = QFrame()
-        self.header_frame.setProperty("class", "header")
-        self.header_frame.setFixedHeight(60)
+        # Aplicar estilos del tema básico
+        self.setStyleSheet(self.theme.get_stylesheet())
         
-        header_layout = QHBoxLayout(self.header_frame)
-        header_layout.setContentsMargins(20, 10, 20, 10)
-        
-        # Logo y título
-        title_layout = QHBoxLayout()
-        
-        # Logo (placeholder)
-        logo_label = QLabel("🔬")
-        logo_label.setStyleSheet("font-size: 24px;")
-        title_layout.addWidget(logo_label)
-        
-        # Título y subtítulo
-        title_container = QVBoxLayout()
-        title_container.setSpacing(0)
-        
-        title_label = QLabel("SIGeC-Balistica")
-        title_label.setProperty("class", "title")
-        title_container.addWidget(title_label)
-        
-        subtitle_label = QLabel("Sistema de Análisis Forense de Imágenes")
-        subtitle_label.setProperty("class", "caption")
-        title_container.addWidget(subtitle_label)
-        
-        title_layout.addLayout(title_container)
-        header_layout.addLayout(title_layout)
-        
-        # Spacer
-        header_layout.addStretch()
-        
-        # Información del sistema
-        system_info_layout = QVBoxLayout()
-        system_info_layout.setSpacing(0)
-        system_info_layout.setAlignment(Qt.AlignRight)
-        
-        # Estado del sistema
-        self.system_status_label = QLabel("Sistema Listo")
-        self.system_status_label.setProperty("class", "caption success")
-        system_info_layout.addWidget(self.system_status_label)
-        
-        # Información adicional
-        self.system_info_label = QLabel("Base de Datos: Conectada")
-        self.system_info_label.setProperty("class", "caption")
-        system_info_layout.addWidget(self.system_info_label)
-        
-        header_layout.addLayout(system_info_layout)
         
     def setup_tabs(self):
         """Configura las pestañas principales"""
@@ -550,23 +508,48 @@ class MainWindow(QMainWindow):
         """Muestra un mensaje informativo"""
         QMessageBox.information(self, title, message)
         
-    def closeEvent(self, event):
-        """Maneja el evento de cierre de la aplicación"""
-        reply = QMessageBox.question(
-            self,
-            "Confirmar Salida",
-            "¿Está seguro de que desea salir?\n\nSe perderán los cambios no guardados.",
-            QMessageBox.Yes | QMessageBox.No,
-            QMessageBox.No
-        )
+    def show_contextual_help(self):
+        """Muestra ayuda contextual basada en la pestaña actual"""
+        current_tab = self.tab_widget.currentIndex()
         
-        if reply == QMessageBox.Yes:
-            # Limpiar recursos si es necesario
-            if hasattr(self, 'status_timer'):
-                self.status_timer.stop()
-            event.accept()
+        if hasattr(self, 'onboarding_manager') and self.onboarding_manager:
+            if current_tab == 0:  # Análisis
+                self.onboarding_manager.start_analysis_tour()
+            elif current_tab == 1:  # Comparación
+                self.onboarding_manager.start_comparison_tour()
+            elif current_tab == 2:  # Base de datos
+                self.onboarding_manager.start_database_tour()
+            elif current_tab == 3:  # Reportes
+                self.onboarding_manager.start_reports_tour()
+    
+    def show_settings(self):
+        """Muestra el diálogo de configuración"""
+        from .settings_dialog import SettingsDialog
+        dialog = SettingsDialog(self)
+        dialog.exec_()
+    
+    def closeEvent(self, event):
+        """Maneja el cierre de la aplicación con confirmación mejorada"""
+        if hasattr(self, 'feedback_manager'):
+            reply = self.feedback_manager.show_confirmation(
+                "¿Cerrar aplicación?",
+                "¿Está seguro de que desea cerrar SIGeC-Balisticar?\n\n"
+                "• Se guardarán automáticamente las configuraciones\n"
+                "• Los análisis en progreso se perderán\n"
+                "• Los datos no guardados se perderán",
+                "Cerrar",
+                "Cancelar"
+            )
+            
+            if reply:
+                # Guardar configuraciones antes de cerrar
+                if hasattr(self, 'accessibility_manager'):
+                    self.accessibility_manager.save_settings()
+                event.accept()
+            else:
+                event.ignore()
         else:
-            event.ignore()
+            event.accept()
 
 def main():
     """Función principal para ejecutar la aplicación"""

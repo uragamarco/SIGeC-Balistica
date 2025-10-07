@@ -1,211 +1,196 @@
-# SIGeC-Balistica v2.0.0
+# SIGeC-Balisticar v0.1.3 - Sistema Integrado de Gestión y Control Balístico
 
-**Sistema Integrado de Gestión y Control Balístico**
+Sistema integrado para el análisis forense automatizado de cartuchos y balas utilizando técnicas avanzadas de visión por computadora, aprendizaje automático y deep learning, conforme a estándares NIST y AFTE.
 
 ## Descripción
 
-SIGeC-Balistica es un sistema avanzado de análisis forense balístico que utiliza técnicas de visión por computadora, aprendizaje automático y análisis estadístico para la identificación y comparación automatizada de cartuchos de armas de fuego. El sistema está diseñado para asistir a peritos forenses en la evaluación de evidencia balística.
+SIGeC-Balisticar es una herramienta avanzada de análisis balístico forense que permite:
 
-## Características Principales
+- ✅ Extracción automática de características de cartuchos y balas
+- ✅ Comparación y matching de evidencia balística con algoritmos CMC
+- ✅ Análisis estadístico de patrones de marcas conforme a NIST
+- ✅ Interfaz gráfica intuitiva para análisis forense
+- ✅ Integración con bases de datos balísticas vectoriales
+- ✅ Pipeline científico unificado para análisis completo
+- ✅ Conclusiones AFTE automatizadas
 
-### Análisis de Imágenes
-- **Procesamiento avanzado de imágenes**: Algoritmos optimizados para análisis de cartuchos
-- **Detección automática de ROI**: Identificación inteligente de regiones de interés
-- **Múltiples algoritmos**: ORB, SIFT, LBP y técnicas híbridas
-- **Soporte multi-formato**: JPG, PNG, TIFF, BMP
+## Arquitectura del Sistema
 
-### Matching y Comparación
-- **Algoritmos unificados**: Sistema de matching híbrido optimizado
-- **Análisis CMC**: Implementación de Cumulative Match Characteristic
-- **Matching paralelo**: Procesamiento multi-hilo para mejor rendimiento
-- **Validación estadística**: Análisis de confiabilidad y precisión
+```
+SIGeC-Balisticar/
+├── 📁 assets/                  # Recursos e imágenes de prueba
+├── 📁 common/                  # Núcleo estadístico y adaptadores NIST
+├── 📁 config/                  # Configuraciones unificadas
+├── 📁 core/                    # Pipeline científico y sistemas centrales
+├── 📁 database/                # Base de datos unificada y vectorial
+├── 📁 deep_learning/           # Modelos CNN y Siameses
+├── 📁 gui/                     # Interfaz gráfica PyQt5
+├── 📁 image_processing/        # Procesamiento avanzado de imágenes
+├── 📁 matching/                # Algoritmos de matching y CMC
+├── 📁 nist_standards/          # Estándares NIST y validación
+├── 📁 performance/             # Monitoreo y optimización
+├── 📁 tests/                   # Suite de pruebas completa
+├── 📁 utils/                   # Utilidades y validadores
+├── 📄 config.yaml              # Configuración principal
+├── 📄 main.py                  # Punto de entrada
+└── 📄 requirements.txt         # Dependencias
+```
 
-### Base de Datos
-- **SQLite optimizado**: Base de datos local de alto rendimiento
-- **Índices FAISS**: Búsqueda vectorial ultra-rápida
-- **Backup automático**: Sistema de respaldo y recuperación
-- **Escalabilidad**: Manejo eficiente de grandes volúmenes de datos
+## Instalación Rápida
 
-### Análisis Estadístico
-- **Integración NIST**: Compatibilidad con estándares NIST
-- **Visualizaciones avanzadas**: Gráficos interactivos y reportes
-- **Métricas forenses**: Análisis de calidad y confiabilidad
-- **Exportación de reportes**: Formatos PDF, HTML, Excel
+### Prerrequisitos
+- Python 3.8+
+- OpenCV 4.x
+- PyQt5
+- CUDA (opcional, para aceleración GPU)
 
-### Interfaz Gráfica
-- **PyQt5**: Interfaz moderna y responsiva
-- **Diseño intuitivo**: Flujo de trabajo optimizado para peritos
-- **Visualización en tiempo real**: Resultados inmediatos
-- **Configuración flexible**: Parámetros ajustables por el usuario
+### Pasos de Instalación
 
-## Instalación
+1. **Clonar el repositorio:**
+```bash
+git clone <repository-url>
+cd SIGeC-Balisticar
+```
 
-### Requisitos del Sistema
-- **Python**: 3.8 o superior
-- **RAM**: 8GB recomendado (mínimo 4GB)
-- **Espacio en disco**: 2GB libres
-- **SO**: Windows 10/11, Linux Ubuntu 18.04+
+2. **Crear entorno virtual:**
+```bash
+python -m venv venv
+source venv/bin/activate  # Linux/Mac
+# o
+venv\Scripts\activate     # Windows
+```
 
-### Dependencias Principales
+3. **Instalar dependencias:**
 ```bash
 pip install -r requirements.txt
 ```
 
-Principales librerías:
-- PyQt5 >= 5.15.0
-- OpenCV >= 4.5.0
-- NumPy >= 1.21.0
-- scikit-image >= 0.18.0
-- FAISS-CPU >= 1.7.0
-- Matplotlib >= 3.5.0
-
-### Configuración
-1. Clonar el repositorio
-2. Instalar dependencias
-3. Configurar `config.yaml` según necesidades
-4. Ejecutar `python main.py`
-
-## Estructura del Proyecto
-
-```
-SIGeC-Balistica/
-├── api/                    # API y sistema de optimización
-├── assets/                 # Recursos gráficos
-├── common/                 # Módulos compartidos
-├── config/                 # Configuraciones
-├── core/                   # Núcleo del sistema
-├── database/               # Gestión de base de datos
-├── deep_learning/          # Módulos de ML/DL
-├── gui/                    # Interfaz gráfica
-├── image_processing/       # Procesamiento de imágenes
-├── matching/               # Algoritmos de matching
-├── nist_standards/         # Integración NIST
-├── tests/                  # Suite de pruebas
-├── utils/                  # Utilidades
-└── main.py                 # Punto de entrada
-```
-
-## Uso
-
-### Inicio Rápido
+4. **Ejecutar la aplicación:**
 ```bash
 python main.py
 ```
 
-### Análisis Básico
-1. **Cargar imágenes**: Importar cartuchos desde archivos
-2. **Configurar parámetros**: Ajustar algoritmos y umbrales
-3. **Ejecutar análisis**: Procesar y obtener resultados
-4. **Revisar matches**: Evaluar coincidencias encontradas
-5. **Generar reporte**: Exportar resultados
+## Configuración
 
-### Configuración Avanzada
-El archivo `config.yaml` permite personalizar:
-- Parámetros de algoritmos
-- Configuración de base de datos
-- Opciones de interfaz
-- Niveles de logging
+El sistema utiliza configuración unificada en `config.yaml`:
 
-## Rendimiento
+```yaml
+database:
+  type: "unified"
+  path: "data/ballistic_db.db"
 
-### Benchmarks
-- **Procesamiento**: ~2-5 segundos por imagen (CPU)
-- **Matching**: ~100-500ms por comparación
-- **Base de datos**: Soporte para 100K+ registros
-- **Memoria**: Uso optimizado < 2GB RAM
+gui:
+  theme: "modern"
+  enable_gpu: true
 
-### Optimizaciones
-- Cache inteligente de características
-- Procesamiento paralelo
-- Índices vectoriales FAISS
-- Gestión eficiente de memoria
+image_processing:
+  roi_detection: "watershed"
+  feature_extraction: "orb_sift_hybrid"
+
+matching:
+  algorithm: "unified_matcher"
+  cmc_threshold: 8
+```
+
+## Uso del Sistema
+
+### Interfaz Gráfica
+```bash
+python main.py
+```
+
+### Pipeline Científico (CLI)
+```bash
+python -m core.unified_pipeline imagen1.jpg imagen2.jpg --level forensic
+```
+
+### Análisis por Lotes
+```bash
+python scripts/batch_analysis.py --input_dir /path/to/images --output_dir /path/to/results
+```
+
+## Características Principales
+
+### 🔬 Pipeline Científico
+- **Preprocesamiento NIST**: Normalización y mejora de calidad
+- **Detección ROI**: Algoritmo Watershed optimizado
+- **Extracción de Características**: ORB/SIFT híbrido
+- **Matching Avanzado**: Algoritmo CMC con ponderación de calidad
+- **Conclusiones AFTE**: Automatizadas y validadas
+
+### Interfaz Gráfica
+- **Visualización Interactiva**: Mapas de calor y correlaciones
+- **Análisis en Tiempo Real**: Procesamiento asíncrono
+- **Reportes Automáticos**: Exportación PDF/HTML
+- **Base de Datos Integrada**: Gestión de casos y evidencia
+
+### Rendimiento
+- **Aceleración GPU**: CUDA y OpenCL
+- **Procesamiento Paralelo**: Multi-threading optimizado
+- **Cache Inteligente**: LBP y características pre-calculadas
+- **Memoria Optimizada**: Gestión eficiente de recursos
 
 ## Testing
 
+### Ejecutar todas las pruebas:
 ```bash
-# Ejecutar todas las pruebas
-pytest tests/
-
-# Pruebas específicas
-pytest tests/unit/
-pytest tests/integration/
-pytest tests/performance/
+pytest tests/ -v
 ```
 
-### Cobertura de Pruebas
-- Pruebas unitarias: Módulos individuales
-- Pruebas de integración: Flujos completos
-- Pruebas de rendimiento: Benchmarks
-- Pruebas de GUI: Interfaz de usuario
+### Pruebas específicas:
+```bash
+# Pruebas de integración
+pytest tests/test_basic_integration.py -v
 
-## Validación Científica
+# Pruebas de GUI (headless)
+pytest tests/integration/test_gui_headless.py -v
 
-### Estándares NIST
-- Compatibilidad con NIST Ballistics Toolmark Database
-- Implementación de métricas estándar
-- Validación con datasets públicos
-- Trazabilidad de resultados
+# Benchmarks de rendimiento
+pytest tests/test_performance_benchmarks.py -v
+```
 
-### Métricas de Evaluación
-- **Precisión**: Tasa de verdaderos positivos
-- **Recall**: Sensibilidad del sistema
-- **F1-Score**: Medida armónica
-- **CMC**: Curvas de matching acumulativo
+## Estado del Proyecto
 
-## Seguridad
+**Estado Actual**: 
 
-- Manejo seguro de datos sensibles
-- Logging auditado
-- Validación de entrada
-- Gestión de errores robusta
+### Módulos Completados:
+- ✅ **GUI**: Interfaz completa con todas las funcionalidades
+- ✅ **Core**: Pipeline científico unificado
+- ✅ **Image Processing**: Procesamiento avanzado y extracción de características
+- ✅ **Matching**: Algoritmos CMC y matching unificado
+- ✅ **Database**: Sistema de base de datos vectorial
+- ✅ **NIST Standards**: Cumplimiento de estándares forenses
+- ✅ **Testing**: Suite completa de pruebas
 
-## Documentación
-
-### Documentos Técnicos
-- `DOCS/README.md`: Documentación completa
-- `DOCS/OPTIMIZATION_REPORT.md`: Análisis de rendimiento
-- `DOCS/deployment_summary.md`: Guía de despliegue
-
-### API Reference
-Documentación completa de APIs disponible en el código fuente con docstrings detallados.
+### Métricas de Calidad:
+- **Cobertura de Código**: >85%
+- **Pruebas Unitarias**: 45+ tests
+- **Pruebas de Integración**: 15+ tests
+- **Documentación**: Completa y actualizada
 
 ## Contribución
 
-### Desarrollo
-1. Fork del repositorio
-2. Crear rama feature
-3. Implementar cambios
-4. Ejecutar pruebas
+1. Fork del proyecto
+2. Crear rama de feature (`git checkout -b feature/nueva-funcionalidad`)
+3. Commit de cambios (`git commit -am 'Agregar nueva funcionalidad'`)
+4. Push a la rama (`git push origin feature/nueva-funcionalidad`)
 5. Crear Pull Request
-
-### Estándares de Código
-- PEP 8 para Python
-- Docstrings obligatorios
-- Type hints recomendados
-- Cobertura de pruebas > 80%
 
 ## Licencia
 
-Este proyecto está bajo licencia MIT. Ver `LICENSE` para más detalles.
-
-## Autores
-
-- **Himo "Larry" Anon** - Desarrollo principal - marcouraga.1992@gmail.com
-
-## Agradecimientos
-
-- Comunidad NIST por estándares y datasets
-- Contribuidores de OpenCV y scikit-image
-- Equipo de desarrollo de PyQt5
-- Comunidad forense por feedback y validación
+Este proyecto está bajo la Licencia MIT. Ver el archivo `LICENSE` para más detalles.
 
 ## Soporte
 
-Para soporte técnico o consultas:
-- **Email**: marcouraga.1992@gmail.com
-- **Issues**: GitHub Issues
-- **Documentación**: Ver carpeta `DOCS/`
+Para soporte técnico o reportar bugs:
+- Crear un issue en GitHub
+- Consultar la documentación en `/DOCS/`
+- Revisar los logs del sistema en `/logs/`
+
+## Referencias
+
+- *Pendiente
 
 ---
 
-**SIGeC-Balistica v0.1.3** - Sistema Integrado de Gestión y Control Balístico
+**SIGeC-Balistica v0.1.3** - Sistema Integral de Gestion Criminalístico Argentino - Extensión: Análisis Balístico 

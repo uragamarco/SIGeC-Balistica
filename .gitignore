@@ -244,3 +244,6 @@ test_user_*.py
 
 # GitHub setup instructions (generated file)
 INSTRUCCIONES_GITHUB.md
+
+# Documentation folder
+DOCS/

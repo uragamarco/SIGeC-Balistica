@@ -68,6 +68,7 @@ class SIGeCBallisticaTheme:
             border: 1px solid {cls.DIVIDER};
             background-color: {cls.SURFACE};
             border-radius: 8px;
+            margin-top: -1px;
         }}
         
         QTabBar::tab {{
@@ -77,19 +78,65 @@ class SIGeCBallisticaTheme:
             margin-right: 2px;
             border-top-left-radius: 8px;
             border-top-right-radius: 8px;
+            border: 1px solid {cls.DIVIDER};
+            border-bottom: none;
             font-weight: 500;
             min-width: 120px;
+            min-height: 20px;
         }}
         
         QTabBar::tab:selected {{
             background-color: {cls.PRIMARY};
             color: {cls.TEXT_ON_PRIMARY};
             font-weight: 600;
+            border-color: {cls.PRIMARY};
+            margin-bottom: -1px;
         }}
         
         QTabBar::tab:hover:!selected {{
             background-color: {cls.PRIMARY_LIGHT};
             color: {cls.TEXT_ON_PRIMARY};
+            border-color: {cls.PRIMARY_LIGHT};
+        }}
+        
+        /* Pestañas detalladas - estilo específico */
+        QTabWidget[class="detailed-results"] {{
+            background-color: {cls.SURFACE};
+        }}
+        
+        QTabWidget[class="detailed-results"]::pane {{
+            border: 2px solid {cls.PRIMARY};
+            background-color: {cls.SURFACE};
+            border-radius: 10px;
+            margin-top: -2px;
+        }}
+        
+        QTabWidget[class="detailed-results"] QTabBar::tab {{
+            background-color: {cls.SURFACE_VARIANT};
+            color: {cls.TEXT_PRIMARY};
+            padding: 14px 28px;
+            margin-right: 3px;
+            border-top-left-radius: 10px;
+            border-top-right-radius: 10px;
+            border: 2px solid {cls.DIVIDER};
+            border-bottom: none;
+            font-weight: 600;
+            font-size: 13px;
+            min-width: 140px;
+            min-height: 25px;
+        }}
+        
+        QTabWidget[class="detailed-results"] QTabBar::tab:selected {{
+            background-color: {cls.PRIMARY};
+            color: {cls.TEXT_ON_PRIMARY};
+            border-color: {cls.PRIMARY};
+            margin-bottom: -2px;
+        }}
+        
+        QTabWidget[class="detailed-results"] QTabBar::tab:hover:!selected {{
+            background-color: {cls.PRIMARY_LIGHT};
+            color: {cls.TEXT_ON_PRIMARY};
+            border-color: {cls.PRIMARY_LIGHT};
         }}
         
         /* Botones principales */

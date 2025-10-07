@@ -89,8 +89,15 @@ class VectorDatabase(LoggerMixin):
             self.config = config
             
         # Configurar rutas de base de datos
-        self.db_path = self.config.get_absolute_path(self.config.database.sqlite_path)
-        self.faiss_path = self.config.get_absolute_path(self.config.database.faiss_index_path)
+        if hasattr(self.config, 'get_absolute_path'):
+            # Es UnifiedConfig
+            self.db_path = self.config.get_absolute_path(self.config.database.sqlite_path)
+            self.faiss_path = self.config.get_absolute_path(self.config.database.faiss_index_path)
+        else:
+            # Es DatabaseConfig directamente - usar rutas como están
+            from pathlib import Path
+            self.db_path = Path(self.config.sqlite_path) if hasattr(self.config, 'sqlite_path') else Path(self.config.database.sqlite_path)
+            self.faiss_path = Path(self.config.faiss_index_path) if hasattr(self.config, 'faiss_index_path') else Path(self.config.database.faiss_index_path)
         
         # Pool de conexiones y cache
         self._connection_pool = []

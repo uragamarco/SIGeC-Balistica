@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 Script de Prueba Integral para Funciones de Visualización de Características
-Sistema Balístico Forense MVP v1.0.0
+Sistema Balístico Forense MVP v0.1.3
 
 Este script prueba todas las nuevas funciones de visualización implementadas en:
 - feature_extractor.py
@@ -333,7 +333,7 @@ class VisualizationTester:
 REPORTE DE PRUEBAS INTEGRALES DE VISUALIZACIÓN
 ==============================================
 Fecha: 2025-09-30
-Sistema: Balístico Forense MVP v1.0.0
+Sistema: Balístico Forense MVP v0.1.3
 
 RESUMEN:
 --------

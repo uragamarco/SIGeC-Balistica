@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Creador de Paquete de Despliegue Final - SIGeC-Balisticav1.0
+Creador de Paquete de Despliegue Final - SIGeC-Balistica v0.1.3
 Genera el paquete completo listo para distribución
 """
 
@@ -14,18 +14,18 @@ from datetime import datetime
 def create_deployment_package():
     """Crea el paquete de despliegue completo"""
     
-    print("🚀 Creando paquete de despliegue SIGeC-Balisticav1.0...")
+    print(" Creando paquete de despliegue SIGeC-Balistica v0.1.3...")
     
     # Crear directorio de despliegue
-    deploy_dir = Path("SIGeC-Balistica_v1.0_Deployment")
+    deploy_dir = Path("SIGeC-Balistica_v0.1.3_Deployment")
     if deploy_dir.exists():
         shutil.rmtree(deploy_dir)
     deploy_dir.mkdir()
     
-    print(f"📁 Directorio de despliegue: {deploy_dir}")
+    print(f" Directorio de despliegue: {deploy_dir}")
     
     # 1. Copiar ejecutable y dependencias
-    print("📦 Copiando ejecutable...")
+    print(" Copiando ejecutable...")
     dist_source = Path("dist/SIGeC-Balistica")
     if dist_source.exists():
         dist_dest = deploy_dir / "Executable"
@@ -35,14 +35,14 @@ def create_deployment_package():
         print("   ❌ Ejecutable no encontrado")
     
     # 2. Copiar instalador NSIS (si existe)
-    print("📦 Copiando instalador...")
+    print(" Copiando instalador...")
     nsis_source = Path("SIGeC-Balistica_Installer.nsi")
     if nsis_source.exists():
         shutil.copy2(nsis_source, deploy_dir / "SIGeC-Balistica_Installer.nsi")
         print("   ✅ Script de instalador copiado")
     
     # 3. Copiar documentación
-    print("📚 Copiando documentación...")
+    print(" Copiando documentación...")
     docs_dest = deploy_dir / "Documentation"
     docs_dest.mkdir()
     
@@ -65,7 +65,7 @@ def create_deployment_package():
             print(f"   ⚠️  {doc_file} no encontrado")
     
     # 4. Copiar código fuente
-    print("💻 Copiando código fuente...")
+    print(" Copiando código fuente...")
     source_dest = deploy_dir / "Source_Code"
     source_dest.mkdir()
     
@@ -84,7 +84,7 @@ def create_deployment_package():
             print(f"   ✅ {main_file}")
     
     # 5. Copiar scripts de construcción
-    print("🔧 Copiando scripts de construcción...")
+    print(" Copiando scripts de construcción...")
     build_dest = deploy_dir / "Build_Scripts"
     build_dest.mkdir()
     
@@ -95,17 +95,17 @@ def create_deployment_package():
             print(f"   ✅ {build_file}")
     
     # 6. Copiar reportes de validación
-    print("📊 Copiando reportes...")
+    print(" Copiando reportes...")
     if Path("reports").exists():
         shutil.copytree(Path("reports"), deploy_dir / "Validation_Reports")
         print("   ✅ Reportes de validación")
     
     # 7. Crear archivo de información del paquete
-    print("📋 Creando información del paquete...")
+    print(" Creando información del paquete...")
     package_info = {
         "name": "SIGeC-Balistica",
-        "version": "1.0.0",
-        "description": "Sistema Experto de Análisis Comparativo Automatizado Balístico para Argentina",
+        "version": "0.1.3",
+        "description": "Sistema Integral de Gestion Criminalística - Extensión de Análisis Comparativo Automatizado Balístico para Argentina",
         "build_date": datetime.now().isoformat(),
         "platform": "Windows 10/11",
         "architecture": "x64",
@@ -132,8 +132,9 @@ def create_deployment_package():
         "validation_status": "READY FOR PRODUCTION",
         "success_rate": "92.3%",
         "contact": {
-            "support": "soporte@SIGeC-Balistica.gov.ar",
-            "technical": "desarrollo@SIGeC-Balistica.gov.ar"
+            "support": "marcouraga.1992@gmail.com",
+            "development": "uraga.marco@uader.edu.ar",
+            "technical": "uraga.marco@uader.edu.ar"
         }
     }
     
@@ -141,7 +142,7 @@ def create_deployment_package():
         json.dump(package_info, f, indent=2, ensure_ascii=False)
     
     # 8. Crear archivo de verificación de integridad
-    print("🔐 Creando verificación de integridad...")
+    print(" Creando verificación de integridad...")
     integrity_info = {}
     
     for root, dirs, files in os.walk(deploy_dir):
@@ -158,8 +159,8 @@ def create_deployment_package():
         json.dump(integrity_info, f, indent=2, ensure_ascii=False)
     
     # 9. Crear archivo ZIP del paquete completo
-    print("🗜️  Creando archivo ZIP...")
-    zip_name = f"SIGeC-Balistica_v1.0_Complete_Package_{datetime.now().strftime('%Y%m%d_%H%M%S')}.zip"
+    print(" Creando archivo ZIP...")
+    zip_name = f"SIGeC-Balistica_v0.1.3_Complete_Package_{datetime.now().strftime('%Y%m%d_%H%M%S')}.zip"
     
     with zipfile.ZipFile(zip_name, 'w', zipfile.ZIP_DEFLATED) as zipf:
         for root, dirs, files in os.walk(deploy_dir):
@@ -185,7 +186,7 @@ def create_deployment_package():
     print(f"📅 Fecha de creación: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
     
     print(f"\n✅ PAQUETE LISTO PARA DISTRIBUCIÓN")
-    print(f"📧 Enviar a: distribución@SIGeC-Balistica.gov.ar")
+    print(f" Enviar a: uraga.marco@uader.edu.ar")
     
     return deploy_dir, zip_name
 

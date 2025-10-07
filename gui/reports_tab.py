@@ -44,6 +44,10 @@ from .shared_widgets import (
     StepIndicator, ProgressCard, ImageViewer
 )
 from .backend_integration import get_backend_integration
+from .report_template_editor import ReportTemplateEditor, ReportTemplate
+from .interactive_report_generator import InteractiveHTMLGenerator, InteractiveReportData, InteractiveReportWidget
+from .history_integration import HistoryImportDialog, HistoryIntegrationWidget, HistoryDataConverter
+from .enhanced_webview import InteractiveReportViewer
 
 # Importaciones NIST opcionales
 try:
@@ -172,11 +176,11 @@ class ReportGenerationWorker(QThread):
             'author': self.report_config['author'],
             'date': datetime.now().strftime('%Y-%m-%d'),
             'time': datetime.now().strftime('%H:%M:%S'),
-            'version': '1.0',
+            'version': '0.1.3',
             'case_number': self.report_config.get('case_number', ''),
             'organization': self.report_config.get('organization', ''),
             'classification': self.report_config.get('classification', 'Confidencial'),
-            'system_version': 'SIGeC-Balisticav2.0',
+            'system_version': 'SIGeC-Balistica v0.1.3',
             'analysis_software': 'SIGeC-Balistica- Sistema de Evaluación Automatizada de Características Balísticas'
         }
         
@@ -607,7 +611,7 @@ Tipos de visualizaciones incluidas:
     </div>
     
     <div class="footer">
-        <p>Generado por SIGeC-Balisticav2.0 - Sistema de Evaluación Automatizada de Características Biométricas</p>
+        <p>Generado por SIGeC-Balistica v0.1.3 - Sistema Integral de Gestión Criminalística - Extensión de Análisis Comparativo Automatizado de Características Balísticas</p>
         <p>Este reporte contiene información confidencial y debe ser tratado según los protocolos de seguridad establecidos.</p>
     </div>
 </body>
@@ -693,6 +697,12 @@ class ReportsTab(QWidget):
         self.report_worker = None
         self.available_analyses = []
         
+        # Nuevos componentes integrados
+        self.template_editor = None
+        self.interactive_generator = None
+        self.history_integration = None
+        self.current_template = ReportTemplate()
+        
         # Configurar UI
         self._setup_ui()
         self._connect_signals()
@@ -700,7 +710,7 @@ class ReportsTab(QWidget):
         # Cargar datos disponibles
         self._load_available_analyses()
         
-        logger.info("ReportsTab inicializada")
+        logger.info("ReportsTab inicializada con componentes mejorados")
     
     def _setup_ui(self):
         """Configura la interfaz de usuario"""
@@ -1045,48 +1055,46 @@ class ReportsTab(QWidget):
         return widget
     
     def _create_preview_panel(self) -> QWidget:
-        """Crea el panel de vista previa"""
+        """Crea el panel de vista previa con InteractiveReportViewer mejorado"""
         panel = QFrame()
         panel.setObjectName("previewPanel")
         
         layout = QVBoxLayout(panel)
         layout.setSpacing(15)
         
-        # Header
+        # Header con botones mejorados
         header_layout = QHBoxLayout()
         
-        preview_title = QLabel("Vista Previa del Reporte")
+        preview_title = QLabel("Vista Previa Interactiva del Reporte")
         preview_title.setObjectName("sectionTitle")
         header_layout.addWidget(preview_title)
         
         header_layout.addStretch()
         
-        # Botones de vista previa
+        # Botón para editor de plantillas
+        self.template_editor_btn = QPushButton("Editor de Plantillas")
+        self.template_editor_btn.clicked.connect(self._open_template_editor)
+        header_layout.addWidget(self.template_editor_btn)
+        
+        # Botón para importar desde historial
+        self.import_history_btn = QPushButton("Importar desde Historial")
+        self.import_history_btn.clicked.connect(self._open_history_import)
+        header_layout.addWidget(self.import_history_btn)
+        
+        # Botón de actualizar vista previa
         self.refresh_preview_btn = QPushButton("Actualizar Vista Previa")
         self.refresh_preview_btn.clicked.connect(self._refresh_preview)
         header_layout.addWidget(self.refresh_preview_btn)
         
         layout.addLayout(header_layout)
         
-        # Vista previa web
-        self.preview_web = QWebEngineView()
-        self.preview_web.setMinimumHeight(600)
-        layout.addWidget(self.preview_web)
+        # Vista previa interactiva mejorada
+        self.interactive_viewer = InteractiveReportViewer()
+        self.interactive_viewer.setMinimumHeight(600)
+        layout.addWidget(self.interactive_viewer)
         
-        # Botones de acción
-        actions_layout = QHBoxLayout()
-        
-        self.print_preview_btn = QPushButton("Imprimir Vista Previa")
-        self.print_preview_btn.clicked.connect(self._print_preview)
-        actions_layout.addWidget(self.print_preview_btn)
-        
-        actions_layout.addStretch()
-        
-        self.export_preview_btn = QPushButton("Exportar Vista Previa")
-        self.export_preview_btn.clicked.connect(self._export_preview)
-        actions_layout.addWidget(self.export_preview_btn)
-        
-        layout.addLayout(actions_layout)
+        # Conectar señales del visor interactivo
+        self.interactive_viewer.export_requested.connect(self._handle_export_request)
         
         return panel
     
@@ -1176,26 +1184,287 @@ class ReportsTab(QWidget):
         self.preview_timer.start(1000)  # 1 segundo de delay
     
     def _refresh_preview(self):
-        """Actualiza la vista previa del reporte"""
+        """Actualiza la vista previa del reporte con generación interactiva"""
         try:
             # Construir configuración actual
             config = self._build_current_config()
             
-            # Generar vista previa rápida
-            preview_html = self._generate_quick_preview(config)
+            # Crear datos del reporte interactivo
+            report_data = self._create_interactive_report_data(config)
             
-            # Mostrar en vista previa
-            self.preview_web.setHtml(preview_html)
+            # Crear generador si no existe
+            if self.interactive_generator is None:
+                self.interactive_generator = InteractiveHTMLGenerator(self.current_template)
+            
+            # Generar HTML interactivo
+            interactive_html = self.interactive_generator.generate_html()
+            self.interactive_generator.set_report_data(report_data)
+            
+            # Mostrar en vista previa interactiva
+            self.interactive_viewer.load_report(interactive_html)
             
         except Exception as e:
             logger.error(f"Error actualizando vista previa: {e}")
-            error_html = f"""
-            <html><body>
-            <h2>Error en Vista Previa</h2>
-            <p>No se pudo generar la vista previa: {str(e)}</p>
-            </body></html>
+            # Fallback a vista previa básica
+            try:
+                config = self._build_current_config()
+                preview_html = self._generate_quick_preview(config)
+                self.interactive_viewer.load_report(preview_html)
+            except Exception as fallback_error:
+                logger.error(f"Error en fallback de vista previa: {fallback_error}")
+                error_html = f"""
+                <html><body>
+                <h2>Error generando vista previa</h2>
+                <p>Error principal: {str(e)}</p>
+                <p>Error fallback: {str(fallback_error)}</p>
+                </body></html>
+                """
+                self.interactive_viewer.load_report(error_html)
+    
+    def _create_interactive_report_data(self, config: Dict[str, Any]) -> InteractiveReportData:
+        """Crea datos estructurados para el reporte interactivo"""
+        try:
+            # Recopilar datos de análisis
+            analysis_data = self._collect_analysis_data()
+            
+            # Crear estructura de datos interactiva
+            report_data = InteractiveReportData(
+                title=config.get('title', 'Reporte de Análisis Forense'),
+                author=config.get('author', ''),
+                case_number=config.get('case_number', ''),
+                organization=config.get('organization', ''),
+                date=datetime.now().strftime('%Y-%m-%d'),
+                classification=config.get('classification', 'Confidencial')
+            )
+            
+            # Agregar secciones de análisis
+            if analysis_data.get('individual_analyses'):
+                for analysis in analysis_data['individual_analyses']:
+                    report_data.add_section(
+                        title=f"Análisis Individual - {analysis.get('name', 'Sin nombre')}",
+                        content=self._format_analysis_for_interactive(analysis),
+                        section_type='analysis'
+                    )
+            
+            if analysis_data.get('comparisons'):
+                for comparison in analysis_data['comparisons']:
+                    report_data.add_section(
+                        title=f"Análisis Comparativo - {comparison.get('name', 'Sin nombre')}",
+                        content=self._format_comparison_for_interactive(comparison),
+                        section_type='comparison'
+                    )
+            
+            # Agregar imágenes si están disponibles
+            if analysis_data.get('images'):
+                for img_path in analysis_data['images']:
+                    if os.path.exists(img_path):
+                        report_data.add_image(img_path, f"Imagen de análisis: {os.path.basename(img_path)}")
+            
+            # Agregar gráficos si están disponibles
+            if analysis_data.get('charts'):
+                for chart_data in analysis_data['charts']:
+                    report_data.add_chart(
+                        chart_data.get('type', 'bar'),
+                        chart_data.get('data', {}),
+                        chart_data.get('title', 'Gráfico de análisis')
+                    )
+            
+            return report_data
+            
+        except Exception as e:
+            logger.error(f"Error creando datos interactivos: {e}")
+            # Retornar datos básicos en caso de error
+            return InteractiveReportData(
+                title=config.get('title', 'Reporte de Análisis Forense'),
+                author=config.get('author', ''),
+                case_number=config.get('case_number', ''),
+                organization=config.get('organization', ''),
+                date=datetime.now().strftime('%Y-%m-%d'),
+                classification=config.get('classification', 'Confidencial')
+            )
+    
+    def _format_analysis_for_interactive(self, analysis: Dict[str, Any]) -> str:
+        """Formatea un análisis individual para visualización interactiva"""
+        content = f"""
+        <div class="analysis-summary">
+            <h4>Resumen del Análisis</h4>
+            <p><strong>Tipo:</strong> {analysis.get('type', 'No especificado')}</p>
+            <p><strong>Estado:</strong> {analysis.get('status', 'No especificado')}</p>
+            <p><strong>Fecha:</strong> {analysis.get('date', 'No especificada')}</p>
+        </div>
+        """
+        
+        if analysis.get('results'):
+            content += f"""
+            <div class="analysis-results">
+                <h4>Resultados</h4>
+                <p>{analysis['results']}</p>
+            </div>
             """
-            self.preview_web.setHtml(error_html)
+        
+        return content
+    
+    def _format_comparison_for_interactive(self, comparison: Dict[str, Any]) -> str:
+        """Formatea un análisis comparativo para visualización interactiva"""
+        content = f"""
+        <div class="comparison-summary">
+            <h4>Análisis Comparativo</h4>
+            <p><strong>Elementos comparados:</strong> {comparison.get('elements', 'No especificado')}</p>
+            <p><strong>Método:</strong> {comparison.get('method', 'No especificado')}</p>
+            <p><strong>Resultado:</strong> {comparison.get('result', 'No especificado')}</p>
+        </div>
+        """
+        
+        if comparison.get('confidence'):
+            content += f"""
+            <div class="confidence-score">
+                <h4>Nivel de Confianza</h4>
+                <p>{comparison['confidence']}%</p>
+            </div>
+            """
+        
+        return content
+    
+    def _open_template_editor(self):
+        """Abre el editor de plantillas"""
+        try:
+            if not self.template_editor:
+                self.template_editor = ReportTemplateEditor(self)
+                self.template_editor.template_saved.connect(self._on_template_updated)
+            
+            # Cargar plantilla actual
+            self.template_editor.load_template(self.current_template)
+            
+            if self.template_editor.exec_() == self.template_editor.Accepted:
+                # Actualizar plantilla actual
+                self.current_template = self.template_editor.get_template()
+                # Actualizar vista previa
+                self._refresh_preview()
+                
+        except Exception as e:
+            logger.error(f"Error abriendo editor de plantillas: {e}")
+            QMessageBox.warning(self, "Error", f"No se pudo abrir el editor de plantillas: {str(e)}")
+    
+    def _open_history_import(self):
+        """Abre el diálogo de importación desde historial"""
+        try:
+            if not self.history_integration:
+                self.history_integration = HistoryImportDialog(self)
+                self.history_integration.data_imported.connect(self._on_history_data_imported)
+            
+            if self.history_integration.exec_() == self.history_integration.Accepted:
+                # Los datos se manejan a través de la señal data_imported
+                pass
+                
+        except Exception as e:
+            logger.error(f"Error abriendo importación de historial: {e}")
+            QMessageBox.warning(self, "Error", f"No se pudo abrir la importación de historial: {str(e)}")
+    
+    def _on_template_updated(self, template: ReportTemplate):
+        """Maneja la actualización de plantilla"""
+        self.current_template = template
+        self._refresh_preview()
+        logger.info("Plantilla de reporte actualizada")
+    
+    def _on_history_data_imported(self, report_data: InteractiveReportData):
+        """Maneja la importación de datos desde historial"""
+        try:
+            # Generar HTML con los datos importados
+            interactive_html = self.interactive_generator.generate_html(report_data, self.current_template)
+            
+            # Mostrar en vista previa
+            self.interactive_viewer.load_report(interactive_html)
+            
+            # Actualizar campos de configuración con los datos importados
+            if report_data.title:
+                self.report_title_input.setText(report_data.title)
+            if report_data.author:
+                self.report_author_input.setText(report_data.author)
+            if report_data.case_number:
+                self.case_number_input.setText(report_data.case_number)
+            if report_data.organization:
+                self.organization_input.setText(report_data.organization)
+            
+            logger.info("Datos del historial importados exitosamente")
+            
+        except Exception as e:
+            logger.error(f"Error procesando datos importados: {e}")
+            QMessageBox.warning(self, "Error", f"Error procesando datos importados: {str(e)}")
+    
+    def _handle_export_request(self, format_type: str):
+        """Maneja solicitudes de exportación desde el viewer interactivo"""
+        try:
+            if format_type.lower() == 'pdf':
+                self._export_to_pdf()
+            elif format_type.lower() == 'html':
+                self._export_to_html()
+            elif format_type.lower() == 'image':
+                self._export_to_image()
+            else:
+                logger.warning(f"Formato de exportación no soportado: {format_type}")
+                
+        except Exception as e:
+            logger.error(f"Error en exportación: {e}")
+            QMessageBox.warning(self, "Error de Exportación", f"Error exportando reporte: {str(e)}")
+    
+    def _handle_print_request(self):
+        """Maneja solicitudes de impresión desde el viewer interactivo"""
+        try:
+            self.interactive_viewer.print_report()
+        except Exception as e:
+            logger.error(f"Error en impresión: {e}")
+            QMessageBox.warning(self, "Error de Impresión", f"Error imprimiendo reporte: {str(e)}")
+    
+    def _export_to_pdf(self):
+        """Exporta el reporte actual a PDF"""
+        try:
+            file_path, _ = QFileDialog.getSaveFileName(
+                self, "Guardar Reporte PDF", 
+                f"reporte_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf",
+                "Archivos PDF (*.pdf)"
+            )
+            
+            if file_path:
+                self.interactive_viewer.export_to_pdf(file_path)
+                QMessageBox.information(self, "Exportación Exitosa", f"Reporte exportado a: {file_path}")
+                
+        except Exception as e:
+            logger.error(f"Error exportando a PDF: {e}")
+            QMessageBox.warning(self, "Error", f"Error exportando a PDF: {str(e)}")
+    
+    def _export_to_html(self):
+        """Exporta el reporte actual a HTML"""
+        try:
+            file_path, _ = QFileDialog.getSaveFileName(
+                self, "Guardar Reporte HTML", 
+                f"reporte_{datetime.now().strftime('%Y%m%d_%H%M%S')}.html",
+                "Archivos HTML (*.html)"
+            )
+            
+            if file_path:
+                self.interactive_viewer.export_to_html(file_path)
+                QMessageBox.information(self, "Exportación Exitosa", f"Reporte exportado a: {file_path}")
+                
+        except Exception as e:
+            logger.error(f"Error exportando a HTML: {e}")
+            QMessageBox.warning(self, "Error", f"Error exportando a HTML: {str(e)}")
+    
+    def _export_to_image(self):
+        """Exporta el reporte actual como imagen"""
+        try:
+            file_path, _ = QFileDialog.getSaveFileName(
+                self, "Guardar Reporte como Imagen", 
+                f"reporte_{datetime.now().strftime('%Y%m%d_%H%M%S')}.png",
+                "Archivos PNG (*.png);;Archivos JPG (*.jpg)"
+            )
+            
+            if file_path:
+                self.interactive_viewer.export_to_image(file_path)
+                QMessageBox.information(self, "Exportación Exitosa", f"Reporte exportado a: {file_path}")
+                
+        except Exception as e:
+            logger.error(f"Error exportando como imagen: {e}")
+            QMessageBox.warning(self, "Error", f"Error exportando como imagen: {str(e)}")
     
     def _build_current_config(self) -> Dict[str, Any]:
         """Construye la configuración actual del reporte"""
@@ -1477,8 +1746,8 @@ if __name__ == "__main__":
     app = QApplication(sys.argv)
     
     # Aplicar tema
-    from .styles import apply_SIGeC-Balistica_theme
-    apply_SIGeC-Balistica_theme(app)
+    from .styles import apply_SIGeC_Balistica_theme
+    apply_SIGeC_Balistica_theme(app)
     
     # Crear y mostrar pestaña
     tab = ReportsTab()

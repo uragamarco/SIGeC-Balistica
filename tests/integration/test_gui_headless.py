@@ -35,15 +35,15 @@ def test_gui_initialization():
             
             # Crear aplicación Qt
             app = QApplication(sys.argv)
-            app.setApplicationName("Test Sistema Balístico")
-            app.setApplicationVersion("1.0.0")
+            app.setApplicationName("Test Sistema Integral de Gestión Criminalística - Extensión de Análisis Comparativo Automatizado Balístico")
+            app.setApplicationVersion("0.1.3")
             
             # Crear ventana principal
             main_window = MainWindow(config)
             
             # Verificar que la ventana se creó correctamente
             assert main_window is not None, "La ventana principal no se creó"
-            assert main_window.windowTitle() == "Sistema Balístico Forense - MVP v1.0.0", "Título incorrecto"
+            assert main_window.windowTitle() == "Sistema Integral de Gestión Criminalística - Extensión de Análisis Comparativo Automatizado Balístico - MVP v0.1.3", "Título incorrecto"	
             
             # Verificar que tiene las pestañas esperadas
             assert main_window.tab_widget.count() == 4, f"Número incorrecto de pestañas: {main_window.tab_widget.count()}"

@@ -161,47 +161,158 @@ def setup_environment():
     
     logger.info("✓ Entorno configurado")
 
+def is_qt_functional():
+    """
+    Verifica si Qt está realmente funcional usando un proceso separado
+    para evitar crashes del proceso principal
+    """
+    import os
+    import sys
+    import subprocess
+    import tempfile
+    
+    # Obtener la ruta de plugins de PyQt5 dinámicamente
+    try:
+        import PyQt5
+        pyqt5_path = os.path.dirname(PyQt5.__file__)
+        plugin_dir = os.path.join(pyqt5_path, 'Qt5', 'plugins')
+        
+        if not os.path.exists(plugin_dir):
+            return False
+            
+    except ImportError:
+        return False
+    
+    # Verificar plugins específicos requeridos
+    platforms_dir = os.path.join(plugin_dir, 'platforms')
+    if not os.path.exists(platforms_dir):
+        return False
+    
+    required_plugins = ['libqminimal.so', 'libqoffscreen.so']
+    for plugin in required_plugins:
+        if not os.path.exists(os.path.join(platforms_dir, plugin)):
+            return False
+    
+    # Verificar importaciones básicas de PyQt5
+    try:
+        import PyQt5.QtWidgets
+        import PyQt5.QtCore
+        import PyQt5.QtGui
+    except ImportError:
+        return False
+    
+    # Crear script temporal para probar Qt en proceso separado
+    test_script = f'''
+import os
+import sys
+
+# Configurar ruta de plugins de PyQt5
+plugin_path = "{plugin_dir}"
+os.environ['QT_QPA_PLATFORM_PLUGIN_PATH'] = plugin_path
+
+# Lista de plataformas a probar en orden de preferencia
+platforms = ['offscreen', 'minimal', 'xcb']
+working_platform = None
+
+for platform in platforms:
+    try:
+        # Configurar plataforma ANTES de importar PyQt5
+        os.environ['QT_QPA_PLATFORM'] = platform
+        
+        from PyQt5.QtWidgets import QApplication
+        
+        # Intentar crear aplicación
+        app = QApplication([])
+        working_platform = platform
+        app.quit()
+        break
+        
+    except Exception:
+        continue
+
+if working_platform:
+    # Configurar globalmente la plataforma funcional
+    os.environ['QT_QPA_PLATFORM'] = working_platform
+    sys.exit(0)
+else:
+    sys.exit(1)
+'''
+    
+    # Escribir y ejecutar script temporal
+    with tempfile.NamedTemporaryFile(mode='w', suffix='.py', delete=False) as f:
+        f.write(test_script)
+        temp_file = f.name
+    
+    try:
+        result = subprocess.run([sys.executable, temp_file], 
+                              capture_output=True, text=True, timeout=10)
+        
+        return result.returncode == 0
+        
+    except subprocess.TimeoutExpired:
+        return False
+    except Exception:
+        return False
+    finally:
+        try:
+            os.unlink(temp_file)
+        except:
+            pass
+
+
 def create_application():
-    """Crea y configura la aplicación PyQt5"""
+    """Crea y configura la aplicación PyQt5 solo si Qt está funcional"""
     
     logger = get_logger("application")
     
+    # Verificar si Qt está realmente funcional
+    if not is_qt_functional():
+        logger.warning("Qt no está funcional en este entorno - se usará modo headless")
+        return None
+    
     try:
         from PyQt5.QtWidgets import QApplication
-        from PyQt5.QtCore import Qt, QDir
-        from PyQt5.QtGui import QIcon, QPixmap
+        from PyQt5.QtCore import Qt
+        from PyQt5.QtGui import QIcon
+        import PyQt5
         
-        # Configurar atributos de Qt ANTES de crear la aplicación
+        # Importar QtWebEngineWidgets antes de crear QApplication
+        try:
+            from PyQt5.QtWebEngineWidgets import QWebEngineView
+            logger.info("✓ QtWebEngineWidgets importado correctamente")
+        except ImportError:
+            logger.warning("QtWebEngineWidgets no disponible, algunas funciones pueden estar limitadas")
+        
+        # Configurar variables de entorno con la ruta correcta de PyQt5
+        pyqt5_path = os.path.dirname(PyQt5.__file__)
+        plugin_dir = os.path.join(pyqt5_path, 'Qt5', 'plugins')
+        os.environ['QT_QPA_PLATFORM_PLUGIN_PATH'] = plugin_dir
+        
+        current_platform = os.environ.get('QT_QPA_PLATFORM', 'offscreen')
+        logger.info(f"Creando aplicación Qt con plataforma: {current_platform}")
+        logger.info(f"Usando plugins de: {plugin_dir}")
+        
+        # Configurar atributos básicos
         if hasattr(Qt, 'AA_EnableHighDpiScaling'):
             QApplication.setAttribute(Qt.AA_EnableHighDpiScaling, True)
-        if hasattr(Qt, 'AA_UseHighDpiPixmaps'):
-            QApplication.setAttribute(Qt.AA_UseHighDpiPixmaps, True)
+        
+        # Configurar atributo para QtWebEngine
         if hasattr(Qt, 'AA_ShareOpenGLContexts'):
             QApplication.setAttribute(Qt.AA_ShareOpenGLContexts, True)
+            logger.info("✓ Qt::AA_ShareOpenGLContexts configurado")
         
         # Crear aplicación
         app = QApplication(sys.argv)
         
-        # Configurar propiedades de la aplicación
+        # Configurar propiedades básicas
         app.setApplicationName("SIGeC-Balistica")
-        app.setApplicationDisplayName("SIGeC-Balistica - Sistema de Evaluación Automatizada")
         app.setApplicationVersion("2.0.0")
-        app.setOrganizationName("SIGeC-Balistica Team")
-        app.setOrganizationDomain("SIGeC-Balistica.org")
         
-        # Configurar icono de la aplicación
-        icon_path = project_root / "resources" / "icons" / "SIGeC-Balistica.png"
-        if icon_path.exists():
-            app.setWindowIcon(QIcon(str(icon_path)))
-        
-        logger.info("✓ Aplicación PyQt5 creada")
+        logger.info("✓ Aplicación PyQt5 creada exitosamente")
         return app
         
-    except ImportError as e:
-        logger.error(f"Error importando PyQt5: {e}")
-        return None
     except Exception as e:
-        logger.error(f"Error creando aplicación: {e}")
+        logger.error(f"Error creando aplicación Qt: {e}")
         return None
 
 def create_main_window():
@@ -342,20 +453,28 @@ def run_tests():
     logger.info("Ejecutando pruebas de integración...")
     
     try:
-        from tests.gui.test_gui_integration import run_integration_tests
+        import subprocess
+        import sys
         
-        success = run_integration_tests()
+        # Ejecutar pytest directamente
+        result = subprocess.run([
+            sys.executable, "-m", "pytest", 
+            "tests/", 
+            "-v", 
+            "--tb=short",
+            "--maxfail=5"
+        ], capture_output=True, text=True, cwd=project_root)
         
-        if success:
+        if result.returncode == 0:
             logger.info("✅ Todas las pruebas pasaron exitosamente")
+            logger.info(f"Salida de pytest:\n{result.stdout}")
             return 0
         else:
             logger.error("❌ Algunas pruebas fallaron")
+            logger.error(f"Error de pytest:\n{result.stderr}")
+            logger.error(f"Salida de pytest:\n{result.stdout}")
             return 1
             
-    except ImportError as e:
-        logger.error(f"No se pudieron importar las pruebas: {e}")
-        return 1
     except Exception as e:
         logger.error(f"Error ejecutando pruebas: {e}")
         return 1
@@ -440,37 +559,43 @@ def main():
             # Crear aplicación PyQt5
             app = create_application()
             if app is None:
-                logger.error("No se pudo crear la aplicación PyQt5")
-                return 1
+                logger.warning("No se pudo crear la aplicación PyQt5. Ejecutando en modo headless como fallback...")
+                return run_headless()
             
             # Crear ventana principal
             window = create_main_window()
             if window is None:
-                logger.error("No se pudo crear la ventana principal")
-                return 1
+                logger.warning("No se pudo crear la ventana principal. Ejecutando en modo headless como fallback...")
+                return run_headless()
             
-            # Mostrar ventana
-            window.show()
-            
-            # Centrar ventana en pantalla
-            screen = app.primaryScreen().geometry()
-            window_size = window.geometry()
-            x = (screen.width() - window_size.width()) // 2
-            y = (screen.height() - window_size.height()) // 2
-            window.move(x, y)
-            
-            logger.info("✓ Aplicación iniciada exitosamente")
-            logger.info("Presione Ctrl+C en la consola o cierre la ventana para salir")
-            
-            # Ejecutar bucle principal
             try:
-                exit_code = app.exec_()
-                logger.info(f"Aplicación cerrada con código: {exit_code}")
-                return exit_code
+                # Mostrar ventana
+                window.show()
                 
-            except KeyboardInterrupt:
-                logger.info("Aplicación interrumpida por el usuario")
-                return 0
+                # Centrar ventana en pantalla
+                screen = app.primaryScreen().geometry()
+                window_size = window.geometry()
+                x = (screen.width() - window_size.width()) // 2
+                y = (screen.height() - window_size.height()) // 2
+                window.move(x, y)
+                
+                logger.info("✓ Aplicación iniciada exitosamente")
+                logger.info("Presione Ctrl+C en la consola o cierre la ventana para salir")
+                
+                # Ejecutar bucle principal
+                try:
+                    exit_code = app.exec_()
+                    logger.info(f"Aplicación cerrada con código: {exit_code}")
+                    return exit_code
+                
+                except KeyboardInterrupt:
+                    logger.info("Aplicación interrumpida por el usuario")
+                    return 0
+                    
+            except Exception as e:
+                logger.warning(f"Error mostrando la interfaz gráfica: {e}")
+                logger.warning("Ejecutando en modo headless como fallback...")
+                return run_headless()
     
     except Exception as e:
         logger.critical(f"Error crítico en main(): {e}")

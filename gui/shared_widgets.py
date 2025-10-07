@@ -487,13 +487,21 @@ class ProgressCard(QFrame):
         self.status_label.style().unpolish(self.status_label)
         self.status_label.style().polish(self.status_label)
 
-class ImageViewer(QFrame):
-    """Visor de imágenes con zoom y controles"""
+class InteractiveImageViewer(QFrame):
+    """Visor de imágenes interactivo con zoom, panorámica y overlays"""
+    
+    imageClicked = pyqtSignal(int, int)  # Señal para clicks en la imagen (x, y)
     
     def __init__(self):
         super().__init__()
         self.image_path = None
         self.zoom_factor = 1.0
+        self.min_zoom = 0.1
+        self.max_zoom = 10.0
+        self.pan_start_point = None
+        self.panning = False
+        self.overlays = {}  # Diccionario para almacenar overlays
+        self.overlay_opacity = 0.7
         self.setup_ui()
         
     def setup_ui(self):
@@ -505,8 +513,10 @@ class ImageViewer(QFrame):
         # Controles superiores
         controls_layout = QHBoxLayout()
         
+        # Controles de zoom
         self.zoom_out_btn = QPushButton("🔍-")
         self.zoom_out_btn.setMaximumWidth(40)
+        self.zoom_out_btn.setToolTip("Alejar (Ctrl + -)")
         self.zoom_out_btn.clicked.connect(self.zoom_out)
         controls_layout.addWidget(self.zoom_out_btn)
         
@@ -517,29 +527,65 @@ class ImageViewer(QFrame):
         
         self.zoom_in_btn = QPushButton("🔍+")
         self.zoom_in_btn.setMaximumWidth(40)
+        self.zoom_in_btn.setToolTip("Acercar (Ctrl + +)")
         self.zoom_in_btn.clicked.connect(self.zoom_in)
         controls_layout.addWidget(self.zoom_in_btn)
         
         self.fit_btn = QPushButton("Ajustar")
+        self.fit_btn.setToolTip("Ajustar a ventana (Ctrl + 0)")
         self.fit_btn.clicked.connect(self.fit_to_window)
         controls_layout.addWidget(self.fit_btn)
         
-        controls_layout.addItem(QSpacerItem(40, 20, QSizePolicy.Expanding, QSizePolicy.Minimum))
+        self.reset_btn = QPushButton("1:1")
+        self.reset_btn.setToolTip("Tamaño real (Ctrl + 1)")
+        self.reset_btn.clicked.connect(self.reset_zoom)
+        controls_layout.addWidget(self.reset_btn)
+        
+        controls_layout.addItem(QSpacerItem(20, 20, QSizePolicy.Expanding, QSizePolicy.Minimum))
+        
+        # Controles de overlay
+        self.overlay_opacity_label = QLabel("Overlay:")
+        controls_layout.addWidget(self.overlay_opacity_label)
+        
+        from PyQt5.QtWidgets import QSlider
+        self.overlay_opacity_slider = QSlider(Qt.Horizontal)
+        self.overlay_opacity_slider.setRange(0, 100)
+        self.overlay_opacity_slider.setValue(70)
+        self.overlay_opacity_slider.setMaximumWidth(100)
+        self.overlay_opacity_slider.setToolTip("Opacidad de overlays")
+        self.overlay_opacity_slider.valueChanged.connect(self.update_overlay_opacity)
+        controls_layout.addWidget(self.overlay_opacity_slider)
         
         layout.addLayout(controls_layout)
         
-        # Área de imagen con scroll
+        # Área de imagen con scroll personalizada
         self.scroll_area = QScrollArea()
-        self.scroll_area.setWidgetResizable(True)
+        self.scroll_area.setWidgetResizable(False)  # Importante para el zoom
         self.scroll_area.setAlignment(Qt.AlignCenter)
+        self.scroll_area.setHorizontalScrollBarPolicy(Qt.ScrollBarAsNeeded)
+        self.scroll_area.setVerticalScrollBarPolicy(Qt.ScrollBarAsNeeded)
         
-        self.image_label = QLabel("No hay imagen cargada")
+        # Label personalizado para la imagen
+        self.image_label = InteractiveImageLabel()
         self.image_label.setAlignment(Qt.AlignCenter)
-        self.image_label.setStyleSheet("color: #757575; font-size: 14px;")
+        self.image_label.setStyleSheet("color: #757575; font-size: 14px; background-color: #f5f5f5;")
         self.image_label.setMinimumSize(300, 200)
+        self.image_label.setText("No hay imagen cargada")
+        
+        # Conectar señales del label
+        self.image_label.mousePressed.connect(self.start_pan)
+        self.image_label.mouseMoved.connect(self.pan_image)
+        self.image_label.mouseReleased.connect(self.end_pan)
+        self.image_label.wheelScrolled.connect(self.wheel_zoom)
+        self.image_label.imageClicked.connect(self.imageClicked)
         
         self.scroll_area.setWidget(self.image_label)
         layout.addWidget(self.scroll_area)
+        
+        # Información de coordenadas
+        self.coords_label = QLabel("Posición: -")
+        self.coords_label.setStyleSheet("color: #666; font-size: 11px;")
+        layout.addWidget(self.coords_label)
         
     def load_image(self, image_path: str):
         """Carga una imagen en el visor"""
@@ -548,7 +594,9 @@ class ImageViewer(QFrame):
             self.original_pixmap = QPixmap(image_path)
             
             if not self.original_pixmap.isNull():
+                self.image_label.set_original_pixmap(self.original_pixmap)
                 self.fit_to_window()
+                self.image_label.setText("")
             else:
                 self.image_label.setText("Error: No se pudo cargar la imagen")
                 
@@ -558,25 +606,173 @@ class ImageViewer(QFrame):
     def update_image_display(self):
         """Actualiza la visualización de la imagen"""
         if hasattr(self, 'original_pixmap') and not self.original_pixmap.isNull():
+            # Calcular nuevo tamaño
+            new_size = self.original_pixmap.size() * self.zoom_factor
+            
+            # Escalar imagen
             scaled_pixmap = self.original_pixmap.scaled(
-                self.original_pixmap.size() * self.zoom_factor,
+                new_size,
                 Qt.KeepAspectRatio,
                 Qt.SmoothTransformation
             )
+            
+            # Aplicar overlays si existen
+            if self.overlays:
+                scaled_pixmap = self.apply_overlays(scaled_pixmap)
+            
             self.image_label.setPixmap(scaled_pixmap)
             self.image_label.resize(scaled_pixmap.size())
             
             # Actualizar etiqueta de zoom
             self.zoom_label.setText(f"{int(self.zoom_factor * 100)}%")
             
+    def apply_overlays(self, pixmap):
+        """Aplica overlays a la imagen"""
+        if not self.overlays:
+            return pixmap
+            
+        # Crear una copia del pixmap para dibujar encima
+        result_pixmap = QPixmap(pixmap)
+        painter = QPainter(result_pixmap)
+        painter.setRenderHint(QPainter.Antialiasing)
+        
+        # Aplicar cada overlay
+        for overlay_name, overlay_data in self.overlays.items():
+            if overlay_data.get('visible', True):
+                self.draw_overlay(painter, overlay_data, result_pixmap.size())
+        
+        painter.end()
+        return result_pixmap
+        
+    def draw_overlay(self, painter, overlay_data, image_size):
+        """Dibuja un overlay específico"""
+        overlay_type = overlay_data.get('type', 'roi')
+        color = QColor(overlay_data.get('color', '#ff0000'))
+        color.setAlphaF(self.overlay_opacity)
+        
+        painter.setPen(color)
+        painter.setBrush(QColor(color.red(), color.green(), color.blue(), int(50 * self.overlay_opacity)))
+        
+        if overlay_type == 'roi':
+            # Dibujar rectángulo ROI
+            rect = overlay_data.get('rect', QRect(10, 10, 100, 100))
+            # Escalar rectángulo según zoom
+            scaled_rect = QRect(
+                int(rect.x() * self.zoom_factor),
+                int(rect.y() * self.zoom_factor),
+                int(rect.width() * self.zoom_factor),
+                int(rect.height() * self.zoom_factor)
+            )
+            painter.drawRect(scaled_rect)
+            
+        elif overlay_type == 'point':
+            # Dibujar punto
+            point = overlay_data.get('point', (50, 50))
+            scaled_point = (int(point[0] * self.zoom_factor), int(point[1] * self.zoom_factor))
+            painter.drawEllipse(scaled_point[0] - 5, scaled_point[1] - 5, 10, 10)
+            
+    def add_overlay(self, name, overlay_type, **kwargs):
+        """Agrega un overlay"""
+        self.overlays[name] = {
+            'type': overlay_type,
+            'visible': True,
+            **kwargs
+        }
+        self.update_image_display()
+        
+    def remove_overlay(self, name):
+        """Remueve un overlay"""
+        if name in self.overlays:
+            del self.overlays[name]
+            self.update_image_display()
+            
+    def set_overlay_visible(self, name, visible):
+        """Cambia la visibilidad de un overlay"""
+        if name in self.overlays:
+            self.overlays[name]['visible'] = visible
+            self.update_image_display()
+            
+    def update_overlay_opacity(self, value):
+        """Actualiza la opacidad de los overlays"""
+        self.overlay_opacity = value / 100.0
+        self.update_image_display()
+        
+    def start_pan(self, pos):
+        """Inicia el paneo"""
+        self.pan_start_point = pos
+        self.panning = True
+        self.image_label.setCursor(Qt.ClosedHandCursor)
+        
+    def pan_image(self, pos):
+        """Realiza el paneo de la imagen"""
+        if self.panning and self.pan_start_point:
+            # Calcular desplazamiento
+            delta = pos - self.pan_start_point
+            
+            # Obtener scrollbars
+            h_scroll = self.scroll_area.horizontalScrollBar()
+            v_scroll = self.scroll_area.verticalScrollBar()
+            
+            # Aplicar desplazamiento
+            h_scroll.setValue(h_scroll.value() - delta.x())
+            v_scroll.setValue(v_scroll.value() - delta.y())
+            
+            self.pan_start_point = pos
+            
+    def end_pan(self, pos):
+        """Termina el paneo"""
+        self.panning = False
+        self.pan_start_point = None
+        self.image_label.setCursor(Qt.ArrowCursor)
+        
+    def wheel_zoom(self, delta, pos):
+        """Zoom con rueda del mouse"""
+        if hasattr(self, 'original_pixmap') and not self.original_pixmap.isNull():
+            # Calcular factor de zoom
+            zoom_in = delta > 0
+            zoom_factor = 1.25 if zoom_in else 1/1.25
+            
+            old_zoom = self.zoom_factor
+            self.zoom_factor = max(self.min_zoom, min(self.max_zoom, self.zoom_factor * zoom_factor))
+            
+            if old_zoom != self.zoom_factor:
+                # Zoom centrado en la posición del mouse
+                self.zoom_at_point(pos, old_zoom)
+                
+    def zoom_at_point(self, point, old_zoom):
+        """Realiza zoom centrado en un punto específico"""
+        # Obtener scrollbars
+        h_scroll = self.scroll_area.horizontalScrollBar()
+        v_scroll = self.scroll_area.verticalScrollBar()
+        
+        # Calcular posición relativa antes del zoom
+        old_pos_x = (h_scroll.value() + point.x()) / old_zoom
+        old_pos_y = (v_scroll.value() + point.y()) / old_zoom
+        
+        # Actualizar imagen
+        self.update_image_display()
+        
+        # Calcular nueva posición del scroll
+        new_scroll_x = old_pos_x * self.zoom_factor - point.x()
+        new_scroll_y = old_pos_y * self.zoom_factor - point.y()
+        
+        # Aplicar nueva posición
+        h_scroll.setValue(int(new_scroll_x))
+        v_scroll.setValue(int(new_scroll_y))
+        
     def zoom_in(self):
         """Aumenta el zoom"""
-        self.zoom_factor = min(self.zoom_factor * 1.25, 5.0)
+        self.zoom_factor = min(self.zoom_factor * 1.25, self.max_zoom)
         self.update_image_display()
         
     def zoom_out(self):
         """Disminuye el zoom"""
-        self.zoom_factor = max(self.zoom_factor / 1.25, 0.1)
+        self.zoom_factor = max(self.zoom_factor / 1.25, self.min_zoom)
+        self.update_image_display()
+        
+    def reset_zoom(self):
+        """Resetea el zoom a 100%"""
+        self.zoom_factor = 1.0
         self.update_image_display()
         
     def fit_to_window(self):
@@ -589,13 +785,115 @@ class ImageViewer(QFrame):
             scale_x = (scroll_size.width() - 20) / image_size.width()
             scale_y = (scroll_size.height() - 20) / image_size.height()
             
-            self.zoom_factor = min(scale_x, scale_y, 1.0)  # No hacer zoom in más allá del 100%
+            self.zoom_factor = min(scale_x, scale_y, 1.0)
             self.update_image_display()
             
     def clear(self):
         """Limpia el visor"""
         self.image_path = None
         self.zoom_factor = 1.0
+        self.overlays.clear()
         self.image_label.clear()
         self.image_label.setText("No hay imagen cargada")
         self.zoom_label.setText("100%")
+        self.coords_label.setText("Posición: -")
+
+
+class InteractiveImageLabel(QLabel):
+    """Label personalizado para manejar eventos de mouse en la imagen"""
+    
+    mousePressed = pyqtSignal(object)  # QPoint
+    mouseMoved = pyqtSignal(object)    # QPoint
+    mouseReleased = pyqtSignal(object) # QPoint
+    wheelScrolled = pyqtSignal(int, object)  # delta, QPoint
+    imageClicked = pyqtSignal(int, int)  # x, y en coordenadas de imagen
+    
+    def __init__(self):
+        super().__init__()
+        self.setMouseTracking(True)
+        self.original_pixmap = None
+        
+    def set_original_pixmap(self, pixmap):
+        """Establece el pixmap original para cálculos de coordenadas"""
+        self.original_pixmap = pixmap
+        
+    def mousePressEvent(self, event):
+        """Maneja el evento de presionar mouse"""
+        if event.button() == Qt.LeftButton:
+            self.mousePressed.emit(event.pos())
+        super().mousePressEvent(event)
+        
+    def mouseMoveEvent(self, event):
+        """Maneja el movimiento del mouse"""
+        self.mouseMoved.emit(event.pos())
+        
+        # Emitir coordenadas de imagen si hay pixmap
+        if self.original_pixmap and not self.original_pixmap.isNull():
+            # Calcular coordenadas en la imagen original
+            label_size = self.size()
+            pixmap_size = self.pixmap().size() if self.pixmap() else label_size
+            
+            if pixmap_size.width() > 0 and pixmap_size.height() > 0:
+                # Calcular offset del pixmap en el label
+                offset_x = (label_size.width() - pixmap_size.width()) // 2
+                offset_y = (label_size.height() - pixmap_size.height()) // 2
+                
+                # Coordenadas relativas al pixmap
+                rel_x = event.pos().x() - offset_x
+                rel_y = event.pos().y() - offset_y
+                
+                if 0 <= rel_x < pixmap_size.width() and 0 <= rel_y < pixmap_size.height():
+                    # Escalar a coordenadas de imagen original
+                    scale_x = self.original_pixmap.width() / pixmap_size.width()
+                    scale_y = self.original_pixmap.height() / pixmap_size.height()
+                    
+                    orig_x = int(rel_x * scale_x)
+                    orig_y = int(rel_y * scale_y)
+                    
+                    # Emitir coordenadas actualizadas
+                    parent = self.parent()
+                    while parent and not hasattr(parent, 'coords_label'):
+                        parent = parent.parent()
+                    if parent and hasattr(parent, 'coords_label'):
+                        parent.coords_label.setText(f"Posición: ({orig_x}, {orig_y})")
+        
+        super().mouseMoveEvent(event)
+        
+    def mouseReleaseEvent(self, event):
+        """Maneja el evento de soltar mouse"""
+        if event.button() == Qt.LeftButton:
+            self.mouseReleased.emit(event.pos())
+            
+            # Emitir click en coordenadas de imagen
+            if self.original_pixmap and not self.original_pixmap.isNull():
+                label_size = self.size()
+                pixmap_size = self.pixmap().size() if self.pixmap() else label_size
+                
+                if pixmap_size.width() > 0 and pixmap_size.height() > 0:
+                    offset_x = (label_size.width() - pixmap_size.width()) // 2
+                    offset_y = (label_size.height() - pixmap_size.height()) // 2
+                    
+                    rel_x = event.pos().x() - offset_x
+                    rel_y = event.pos().y() - offset_y
+                    
+                    if 0 <= rel_x < pixmap_size.width() and 0 <= rel_y < pixmap_size.height():
+                        scale_x = self.original_pixmap.width() / pixmap_size.width()
+                        scale_y = self.original_pixmap.height() / pixmap_size.height()
+                        
+                        orig_x = int(rel_x * scale_x)
+                        orig_y = int(rel_y * scale_y)
+                        
+                        self.imageClicked.emit(orig_x, orig_y)
+        
+        super().mouseReleaseEvent(event)
+        
+    def wheelEvent(self, event):
+        """Maneja el evento de rueda del mouse"""
+        self.wheelScrolled.emit(event.angleDelta().y(), event.pos())
+        super().wheelEvent(event)
+
+
+# Mantener compatibilidad con el ImageViewer original
+class ImageViewer(InteractiveImageViewer):
+    """Alias para mantener compatibilidad"""
+    pass

@@ -74,6 +74,26 @@ except ImportError as e:
     logging.warning(f"Sistema de matching no disponible: {e}")
     MATCHING_AVAILABLE = False
 
+# Importar utilidades
+try:
+    from utils.logger import get_logger
+    from utils.validators import SystemValidator
+    from utils.memory_cache import MemoryCache
+    UTILS_AVAILABLE = True
+except ImportError as e:
+    logging.warning(f"Módulos utils no disponibles: {e}")
+    UTILS_AVAILABLE = False
+
+# Importar core pipeline
+try:
+    from core.unified_pipeline import ScientificPipeline
+    from core.error_handler import ErrorRecoveryManager
+    from core.intelligent_cache import IntelligentCache
+    CORE_AVAILABLE = True
+except ImportError as e:
+    logging.warning(f"Módulo core no disponible: {e}")
+    CORE_AVAILABLE = False
+
 # Importar base de datos
 try:
     from database.unified_database import UnifiedDatabase
@@ -162,6 +182,10 @@ class BackendIntegration(QObject):
         self.image_processor = None
         self.matcher = None
         self.database = None
+        self.scientific_pipeline = None
+        self.error_handler = None
+        self.memory_cache = None
+        self.intelligent_cache = None
         
         # Inicializar componentes
         self._initialize_backend_components()
@@ -200,9 +224,21 @@ class BackendIntegration(QObject):
             
             # Base de datos
             if DATABASE_AVAILABLE and self.config:
-                # Pasar la configuración completa en lugar de solo la sección de base de datos
-                self.database = UnifiedDatabase(self.config)
+                db_config = get_database_config()
+                self.database = UnifiedDatabase(db_config)
                 logger.info("Base de datos inicializada")
+            
+            # Pipeline científico unificado
+            if CORE_AVAILABLE:
+                self.scientific_pipeline = ScientificPipeline()
+                self.error_handler = ErrorRecoveryManager()
+                self.intelligent_cache = IntelligentCache()
+                logger.info("Pipeline científico y componentes core inicializados")
+            
+            # Utilidades del sistema
+            if UTILS_AVAILABLE:
+                self.memory_cache = MemoryCache()
+                logger.info("Utilidades del sistema inicializadas")
                 
         except Exception as e:
             logger.error(f"Error inicializando componentes del backend: {e}")
@@ -217,6 +253,12 @@ class BackendIntegration(QObject):
             'image_processing_available': IMAGE_PROCESSING_AVAILABLE and self.image_processor is not None,
             'matching_available': MATCHING_AVAILABLE and self.matcher is not None,
             'database_available': DATABASE_AVAILABLE and self.database is not None,
+            'scientific_pipeline_available': CORE_AVAILABLE and self.scientific_pipeline is not None,
+            'error_handler_available': CORE_AVAILABLE and self.error_handler is not None,
+            'intelligent_cache_available': CORE_AVAILABLE and self.intelligent_cache is not None,
+            'memory_cache_available': UTILS_AVAILABLE and self.memory_cache is not None,
+            'utils_available': UTILS_AVAILABLE,
+            'core_available': CORE_AVAILABLE,
             'current_status': self.current_status.value,
             'backend_version': '1.0.0'
         }

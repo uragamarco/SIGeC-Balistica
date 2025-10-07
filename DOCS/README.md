@@ -1,97 +1,102 @@
-# SIGeC-Balistica - Sistema Integrado de Gestión y Control Balístico
+# SIGeC-Balisticar - Documentación Técnica
 
-Sistema integrado para el análisis forense automatizado de cartuchos y balas utilizando técnicas de visión por computadora, aprendizaje automático y deep learning.
+## Índice de Documentación
 
-## Descripción
+Esta carpeta contiene toda la documentación técnica del proyecto SIGeC-Balisticar.
 
-SIGeC-Balistica es una herramienta avanzada de análisis balístico forense que permite:
+### 📋 Documentación Principal
 
-- Extracción automática de características de cartuchos y balas
-- Comparación y matching de evidencia balística
-- Análisis estadístico de patrones de marcas
-- Interfaz gráfica intuitiva para análisis forense
-- Integración con bases de datos balísticas
+- **[README.md](../README.md)** - Documentación principal del proyecto
+- **[INFORME_ESTADO_PROYECTO.md](INFORME_ESTADO_PROYECTO.md)** - Estado actual del proyecto
+- **[IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md)** - Plan de implementación
+- **[ESTADO_PLAN_DESARROLLO.md](ESTADO_PLAN_DESARROLLO.md)** - Estado del plan de desarrollo
+
+### 🔧 Análisis Técnico por Módulos
+
+- **[analisis_common.md](analisis_common.md)** - Análisis del módulo common
+- **[analisis_core.md](analisis_core.md)** - Análisis del módulo core
+- **[analisis_database.md](analisis_database.md)** - Análisis del módulo database
+- **[analisis_deep_learning.md](analisis_deep_learning.md)** - Análisis del módulo deep_learning
+- **[analisis_image_processing.md](analisis_image_processing.md)** - Análisis del módulo image_processing
+- **[analisis_matching.md](analisis_matching.md)** - Análisis del módulo matching
+- **[analisis_nist_standards.md](analisis_nist_standards.md)** - Análisis del módulo nist_standards
+- **[analisis_performance.md](analisis_performance.md)** - Análisis del módulo performance
+- **[analisis_utils.md](analisis_utils.md)** - Análisis del módulo utils
+
+### 🚀 Despliegue y Optimización
+
+- **[deployment_summary.md](deployment_summary.md)** - Resumen de despliegue
+- **[OPTIMIZATION_REPORT.md](OPTIMIZATION_REPORT.md)** - Reporte de optimización
+- **[OPTIMIZATION_SUMMARY.md](OPTIMIZATION_SUMMARY.md)** - Resumen de optimización
+- **[RESUMEN_LIMPIEZA_REPOSITORIO.md](RESUMEN_LIMPIEZA_REPOSITORIO.md)** - Resumen de limpieza del repositorio
+
+### 🛠️ Solución de Problemas
+
+- **[qt_troubleshooting.md](qt_troubleshooting.md)** - Solución de problemas con PyQt5
+
+### 📊 Herramientas de Documentación
+
+- **[documentation_system.py](documentation_system.py)** - Sistema automatizado de documentación
 
 ## Estructura del Proyecto
 
 ```
-SIGeC-Balistica/
-├── assets/                     # Recursos e imágenes de prueba
-├── database/                   # Gestión de base de datos y vectores
-├── deep_learning/              # Modelos de deep learning
-├── docs/                       # Documentación completa
-├── gui/                        # Interfaz gráfica de usuario
-├── image_processing/           # Procesamiento de imágenes y extracción de características
-├── matching/                   # Algoritmos de comparación y matching
-├── scripts/                    # Scripts de utilidad
-├── tests/                      # Pruebas unitarias e integración
-├── utils/                      # Utilidades generales
-├── config.yaml                 # Configuración principal
-├── main.py                     # Punto de entrada de la aplicación
-└── requirements.txt            # Dependencias del proyecto
+SIGeC-Balisticar/
+├── 📁 assets/                  # Recursos e imágenes de prueba
+├── 📁 common/                  # Núcleo estadístico y adaptadores NIST
+├── 📁 config/                  # Configuraciones unificadas
+├── 📁 core/                    # Pipeline científico y sistemas centrales
+├── 📁 database/                # Base de datos unificada y vectorial
+├── 📁 deep_learning/           # Modelos CNN y Siameses
+├── 📁 gui/                     # Interfaz gráfica PyQt5
+├── 📁 image_processing/        # Procesamiento avanzado de imágenes
+├── 📁 matching/                # Algoritmos de matching y CMC
+├── 📁 nist_standards/          # Estándares NIST y validación
+├── 📁 performance/             # Monitoreo y optimización
+├── 📁 tests/                   # Suite de pruebas completa
+├── 📁 utils/                   # Utilidades y validadores
+├── 📄 main.py                  # Punto de entrada
+└── 📄 requirements.txt         # Dependencias
 ```
 
-## Instalación
+## Instalación Rápida
 
-1. Clonar el repositorio:
+### Prerrequisitos
+- Python 3.8+
+- OpenCV 4.x
+- PyQt5
+- CUDA (opcional, para aceleración GPU)
+
+### Pasos de Instalación
+
+1. **Clonar el repositorio:**
 ```bash
 git clone <repository-url>
-cd SIGeC-Balistica
+cd SIGeC-Balisticar
 ```
 
-2. Crear entorno virtual:
+2. **Crear entorno virtual:**
 ```bash
 python -m venv venv
-source venv/bin/activate  # En Linux/Mac
+source venv/bin/activate  # Linux/Mac
 # o
-venv\Scripts\activate     # En Windows
+venv\Scripts\activate     # Windows
 ```
 
-3. Instalar dependencias:
+3. **Instalar dependencias:**
 ```bash
 pip install -r requirements.txt
 ```
 
-## Uso
-
-### Interfaz Gráfica
+4. **Ejecutar la aplicación:**
 ```bash
 python main.py
 ```
 
-### Servicios Backend
-```bash
-# Extractor de características
-python image_processing/feature_extractor.py
-
-# Detector de ROI
-python image_processing/roi_detector.py
-
-# Analizador estadístico
-python image_processing/statistical_analyzer.py
-```
-
-## Documentación
-
-La documentación completa se encuentra en el directorio `docs/`:
-
-- [Guía de Instalación](docs/GUIA_INSTALACION.md)
-- [Guía de Usuario](docs/GUIA_USUARIO.md)
-- [Arquitectura Técnica](docs/reports/ARQUITECTURA_TECNICA.md)
-- [Reporte de Validación](docs/reports/VALIDATION_REPORT.md)
-
-## Características Principales
-
-- **Extracción de Características**: SIFT, ORB, LBP, características balísticas
-- **Deep Learning**: Modelos CNN, Siamese Networks, Segmentación
-- **Análisis Estadístico**: Métricas avanzadas y visualizaciones
-- **Base de Datos**: SQLite + FAISS para búsquedas vectoriales
-- **Interfaz Moderna**: PyQt6 con visualizaciones interactivas
-
 ## Contribución
 
-Para contribuir al proyecto, consulte la documentación en `docs/` y siga las mejores prácticas establecidas.
+Para contribuir al proyecto, consulte la documentación técnica específica de cada módulo y siga las guías de desarrollo establecidas.
 
-## Licencia
+## Soporte
 
-Ver archivo `docs/reports/LICENCIAS.md` para información sobre licencias.
+Para problemas técnicos, consulte primero la documentación de solución de problemas y los análisis técnicos por módulos.
