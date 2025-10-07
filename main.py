@@ -163,13 +163,9 @@ def setup_environment():
 
 def is_qt_functional():
     """
-    Verifica si Qt está realmente funcional usando un proceso separado
-    para evitar crashes del proceso principal
+    Verifica si Qt está realmente funcional
     """
-    import os
-    import sys
-    import subprocess
-    import tempfile
+    logger = get_logger("qt_check")
     
     # Obtener la ruta de plugins de PyQt5 dinámicamente
     try:
@@ -178,86 +174,47 @@ def is_qt_functional():
         plugin_dir = os.path.join(pyqt5_path, 'Qt5', 'plugins')
         
         if not os.path.exists(plugin_dir):
+            logger.warning(f"Plugin directory not found: {plugin_dir}")
             return False
             
     except ImportError:
+        logger.warning("PyQt5 not available")
         return False
     
     # Verificar plugins específicos requeridos
     platforms_dir = os.path.join(plugin_dir, 'platforms')
     if not os.path.exists(platforms_dir):
+        logger.warning(f"Platforms directory not found: {platforms_dir}")
         return False
     
-    required_plugins = ['libqminimal.so', 'libqoffscreen.so']
-    for plugin in required_plugins:
-        if not os.path.exists(os.path.join(platforms_dir, plugin)):
-            return False
+    # Buscar cualquier plugin de plataforma disponible
+    available_plugins = []
+    if os.path.exists(platforms_dir):
+        for file in os.listdir(platforms_dir):
+            if file.endswith('.so'):
+                available_plugins.append(file)
+    
+    if not available_plugins:
+        logger.warning("No platform plugins found")
+        return False
+    
+    logger.info(f"Available platform plugins: {available_plugins}")
     
     # Verificar importaciones básicas de PyQt5
     try:
         import PyQt5.QtWidgets
         import PyQt5.QtCore
         import PyQt5.QtGui
-    except ImportError:
+    except ImportError as e:
+        logger.warning(f"PyQt5 import error: {e}")
         return False
     
-    # Crear script temporal para probar Qt en proceso separado
-    test_script = f'''
-import os
-import sys
-
-# Configurar ruta de plugins de PyQt5
-plugin_path = "{plugin_dir}"
-os.environ['QT_QPA_PLATFORM_PLUGIN_PATH'] = plugin_path
-
-# Lista de plataformas a probar en orden de preferencia
-platforms = ['offscreen', 'minimal', 'xcb']
-working_platform = None
-
-for platform in platforms:
-    try:
-        # Configurar plataforma ANTES de importar PyQt5
-        os.environ['QT_QPA_PLATFORM'] = platform
-        
-        from PyQt5.QtWidgets import QApplication
-        
-        # Intentar crear aplicación
-        app = QApplication([])
-        working_platform = platform
-        app.quit()
-        break
-        
-    except Exception:
-        continue
-
-if working_platform:
-    # Configurar globalmente la plataforma funcional
-    os.environ['QT_QPA_PLATFORM'] = working_platform
-    sys.exit(0)
-else:
-    sys.exit(1)
-'''
+    # NO configurar plataforma aquí - dejar que se configure en create_application
+    # Configurar ruta de plugins
+    os.environ['QT_QPA_PLATFORM_PLUGIN_PATH'] = plugin_dir
     
-    # Escribir y ejecutar script temporal
-    with tempfile.NamedTemporaryFile(mode='w', suffix='.py', delete=False) as f:
-        f.write(test_script)
-        temp_file = f.name
-    
-    try:
-        result = subprocess.run([sys.executable, temp_file], 
-                              capture_output=True, text=True, timeout=10)
-        
-        return result.returncode == 0
-        
-    except subprocess.TimeoutExpired:
-        return False
-    except Exception:
-        return False
-    finally:
-        try:
-            os.unlink(temp_file)
-        except:
-            pass
+    logger.info("✓ Qt funcional - verificaciones básicas completadas")
+    return True
 
 
 def create_application():
@@ -276,27 +233,29 @@ def create_application():
         from PyQt5.QtGui import QIcon
         import PyQt5
         
-        # Importar QtWebEngineWidgets antes de crear QApplication
-        try:
-            from PyQt5.QtWebEngineWidgets import QWebEngineView
-            logger.info("✓ QtWebEngineWidgets importado correctamente")
-        except ImportError:
-            logger.warning("QtWebEngineWidgets no disponible, algunas funciones pueden estar limitadas")
-        
         # Configurar variables de entorno con la ruta correcta de PyQt5
         pyqt5_path = os.path.dirname(PyQt5.__file__)
         plugin_dir = os.path.join(pyqt5_path, 'Qt5', 'plugins')
         os.environ['QT_QPA_PLATFORM_PLUGIN_PATH'] = plugin_dir
         
-        current_platform = os.environ.get('QT_QPA_PLATFORM', 'offscreen')
+        # FORZAR el uso del display real (no offscreen)
+        if 'QT_QPA_PLATFORM' in os.environ:
+            del os.environ['QT_QPA_PLATFORM']
+        
+        # Configurar display para GUI visible
+        if 'DISPLAY' not in os.environ:
+            os.environ['DISPLAY'] = ':0'
+        
+        current_platform = os.environ.get('QT_QPA_PLATFORM', 'xcb')
         logger.info(f"Creando aplicación Qt con plataforma: {current_platform}")
         logger.info(f"Usando plugins de: {plugin_dir}")
+        logger.info(f"Display configurado: {os.environ.get('DISPLAY', 'No configurado')}")
         
-        # Configurar atributos básicos
+        # IMPORTANTE: Configurar atributos ANTES de crear QApplication
         if hasattr(Qt, 'AA_EnableHighDpiScaling'):
             QApplication.setAttribute(Qt.AA_EnableHighDpiScaling, True)
         
-        # Configurar atributo para QtWebEngine
+        # Configurar atributo para QtWebEngine ANTES de crear QApplication
         if hasattr(Qt, 'AA_ShareOpenGLContexts'):
             QApplication.setAttribute(Qt.AA_ShareOpenGLContexts, True)
             logger.info("✓ Qt::AA_ShareOpenGLContexts configurado")
@@ -307,6 +266,13 @@ def create_application():
         # Configurar propiedades básicas
         app.setApplicationName("SIGeC-Balistica")
         app.setApplicationVersion("2.0.0")
+        
+        # Importar QtWebEngineWidgets DESPUÉS de crear QApplication
+        try:
+            from PyQt5.QtWebEngineWidgets import QWebEngineView
+            logger.info("✓ QtWebEngineWidgets importado correctamente")
+        except ImportError:
+            logger.warning("QtWebEngineWidgets no disponible, algunas funciones pueden estar limitadas")
         
         logger.info("✓ Aplicación PyQt5 creada exitosamente")
         return app

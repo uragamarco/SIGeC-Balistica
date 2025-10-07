@@ -33,7 +33,7 @@ from .interactive_matching_widget import InteractiveMatchingWidget
 from core.unified_pipeline import ScientificPipeline, PipelineResult, PipelineConfiguration
 from core.pipeline_config import PipelineLevel
 from image_processing.unified_preprocessor import UnifiedPreprocessor, PreprocessingConfig
-from image_processing.unified_roi_detector import UnifiedROIDetector, ROIDetectionConfig
+from image_processing.unified_roi_detector import UnifiedROIDetector, ROIDetectionConfig, DetectionLevel
 from nist_standards.quality_metrics import NISTQualityMetrics, NISTQualityReport
 from nist_standards.afte_conclusions import AFTEConclusionEngine, AFTEConclusion, AFTEAnalysisResult
 from nist_standards.validation_protocols import NISTValidationProtocols, ValidationResult, ValidationLevel
@@ -374,6 +374,7 @@ class AnalysisTab(QWidget, VisualizationMethods):
         
         # Inicializar servicios reales del sistema
         self.config = get_unified_config()
+        self.unified_config = self.config  # Agregar alias para compatibilidad
         self.validator = SystemValidator()
         self.cache = get_global_cache()
         self.logger = get_logger(__name__)
@@ -1879,37 +1880,37 @@ class AnalysisTab(QWidget, VisualizationMethods):
                     'weapon_model': self.weapon_model_edit.text().strip(),
                     'caliber': self.caliber_edit.text().strip(),
                     'serial_number': self.serial_number_edit.text().strip(),
-                    'timestamp': self.unified_config.get_timestamp(),
+                    'timestamp': datetime.now().isoformat(),
                     'lab_info': {
-                        'name': self.unified_config.get('lab.name', 'SIGeC Laboratory'),
-                        'location': self.unified_config.get('lab.location', ''),
-                        'accreditation': self.unified_config.get('lab.accreditation', '')
+                        'name': getattr(self.unified_config.gui, 'lab_name', 'SIGeC Laboratory'),
+                        'location': getattr(self.unified_config.gui, 'lab_location', ''),
+                        'accreditation': getattr(self.unified_config.gui, 'lab_accreditation', '')
                     }
                 },
                 'processing_config': processing_config,
                 'configuration_level': config_level,
                 'system_config': {
-                    'use_cache': self.unified_config.get('processing.use_cache', True),
-                    'parallel_processing': self.unified_config.get('processing.parallel', True),
-                    'max_workers': self.unified_config.get('processing.max_workers', 4),
-                    'memory_limit': self.unified_config.get('processing.memory_limit', '8GB'),
-                    'temp_dir': self.unified_config.get('processing.temp_dir', '/tmp/sigec')
+                    'use_cache': getattr(self.unified_config.image_processing, 'enable_parallel_processing', True),
+                    'parallel_processing': getattr(self.unified_config.image_processing, 'enable_parallel_processing', True),
+                    'max_workers': getattr(self.unified_config.image_processing, 'max_workers', 4),
+                    'memory_limit': f"{getattr(self.unified_config.image_processing, 'memory_limit_mb', 1024)}MB",
+                    'temp_dir': getattr(self.unified_config.image_processing, 'temp_path', '/tmp/sigec')
                 }
             }
             
             # Metadatos NIST si están habilitados
             if self.enable_nist_checkbox.isChecked():
                 nist_metadata = {
-                    'lab_name': self.lab_name_edit.text().strip() or self.unified_config.get('lab.name', ''),
-                    'lab_accreditation': self.lab_accreditation_edit.text().strip() or self.unified_config.get('lab.accreditation', ''),
+                    'lab_name': self.lab_name_edit.text().strip() or getattr(self.unified_config.gui, 'lab_name', ''),
+                    'lab_accreditation': self.lab_accreditation_edit.text().strip() or getattr(self.unified_config.gui, 'lab_accreditation', ''),
                     'capture_device': self.capture_device_edit.text().strip(),
                     'magnification': self.magnification_edit.text().strip(),
                     'lighting_type': self.lighting_type_combo.currentText(),
                     'calibration_date': self.calibration_date_edit.text().strip(),
                     'scale_factor': self.scale_factor_edit.text().strip(),
-                    'standards_version': self.unified_config.get('nist.standards_version', '2023'),
-                    'compliance_level': self.unified_config.get('nist.compliance_level', 'full'),
-                    'validation_protocols': self.unified_config.get('nist.validation_protocols', [])
+                    'standards_version': getattr(self.unified_config.nist, 'standards_version', '2023'),
+                    'compliance_level': getattr(self.unified_config.nist, 'compliance_level', 'full'),
+                    'validation_protocols': getattr(self.unified_config.nist, 'validation_protocols', [])
                 }
                 data['nist_metadata'] = nist_metadata
                 
@@ -1924,10 +1925,10 @@ class AnalysisTab(QWidget, VisualizationMethods):
                     'use_gpu': self.dl_use_gpu_cb.isChecked(),
                     'siamese_threshold': self.siamese_threshold_spin.value() if hasattr(self, 'siamese_threshold_spin') else 0.7,
                     'embedding_dim': self.siamese_embedding_dim_spin.value() if hasattr(self, 'siamese_embedding_dim_spin') else 512,
-                    'model_path': self.unified_config.get('deep_learning.model_path', ''),
-                    'device': 'cuda' if self.dl_use_gpu_cb.isChecked() and self.unified_config.get('deep_learning.cuda_available', False) else 'cpu',
-                    'precision': self.unified_config.get('deep_learning.precision', 'float32'),
-                    'optimization_level': self.unified_config.get('deep_learning.optimization_level', 'O1')
+                    'model_path': getattr(self.unified_config.deep_learning, 'models_path', ''),
+                    'device': 'cuda' if self.dl_use_gpu_cb.isChecked() and getattr(self.unified_config.deep_learning, 'device', 'cpu') == 'cuda' else 'cpu',
+                    'precision': getattr(self.unified_config.deep_learning, 'precision', 'float32'),
+                    'optimization_level': getattr(self.unified_config.deep_learning, 'optimization_level', 'O1')
                 }
                 data['deep_learning_config'] = dl_config
             else:
@@ -1935,18 +1936,18 @@ class AnalysisTab(QWidget, VisualizationMethods):
             
             # Configuración de base de datos
             data['database_config'] = {
-                'save_results': self.unified_config.get('database.save_results', True),
-                'auto_backup': self.unified_config.get('database.auto_backup', True),
-                'compression': self.unified_config.get('database.compression', True),
-                'encryption': self.unified_config.get('database.encryption', False)
+                'save_results': getattr(self.unified_config.database, 'save_results', True),
+                'auto_backup': getattr(self.unified_config.database, 'backup_enabled', True),
+                'compression': getattr(self.unified_config.database, 'compression', True),
+                'encryption': getattr(self.unified_config.database, 'encryption', False)
             }
             
             # Configuración de logging y auditoría
             data['audit_config'] = {
-                'log_level': self.unified_config.get('logging.level', 'INFO'),
-                'audit_trail': self.unified_config.get('audit.enabled', True),
-                'performance_metrics': self.unified_config.get('audit.performance_metrics', True),
-                'security_logging': self.unified_config.get('audit.security_logging', True)
+                'log_level': getattr(self.unified_config.logging, 'level', 'INFO'),
+                'audit_trail': getattr(self.unified_config.logging, 'audit_trail', True),
+                'performance_metrics': getattr(self.unified_config.logging, 'log_performance_metrics', True),
+                'security_logging': getattr(self.unified_config.logging, 'security_logging', True)
             }
             
             self.logger.info(f"Datos de análisis recopilados: {len(data)} secciones configuradas")
@@ -2315,45 +2316,37 @@ class AnalysisTab(QWidget, VisualizationMethods):
         try:
             # Configurar preprocessor con configuración real
             preprocessing_config = PreprocessingConfig(
-                noise_reduction=self.unified_config.get('preprocessing.noise_reduction', True),
-                contrast_enhancement=self.unified_config.get('preprocessing.contrast_enhancement', True),
-                edge_detection=self.unified_config.get('preprocessing.edge_detection', False),
-                morphological_operations=self.unified_config.get('preprocessing.morphological', True),
-                color_space_conversion=self.unified_config.get('preprocessing.color_space', 'grayscale'),
-                gaussian_blur_sigma=self.unified_config.get('preprocessing.gaussian_sigma', 1.0),
-                bilateral_filter_d=self.unified_config.get('preprocessing.bilateral_d', 9)
+                noise_reduction=getattr(self.unified_config.image_processing, 'noise_reduction', True),
+                contrast_enhancement=getattr(self.unified_config.image_processing, 'contrast_enhancement', True),
+                edge_enhancement=getattr(self.unified_config.image_processing, 'edge_detection', False),
+                morphological_operations=getattr(self.unified_config.image_processing, 'morphological_operations', True),
+                gaussian_sigma=getattr(self.unified_config.image_processing, 'gaussian_blur_sigma', 1.0),
+                bilateral_d=getattr(self.unified_config.image_processing, 'bilateral_filter_d', 9)
             )
             self.preprocessor = UnifiedPreprocessor(preprocessing_config)
             
             # Configurar detector ROI con configuración real
             roi_config = ROIDetectionConfig(
-                method=self.unified_config.get('roi.detection_method', 'adaptive_threshold'),
-                min_area=self.unified_config.get('roi.min_area', 1000),
-                max_area=self.unified_config.get('roi.max_area', 50000),
-                contour_approximation=self.unified_config.get('roi.contour_approximation', 0.02),
-                morphological_kernel_size=self.unified_config.get('roi.kernel_size', 5)
+                level=DetectionLevel.STANDARD,
+                min_area=getattr(self.unified_config.image_processing, 'min_area', 100),
+                max_area=getattr(self.unified_config.image_processing, 'max_area', 10000),
+                min_circularity=getattr(self.unified_config.image_processing, 'min_circularity', 0.3),
+                max_eccentricity=getattr(self.unified_config.image_processing, 'max_eccentricity', 0.9),
+                watershed_markers_distance=getattr(self.unified_config.image_processing, 'watershed_markers', 20),
+                watershed_compactness=getattr(self.unified_config.image_processing, 'watershed_compactness', 0.001),
+                gaussian_sigma=getattr(self.unified_config.image_processing, 'gaussian_sigma', 2.0),
+                morphology_kernel_size=getattr(self.unified_config.image_processing, 'morphology_kernel_size', 5)
             )
             self.roi_detector = UnifiedROIDetector(roi_config)
             
             # Configurar métricas de calidad NIST
-            self.quality_metrics = NISTQualityMetrics(
-                standards_version=self.unified_config.get('nist.standards_version', '2023'),
-                compliance_level=self.unified_config.get('nist.compliance_level', 'full')
-            )
+            self.quality_metrics = NISTQualityMetrics()
             
             # Configurar motor de conclusiones AFTE
-            self.afte_engine = AFTEConclusionEngine(
-                confidence_threshold=self.unified_config.get('afte.confidence_threshold', 0.85),
-                evidence_weight_threshold=self.unified_config.get('afte.evidence_weight', 0.7),
-                use_statistical_analysis=self.unified_config.get('afte.statistical_analysis', True)
-            )
+            self.afte_engine = AFTEConclusionEngine()
             
             # Configurar base de datos unificada
-            self.database = UnifiedDatabase(
-                connection_string=self.unified_config.get('database.connection_string'),
-                auto_backup=self.unified_config.get('database.auto_backup', True),
-                compression=self.unified_config.get('database.compression', True)
-            )
+            self.database = UnifiedDatabase()
             
             self.logger.info("Componentes de procesamiento real inicializados correctamente")
             
@@ -2466,25 +2459,25 @@ class AnalysisTab(QWidget, VisualizationMethods):
                 
                 # Configuración avanzada del sistema
                 'preprocessing_config': {
-                    'gaussian_sigma': self.unified_config.get('preprocessing.gaussian_sigma', 1.0),
-                    'bilateral_d': self.unified_config.get('preprocessing.bilateral_d', 9),
-                    'clahe_clip_limit': self.unified_config.get('preprocessing.clahe_clip_limit', 2.0),
-                    'morphological_kernel_size': self.unified_config.get('preprocessing.kernel_size', 5)
+                    'gaussian_sigma': getattr(self.unified_config.image_processing, 'gaussian_kernel_size', 1.0),
+                    'bilateral_d': getattr(self.unified_config.image_processing, 'bilateral_d', 9),
+                    'clahe_clip_limit': getattr(self.unified_config.image_processing, 'clahe_clip_limit', 2.0),
+                    'morphological_kernel_size': getattr(self.unified_config.image_processing, 'morphological_kernel_size', 5)
                 },
                 
                 'roi_config': {
-                    'detection_method': self.unified_config.get('roi.detection_method', 'adaptive_threshold'),
-                    'min_area': self.unified_config.get('roi.min_area', 1000),
-                    'max_area': self.unified_config.get('roi.max_area', 50000),
-                    'contour_approximation': self.unified_config.get('roi.contour_approximation', 0.02)
+                    'detection_method': getattr(self.unified_config.image_processing, 'roi_detection_method', 'adaptive_threshold'),
+                    'min_area': getattr(self.unified_config.image_processing, 'min_area', 1000),
+                    'max_area': getattr(self.unified_config.image_processing, 'max_area', 50000),
+                    'contour_approximation': getattr(self.unified_config.image_processing, 'contour_approximation', 0.02)
                 },
                 
                 'feature_extraction_config': {
-                    'sift_features': self.unified_config.get('features.sift_enabled', True),
-                    'orb_features': self.unified_config.get('features.orb_enabled', True),
-                    'lbp_features': self.unified_config.get('features.lbp_enabled', True),
-                    'texture_features': self.unified_config.get('features.texture_enabled', True),
-                    'geometric_features': self.unified_config.get('features.geometric_enabled', True)
+                    'sift_features': getattr(self.unified_config.image_processing, 'sift_features', True),
+                    'orb_features': getattr(self.unified_config.image_processing, 'orb_features', True),
+                    'lbp_features': getattr(self.unified_config.image_processing, 'lbp_features', True),
+                    'texture_features': getattr(self.unified_config.image_processing, 'texture_features', True),
+                    'geometric_features': getattr(self.unified_config.image_processing, 'geometric_features', True)
                 }
             }
             
