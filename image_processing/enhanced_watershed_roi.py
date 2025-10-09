@@ -47,6 +47,26 @@ try:
 except ImportError:
     SKIMAGE_AVAILABLE = False
 
+# Importar acelerador GPU
+try:
+    from image_processing.gpu_accelerator import get_gpu_accelerator, is_gpu_available, GPUAccelerator
+    GPU_ACCELERATION_AVAILABLE = True
+except ImportError:
+    GPU_ACCELERATION_AVAILABLE = False
+    # Crear clase dummy para mantener compatibilidad
+    class GPUAccelerator:
+        def __init__(self, *args, **kwargs): pass
+        def is_gpu_enabled(self): return False
+        def gaussian_blur(self, *args, **kwargs): return cv2.GaussianBlur(*args, **kwargs)
+        def morphology_ex(self, *args, **kwargs): return cv2.morphologyEx(*args, **kwargs)
+        def threshold(self, *args, **kwargs): return cv2.threshold(*args, **kwargs)
+    
+    def get_gpu_accelerator(*args, **kwargs):
+        return GPUAccelerator()
+    
+    def is_gpu_available():
+        return False
+
 from utils.logger import LoggerMixin
 
 
@@ -152,17 +172,41 @@ class EnhancedWatershedROI(LoggerMixin):
         Inicializa el detector Watershed mejorado
         
         Args:
-            config: Configuración personalizada
+            config: Configuración del detector
         """
         super().__init__()
-        self.config = config or Watershedget_unified_config()
+        self.config = config or WatershedConfig()
         self._check_dependencies()
+        
+        # Inicializar acelerador GPU
+        self.gpu_accelerator = None
+        if GPU_ACCELERATION_AVAILABLE:
+            try:
+                self.gpu_accelerator = get_gpu_accelerator(enable_gpu=True)
+                if self.gpu_accelerator.is_gpu_enabled():
+                    self.logger.info(f"GPU acceleration habilitada para Watershed: {self.gpu_accelerator.get_gpu_info().gpu_name}")
+                else:
+                    self.logger.info("GPU no disponible para Watershed, usando CPU")
+            except Exception as e:
+                self.logger.warning(f"Error inicializando GPU para Watershed: {e}")
+                self.gpu_accelerator = None
+        else:
+            self.logger.info("GPU acceleration no disponible para Watershed")
+        
+        # Log de configuración
+        self.logger.info(f"Inicializado EnhancedWatershedROI con método: {self.config.method.value}")
+        
+        # Estadísticas de rendimiento
+        self.processing_stats = {
+            'total_processed': 0,
+            'gpu_processed': 0,
+            'cpu_processed': 0,
+            'avg_processing_time': 0.0
+        }
         
         # Cache para optimización
         self._gradient_cache = {}
         self._marker_cache = {}
-        
-        self.logger.info(f"Inicializado EnhancedWatershedROI con método: {self.config.method.value}")
     
     def _check_dependencies(self):
         """Verifica dependencias disponibles"""
@@ -229,7 +273,7 @@ class EnhancedWatershedROI(LoggerMixin):
     
     def _preprocess_for_watershed(self, image: np.ndarray, specimen_type: str) -> np.ndarray:
         """
-        Preprocesa imagen específicamente para Watershed
+        Preprocesa imagen específicamente para Watershed con aceleración GPU
         
         Args:
             image: Imagen original
@@ -238,20 +282,39 @@ class EnhancedWatershedROI(LoggerMixin):
         Returns:
             Imagen preprocesada
         """
+        start_time = time.time()
+        
         # Asegurar escala de grises
         if len(image.shape) == 3:
             gray = cv2.cvtColor(image, cv2.COLOR_RGB2GRAY)
         else:
             gray = image.copy()
         
-        # Reducción de ruido adaptativa
+        # Usar GPU si está disponible
+        use_gpu = self.gpu_accelerator and self.gpu_accelerator.is_gpu_enabled()
+        
+        # Reducción de ruido adaptativa con GPU
         if self.config.noise_reduction_iterations > 0:
             for _ in range(self.config.noise_reduction_iterations):
-                gray = cv2.bilateralFilter(gray, 9, 75, 75)
+                if use_gpu:
+                    try:
+                        gray = self.gpu_accelerator.bilateral_filter(gray, 9, 75, 75)
+                    except Exception as e:
+                        self.logger.warning(f"Error en bilateral filter GPU: {e}, usando CPU")
+                        gray = cv2.bilateralFilter(gray, 9, 75, 75)
+                else:
+                    gray = cv2.bilateralFilter(gray, 9, 75, 75)
         
-        # Suavizado gaussiano
+        # Suavizado gaussiano con GPU
         if self.config.gaussian_sigma > 0:
-            gray = cv2.GaussianBlur(gray, (5, 5), self.config.gaussian_sigma)
+            if use_gpu:
+                try:
+                    gray = self.gpu_accelerator.gaussian_blur(gray, (5, 5), self.config.gaussian_sigma)
+                except Exception as e:
+                    self.logger.warning(f"Error en gaussian blur GPU: {e}, usando CPU")
+                    gray = cv2.GaussianBlur(gray, (5, 5), self.config.gaussian_sigma)
+            else:
+                gray = cv2.GaussianBlur(gray, (5, 5), self.config.gaussian_sigma)
         
         # Mejoras específicas por tipo de espécimen
         if specimen_type == "cartridge_case":
@@ -262,13 +325,32 @@ class EnhancedWatershedROI(LoggerMixin):
         elif specimen_type == "bullet":
             gray = self._enhance_striation_features(gray)
         
-        # Operaciones morfológicas
+        # Operaciones morfológicas con GPU
         if self.config.morphology_kernel_size > 0:
             kernel = cv2.getStructuringElement(
                 cv2.MORPH_ELLIPSE, 
                 (self.config.morphology_kernel_size, self.config.morphology_kernel_size)
             )
-            gray = cv2.morphologyEx(gray, cv2.MORPH_OPEN, kernel)
+            if use_gpu:
+                try:
+                    gray = self.gpu_accelerator.morphology_ex(gray, cv2.MORPH_OPEN, kernel)
+                except Exception as e:
+                    self.logger.warning(f"Error en morphology GPU: {e}, usando CPU")
+                    gray = cv2.morphologyEx(gray, cv2.MORPH_OPEN, kernel)
+            else:
+                gray = cv2.morphologyEx(gray, cv2.MORPH_OPEN, kernel)
+        
+        # Actualizar estadísticas
+        processing_time = time.time() - start_time
+        self.processing_stats['total_processed'] += 1
+        if use_gpu:
+            self.processing_stats['gpu_processed'] += 1
+        else:
+            self.processing_stats['cpu_processed'] += 1
+        
+        # Actualizar tiempo promedio
+        total_time = self.processing_stats['avg_processing_time'] * (self.processing_stats['total_processed'] - 1)
+        self.processing_stats['avg_processing_time'] = (total_time + processing_time) / self.processing_stats['total_processed']
         
         return gray
     
@@ -1076,6 +1158,51 @@ class EnhancedWatershedROI(LoggerMixin):
         return segments
 
 
+    def get_performance_stats(self) -> Dict[str, Any]:
+        """
+        Obtiene estadísticas de rendimiento del procesamiento
+        
+        Returns:
+            Diccionario con estadísticas de rendimiento
+        """
+        stats = self.processing_stats.copy()
+        
+        # Calcular porcentajes
+        if stats['total_processed'] > 0:
+            stats['gpu_usage_percentage'] = (stats['gpu_processed'] / stats['total_processed']) * 100
+            stats['cpu_usage_percentage'] = (stats['cpu_processed'] / stats['total_processed']) * 100
+        else:
+            stats['gpu_usage_percentage'] = 0.0
+            stats['cpu_usage_percentage'] = 0.0
+        
+        # Información del GPU
+        if self.gpu_accelerator and self.gpu_accelerator.is_gpu_enabled():
+            try:
+                gpu_info = self.gpu_accelerator.get_gpu_info()
+                stats['gpu_info'] = {
+                    'name': gpu_info.gpu_name,
+                    'memory_total': gpu_info.memory_total,
+                    'memory_used': gpu_info.memory_used,
+                    'memory_free': gpu_info.memory_free,
+                    'utilization': gpu_info.utilization
+                }
+            except Exception as e:
+                stats['gpu_info'] = {'error': str(e)}
+        else:
+            stats['gpu_info'] = {'status': 'GPU no disponible'}
+        
+        return stats
+    
+    def reset_performance_stats(self):
+        """Reinicia las estadísticas de rendimiento"""
+        self.processing_stats = {
+            'total_processed': 0,
+            'gpu_processed': 0,
+            'cpu_processed': 0,
+            'avg_processing_time': 0.0
+        }
+
+
 def create_enhanced_watershed_detector(config_dict: Optional[Dict] = None) -> EnhancedWatershedROI:
     """
     Función de conveniencia para crear detector Watershed mejorado
@@ -1089,7 +1216,7 @@ def create_enhanced_watershed_detector(config_dict: Optional[Dict] = None) -> En
     if config_dict:
         config = WatershedConfig(**config_dict)
     else:
-        config = Watershedget_unified_config()
+        config = WatershedConfig()
     
     return EnhancedWatershedROI(config)
 

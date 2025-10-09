@@ -37,6 +37,16 @@ from .backend_integration import (
     get_backend_integration
 )
 
+# Importar módulo unificado de funciones de similitud
+try:
+    from common.similarity_functions_unified import (
+        UnifiedSimilarityAnalyzer, SimilarityConfig, SimilarityBootstrapResult
+    )
+    UNIFIED_SIMILARITY_AVAILABLE = True
+except ImportError:
+    UNIFIED_SIMILARITY_AVAILABLE = False
+    logger.warning("Módulo unificado de similitud no disponible, usando implementación legacy")
+
 logger = logging.getLogger(__name__)
 
 class OptimizedComparisonWorker(QThread):

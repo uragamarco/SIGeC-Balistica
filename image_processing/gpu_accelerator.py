@@ -75,28 +75,59 @@ class GPUMemoryManager:
         self._lock = threading.Lock()
         self._peak_usage = 0
         self._allocation_count = 0
+        self._cleanup_frequency = 10  # Limpiar cada N operaciones
+        self._operation_count = 0
+        self._memory_pool_size_mb = 512  # Tamaño inicial del pool de memoria
+        self._enable_memory_pooling = True
         
     def __enter__(self):
-        """Entrada del context manager"""
+        """Entrada del context manager optimizada"""
         if self.gpu_accelerator.is_gpu_enabled():
             self._initial_memory = self._get_memory_usage()
+            self._operation_count += 1
+            
+            # Pre-allocar memoria si es necesario
+            if self._enable_memory_pooling and CUPY_AVAILABLE:
+                self._ensure_memory_pool()
+                
             logger.debug(f"Iniciando context GPU - Memoria inicial: {self._initial_memory} bytes")
         return self
         
     def __exit__(self, exc_type, exc_val, exc_tb):
-        """Salida del context manager con limpieza automática"""
+        """Salida del context manager con limpieza automática optimizada"""
         if self.gpu_accelerator.is_gpu_enabled():
             try:
-                self._cleanup_context_memory()
+                # Limpieza periódica en lugar de cada operación
+                if self._operation_count % self._cleanup_frequency == 0:
+                    self._cleanup_context_memory()
+                    
                 final_memory = self._get_memory_usage()
                 logger.debug(f"Finalizando context GPU - Memoria final: {final_memory} bytes")
                 
-                # Forzar limpieza si se excede el umbral
+                # Actualizar estadísticas de pico
+                if final_memory > self._peak_usage:
+                    self._peak_usage = final_memory
+                
+                # Forzar limpieza solo si es crítico
                 if self._should_force_cleanup():
                     self.force_cleanup()
                     
             except Exception as e:
                 logger.warning(f"Error en limpieza de context GPU: {e}")
+    
+    def _ensure_memory_pool(self):
+        """Asegurar que el pool de memoria esté disponible"""
+        try:
+            if CUPY_AVAILABLE:
+                mempool = cp.get_default_memory_pool()
+                # Configurar tamaño máximo del pool si no está configurado
+                if not hasattr(mempool, '_max_size_configured'):
+                    max_size = self._memory_pool_size_mb * 1024 * 1024
+                    mempool.set_limit(size=max_size)
+                    mempool._max_size_configured = True
+                    logger.debug(f"Pool de memoria GPU configurado: {self._memory_pool_size_mb}MB")
+        except Exception as e:
+            logger.warning(f"Error configurando pool de memoria: {e}")
                 
     def _get_memory_usage(self) -> int:
         """Obtener uso actual de memoria GPU"""
@@ -110,36 +141,47 @@ class GPUMemoryManager:
             return 0
             
     def _should_force_cleanup(self) -> bool:
-        """Determinar si se debe forzar la limpieza de memoria"""
+        """Determinar si se debe forzar la limpieza de memoria - más conservador"""
         if not self.auto_cleanup or not CUPY_AVAILABLE:
             return False
             
         try:
             mempool = cp.get_default_memory_pool()
-            total_memory = self.gpu_accelerator.gpu_info.gpu_memory_mb * 1024 * 1024
-            if total_memory and mempool.used_bytes() > (total_memory * self.memory_threshold):
-                return True
-        except Exception:
-            pass
+            current_usage = mempool.used_bytes()
+            
+            # Usar información de GPU si está disponible
+            if self.gpu_accelerator.gpu_info.gpu_memory_mb:
+                total_memory = self.gpu_accelerator.gpu_info.gpu_memory_mb * 1024 * 1024
+                usage_ratio = current_usage / total_memory
+                return usage_ratio > self.memory_threshold
+            else:
+                # Fallback: usar límite del pool
+                pool_limit = getattr(mempool, '_limit', None)
+                if pool_limit:
+                    return current_usage > (pool_limit * self.memory_threshold)
+                    
+        except Exception as e:
+            logger.debug(f"Error verificando memoria: {e}")
             
         return False
         
     def _cleanup_context_memory(self):
-        """Limpiar memoria específica del contexto"""
+        """Limpiar memoria específica del contexto - más eficiente"""
         if CUPY_AVAILABLE:
             try:
-                # Forzar garbage collection
-                gc.collect()
-                
-                # Limpiar arrays temporales de CuPy
+                # Limpiar solo bloques no utilizados, no todos
                 mempool = cp.get_default_memory_pool()
                 mempool.free_all_blocks()
+                
+                # Garbage collection más selectivo
+                if self._operation_count % (self._cleanup_frequency * 2) == 0:
+                    gc.collect()
                 
             except Exception as e:
                 logger.warning(f"Error en limpieza de contexto: {e}")
                 
     def force_cleanup(self):
-        """Forzar limpieza completa de memoria GPU"""
+        """Forzar limpieza completa de memoria GPU - más agresiva"""
         with self._lock:
             if self.gpu_accelerator.is_gpu_enabled():
                 try:
@@ -148,16 +190,29 @@ class GPUMemoryManager:
                     # Limpiar memoria CuPy
                     if CUPY_AVAILABLE:
                         mempool = cp.get_default_memory_pool()
+                        initial_usage = mempool.used_bytes()
+                        
+                        # Liberar todos los bloques
                         mempool.free_all_blocks()
                         
-                    # Garbage collection agresivo
-                    gc.collect()
-                    
-                    # Sincronizar GPU
-                    if hasattr(cp, 'cuda') and CUPY_AVAILABLE:
-                        cp.cuda.Stream.null.synchronize()
+                        # Forzar garbage collection
+                        gc.collect()
                         
-                    logger.info("Limpieza forzada completada")
+                        # Verificar limpieza
+                        final_usage = mempool.used_bytes()
+                        freed_mb = (initial_usage - final_usage) / (1024 * 1024)
+                        logger.info(f"Memoria GPU liberada: {freed_mb:.2f}MB")
+                        
+                    # Limpiar memoria OpenCV GPU si está disponible
+                    if hasattr(cv2, 'cuda') and self.gpu_accelerator.gpu_info.opencv_gpu_available:
+                        try:
+                            cv2.cuda.resetDevice()
+                        except Exception as e:
+                            logger.debug(f"No se pudo resetear dispositivo OpenCV: {e}")
+                            
+                    # Resetear contadores
+                    self._operation_count = 0
+                    self._peak_usage = 0
                     
                 except Exception as e:
                     logger.error(f"Error en limpieza forzada: {e}")

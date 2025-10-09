@@ -556,7 +556,7 @@ def main():
     app = QApplication(sys.argv)
     
     # Aplicar tema
-    apply_SIGeC-Balistica_theme(app)
+    apply_SIGeC_Balistica_theme(app)
     
     # Crear y mostrar ventana principal
     window = MainWindow()

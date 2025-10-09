@@ -45,10 +45,10 @@ class DeploymentConfig:
     python_version: str = "3.8+"
     
     # Directorios
-    source_dir: str = "/home/marco/SIGeC-Balistica"
+    source_dir: str = "get_project_root()"
     build_dir: str = "/tmp/SIGeC-Balistica_build"
-    deploy_dir: str = "/home/marco/SIGeC-Balistica_production"
-    backup_dir: str = "/home/marco/SIGeC-Balistica_backups"
+    deploy_dir: str = "get_project_root()_production"
+    backup_dir: str = "get_project_root()_backups"
     
     # Configuraciones de sistema
     create_service: bool = True

@@ -31,7 +31,7 @@ try:
     from matching.unified_matcher import UnifiedMatcher
     from matching.cmc_algorithm import CMCAlgorithm, CMCParameters
     from database.unified_database import UnifiedDatabase
-    from utils.memory_cache import MemoryCache
+    from core.intelligent_cache import MemoryCache
     from utils.logger import get_logger
     IMPORTS_AVAILABLE = True
 except ImportError as e:

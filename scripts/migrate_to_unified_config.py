@@ -41,7 +41,7 @@ logger = logging.getLogger(__name__)
 class ConfigMigrator:
     """Migrador de configuraciones al sistema unificado"""
     
-    def __init__(self, project_root: str = "/home/marco/SIGeC-Balistica"):
+    def __init__(self, project_root: str = "get_project_root()"):
         """
         Inicializa el migrador
         

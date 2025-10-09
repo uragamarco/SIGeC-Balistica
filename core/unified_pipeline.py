@@ -549,6 +549,8 @@ class ScientificPipeline(LoggerMixin):
         except Exception as e:
             self.logger.error(f"Error en matching: {e}")
             result.error_messages.append(f"Error en matching: {str(e)}")
+            result.similarity_score = 0.0  # Asegurar que el score sea 0.0 en caso de error
+            result.quality_weighted_score = 0.0 # Asegurar que el score ponderado sea 0.0 en caso de error
         
         return result
     
@@ -572,7 +574,7 @@ class ScientificPipeline(LoggerMixin):
                 img2_gray = img2
             
             # Realizar análisis CMC
-            cmc_result = self.cmc_analyzer.analyze_cmc(img1_gray, img2_gray)
+            cmc_result = self.cmc_analyzer.bidirectional_comparison(img1_gray, img2_gray)
             
             result.cmc_result = cmc_result
             result.cmc_count = cmc_result.cmc_count

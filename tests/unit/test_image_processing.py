@@ -33,7 +33,7 @@ import matplotlib.pyplot as plt
 import pandas as pd
 
 # Agregar el directorio raíz al path
-sys.path.append('/home/marco/SIGeC-Balistica')
+sys.path.append('get_project_root()')
 
 # Importar módulos del sistema
 try:

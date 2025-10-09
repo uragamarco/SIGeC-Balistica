@@ -36,6 +36,16 @@ from utils.logger import LoggerMixin
 from matching.cmc_algorithm import CMCAlgorithm, CMCParameters, CMCMatchResult
 from image_processing.ballistic_features import BallisticFeatureExtractor
 
+# Importar módulo unificado de funciones de similitud
+try:
+    from common.similarity_functions_unified import (
+        UnifiedSimilarityAnalyzer, SimilarityConfig, SimilarityBootstrapResult
+    )
+    UNIFIED_SIMILARITY_AVAILABLE = True
+except ImportError:
+    UNIFIED_SIMILARITY_AVAILABLE = False
+    logging.warning("Módulo unificado de similitud no disponible, usando implementación legacy")
+
 # GPU acceleration imports
 try:
     from image_processing.gpu_accelerator import GPUAccelerator
@@ -566,7 +576,8 @@ class UnifiedMatcher(LoggerMixin):
                     algorithm=features1.get("algorithm", self.config.algorithm.value),
                     total_keypoints1=features1.get("num_keypoints", 0),
                     total_keypoints2=features2.get("num_keypoints", 0),
-                    processing_time=time.time() - start_time
+                    processing_time=time.time() - start_time,
+                    similarity_score=0.0  # Asegurar que similarity_score no sea None
                 )
             
             # Verificar que el algoritmo está disponible
@@ -756,11 +767,8 @@ class UnifiedMatcher(LoggerMixin):
             
             # Crear resultado de error
             return MatchResult(
-                algorithm=features1.get("algorithm", self.config.algorithm.value),
-                total_keypoints1=features1.get("num_keypoints", 0),
-                total_keypoints2=features2.get("num_keypoints", 0),
-                processing_time=time.time() - start_time,
-                match_data={"error": str(e)}
+                error_message=f"Error comparando imágenes: {e}",
+                similarity_score=0.0
             )
     
     def _match_cmc(self, features1: Dict[str, Any], features2: Dict[str, Any]) -> MatchResult:
@@ -834,7 +842,8 @@ class UnifiedMatcher(LoggerMixin):
                 total_keypoints1=0,
                 total_keypoints2=0,
                 processing_time=time.time() - start_time,
-                match_data={"error": str(e)}
+                match_data={"error": str(e)},
+                similarity_score=0.0  # Asegurar que similarity_score no sea None en caso de error
             )
     
     def _calculate_cmc_similarity_score(self, cmc_result) -> float:
@@ -963,7 +972,7 @@ class UnifiedMatcher(LoggerMixin):
     def _calculate_confidence(self, good_matches: List, all_matches: List, 
                             algorithm: str = "ORB", use_bootstrap: bool = True) -> Tuple[float, Dict[str, Any]]:
         """
-        Calcula la confianza del matching con opción de bootstrap sampling
+        Calcula la confianza del matching con opción de bootstrap sampling usando módulo unificado
         
         Args:
             good_matches: Lista de buenos matches
@@ -1005,7 +1014,71 @@ class UnifiedMatcher(LoggerMixin):
         if not use_bootstrap or len(good_matches) < 5:
             return base_confidence, bootstrap_info
         
-        # Intentar usar bootstrap para confianza más robusta
+        # Intentar usar módulo unificado de similitud
+        if UNIFIED_SIMILARITY_AVAILABLE:
+            try:
+                # Crear configuración para análisis de similitud
+                config = SimilarityConfig(
+                    n_bootstrap=500,
+                    confidence_level=0.95,
+                    method='percentile',
+                    parallel=True
+                )
+                
+                # Crear analizador unificado
+                analyzer = UnifiedSimilarityAnalyzer(config)
+                
+                # Convertir matches a formato compatible
+                matches_data = []
+                for match in good_matches:
+                    if hasattr(match, 'distance'):
+                        matches_data.append({
+                            'distance': match.distance,
+                            'kp1_idx': getattr(match, 'queryIdx', 0),
+                            'kp2_idx': getattr(match, 'trainIdx', 0)
+                        })
+                    else:
+                        matches_data.append({
+                            'distance': match.get('distance', 0.5),
+                            'kp1_idx': match.get('kp1_idx', 0),
+                            'kp2_idx': match.get('kp2_idx', 0)
+                        })
+                
+                if matches_data:
+                    # Calcular bootstrap con módulo unificado
+                    bootstrap_result = analyzer.calculate_bootstrap_confidence_interval(
+                        matches_data, base_confidence, algorithm
+                    )
+                    
+                    # Actualizar información bootstrap
+                    bootstrap_info.update({
+                        'confidence_interval_lower': bootstrap_result.confidence_interval[0],
+                        'confidence_interval_upper': bootstrap_result.confidence_interval[1],
+                        'confidence_interval_method': bootstrap_result.method,
+                        'bootstrap_samples': bootstrap_result.n_bootstrap,
+                        'bootstrap_confidence_level': bootstrap_result.confidence_level,
+                        'bootstrap_bias': bootstrap_result.bias,
+                        'bootstrap_std_error': bootstrap_result.standard_error,
+                        'bootstrap_used': True
+                    })
+                    
+                    # Usar el ancho del intervalo para ajustar la confianza
+                    ci_width = bootstrap_result.confidence_interval[1] - bootstrap_result.confidence_interval[0]
+                    max_expected_width = 30.0
+                    width_factor = max(0.8, min(1.2, 1.0 - (ci_width / max_expected_width) * 0.2))
+                    bootstrap_confidence = base_confidence * width_factor
+                    
+                    self.logger.debug(f"Unified bootstrap confidence - "
+                                    f"Base: {base_confidence:.2f}, "
+                                    f"CI: [{bootstrap_result.confidence_interval[0]:.2f}, {bootstrap_result.confidence_interval[1]:.2f}], "
+                                    f"Final: {bootstrap_confidence:.2f}")
+                    
+                    return min(bootstrap_confidence, 100.0), bootstrap_info
+                    
+            except Exception as e:
+                self.logger.warning(f"Error usando módulo unificado de similitud: {e}")
+        
+        # Fallback a implementación legacy
         try:
             from matching.bootstrap_similarity import calculate_bootstrap_confidence_interval
             
@@ -1060,7 +1133,7 @@ class UnifiedMatcher(LoggerMixin):
                 bootstrap_confidence = base_confidence * width_factor
                 
                 # Logging para debugging
-                self.logger.debug(f"Bootstrap confidence calculation - "
+                self.logger.debug(f"Legacy bootstrap confidence calculation - "
                                 f"Base: {base_confidence:.2f}, "
                                 f"CI: [{ci_lower:.2f}, {ci_upper:.2f}], "
                                 f"Width: {ci_width:.2f}, "

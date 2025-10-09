@@ -1,7 +1,7 @@
 _metadata:
-  created: '2025-10-09T04:23:29.920800'
-  environment: development
-  project_root: /home/marco/SIGeC-Balisticar
+  created: '2025-10-07T18:17:45.071046'
+  environment: production
+  project_root: /tmp/tmp_5midiym
   version: 1.0.0
 database:
   backup_enabled: true
@@ -109,7 +109,8 @@ logging:
   max_file_size: 10MB
   module_levels: {}
 matching:
-  algorithm: ORB
+  algorithm: !!python/object/apply:matching.unified_matcher.AlgorithmType
+  - ORB
   batch_size: 100
   cache_descriptors: true
   distance_threshold: 0.75
@@ -125,7 +126,8 @@ matching:
   enable_symmetry_test: false
   gpu_device_id: 0
   gpu_fallback_to_cpu: true
-  level: standard
+  level: !!python/object/apply:matching.unified_matcher.MatchingLevel
+  - standard
   matcher_type: BF
   max_features: 1000
   max_iterations: 2000

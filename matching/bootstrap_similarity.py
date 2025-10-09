@@ -1,53 +1,41 @@
 #!/usr/bin/env python3
 """
 Bootstrap Similarity Analysis Module for SIGeC-Balistica
-Integra bootstrap sampling con métricas de similitud para intervalos de confianza robustos
+REFACTORIZADO - Ahora usa el módulo unificado de funciones de similitud
+
+DEPRECATION NOTICE: Este módulo ha sido refactorizado para usar
+common.similarity_functions_unified. Las funciones principales se mantienen
+por compatibilidad hacia atrás, pero redirigen al módulo unificado.
 """
 
 import numpy as np
 import logging
+import warnings
 from typing import List, Dict, Tuple, Optional, Any, Callable
 from dataclasses import dataclass, field
-import warnings
-from concurrent.futures import ThreadPoolExecutor, as_completed
-import time
 
-# Importar análisis estadístico unificado
+# Importar el módulo unificado
 try:
-    # Usar el núcleo estadístico unificado directamente
-    from common.statistical_core import UnifiedStatisticalAnalysis, BootstrapResult
-    
-    # Crear instancia del núcleo unificado
-    statistical_analysis = UnifiedStatisticalAnalysis()
-    UNIFIED_CORE_AVAILABLE = True
-    
+    from common.similarity_functions_unified import (
+        UnifiedSimilarityAnalyzer,
+        SimilarityBootstrapResult,
+        SimilarityConfig,
+        get_unified_similarity_analyzer
+    )
+    UNIFIED_MODULE_AVAILABLE = True
 except ImportError:
-    # Fallback a adaptadores de compatibilidad
-    try:
-        from common.compatibility_adapters import AdvancedStatisticalAnalysisAdapter
-        from common.statistical_core import BootstrapResult
-        
-        # Crear instancia del adaptador (que internamente usa el núcleo unificado)
-        statistical_analysis = AdvancedStatisticalAnalysisAdapter()
-        UNIFIED_CORE_AVAILABLE = True
-        
-    except ImportError:
-        # Último fallback a imports legacy
-        try:
-            from nist_standards.statistical_analysis import AdvancedStatisticalAnalysis, BootstrapResult
-            statistical_analysis = AdvancedStatisticalAnalysis()
-            UNIFIED_CORE_AVAILABLE = False
-        except ImportError:
-            warnings.warn("NIST statistical analysis not available. Bootstrap functionality will be limited.")
-            statistical_analysis = None
-            BootstrapResult = None
-            UNIFIED_CORE_AVAILABLE = False
-
-@dataclass
-class SimilarityBootstrapResult:
-    """Resultado del análisis bootstrap para métricas de similitud"""
-    similarity_score: float
-    confidence_interval: Tuple[float, float]
+    warnings.warn("Unified similarity functions module not available. Using legacy implementation.")
+    UNIFIED_MODULE_AVAILABLE = False
+    
+    # Fallback imports para compatibilidad
+    from common.statistical_core import UnifiedStatisticalAnalysis, BootstrapResult
+    statistical_analysis = UnifiedStatisticalAnalysis()
+    
+    @dataclass
+    class SimilarityBootstrapResult:
+        """Resultado del análisis bootstrap para métricas de similitud"""
+        similarity_score: float
+        confidence_interval: Tuple[float, float]
     confidence_level: float
     bootstrap_scores: np.ndarray
     bias: float
@@ -509,54 +497,32 @@ def create_similarity_bootstrap_function(
     image2_quality: float = 0.0
 ) -> Callable[[List[Dict[str, Any]]], float]:
     """
-    Crear función de similitud compatible con bootstrap para UnifiedMatcher
-    
-    Args:
-        good_matches: Número de buenos matches
-        kp1_count: Número de keypoints imagen 1
-        kp2_count: Número de keypoints imagen 2
-        algorithm: Algoritmo utilizado
-        image1_quality: Calidad imagen 1
-        image2_quality: Calidad imagen 2
-        
-    Returns:
-        Función de similitud para bootstrap
+    Función de compatibilidad para crear función de similitud bootstrap
+    REDIRIGE AL MÓDULO UNIFICADO
     """
-    def similarity_function(matches_data: List[Dict[str, Any]], **kwargs) -> float:
-        """Función de similitud para bootstrap sampling"""
-        if not matches_data or kp1_count == 0 or kp2_count == 0:
-            return 0.0
+    if UNIFIED_MODULE_AVAILABLE:
+        analyzer = get_unified_similarity_analyzer()
+        return analyzer.create_similarity_function(
+            good_matches, kp1_count, kp2_count, algorithm,
+            image1_quality, image2_quality
+        )
+    else:
+        # Implementación legacy simplificada
+        def similarity_function(matches_data: List[Dict[str, Any]], **kwargs) -> float:
+            if not matches_data or kp1_count == 0 or kp2_count == 0:
+                return 0.0
+            
+            # Cálculo básico de similitud
+            max_possible_matches = min(kp1_count, kp2_count)
+            base_score = len(matches_data) / max_possible_matches
+            
+            # Aplicar factor de algoritmo
+            algorithm_factors = {'ORB': 1.2, 'SIFT': 1.1, 'AKAZE': 1.15, 'SURF': 1.05}
+            factor = algorithm_factors.get(algorithm, 1.0)
+            
+            return min(base_score * factor * 100, 100.0)
         
-        # Calcular similitud basada en matches resampled
-        n_good_matches = len(matches_data)
-        max_possible_matches = min(kp1_count, kp2_count)
-        
-        if max_possible_matches == 0:
-            return 0.0
-        
-        # Score base: proporción de matches buenos
-        base_score = n_good_matches / max_possible_matches
-        
-        # Ajustar según algoritmo (similar a UnifiedMatcher)
-        if algorithm == "ORB" and n_good_matches >= 10:
-            base_score *= 1.2
-        elif algorithm == "SIFT" and n_good_matches >= 20:
-            base_score *= 1.1
-        elif algorithm == "AKAZE" and n_good_matches >= 8:
-            base_score *= 1.15
-        
-        # Normalizar a 0-100
-        base_score = min(base_score * 100, 100.0)
-        
-        # Aplicar quality weighting si está disponible
-        if image1_quality > 0 and image2_quality > 0:
-            combined_quality = 2 * (image1_quality * image2_quality) / (image1_quality + image2_quality)
-            quality_factor = 0.5 + 0.5 * combined_quality
-            base_score *= quality_factor
-        
-        return base_score
-    
-    return similarity_function
+        return similarity_function
 
 # Función de utilidad para integración fácil
 def calculate_bootstrap_confidence_interval(
@@ -567,42 +533,53 @@ def calculate_bootstrap_confidence_interval(
     n_bootstrap: int = 1000
 ) -> Tuple[float, float]:
     """
-    Función de utilidad para calcular intervalos de confianza bootstrap
-    
-    Args:
-        matches_data: Datos de matches
-        similarity_score: Score de similitud original
-        algorithm: Algoritmo utilizado
-        confidence_level: Nivel de confianza
-        n_bootstrap: Número de muestras bootstrap
-        
-    Returns:
-        Tupla con (lower_bound, upper_bound) del intervalo de confianza
+    Función de compatibilidad para calcular intervalo de confianza bootstrap
+    REDIRIGE AL MÓDULO UNIFICADO
     """
-    try:
-        config = MatchingBootstrapConfig(
-            n_bootstrap=n_bootstrap,
-            confidence_level=confidence_level,
-            method='percentile'  # Método más rápido para utilidad
-        )
+    if UNIFIED_MODULE_AVAILABLE:
+        analyzer = get_unified_similarity_analyzer()
         
-        analyzer = BootstrapSimilarityAnalyzer(config)
+        # Configurar parámetros temporalmente
+        original_n_bootstrap = analyzer.config.n_bootstrap
+        original_confidence_level = analyzer.config.confidence_level
         
-        # Función de similitud simple
-        def simple_similarity(matches):
-            return len(matches) / max(1, len(matches_data)) * similarity_score
+        analyzer.config.n_bootstrap = n_bootstrap
+        analyzer.config.confidence_level = confidence_level
         
-        result = analyzer.bootstrap_similarity_confidence(matches_data, simple_similarity)
-        return result.confidence_interval
+        try:
+            ci_lower, ci_upper, _ = analyzer.analyze_bootstrap_confidence_interval(
+                matches_data, similarity_score, algorithm, confidence_level, n_bootstrap
+            )
+            return ci_lower, ci_upper
+        finally:
+            # Restaurar configuración original
+            analyzer.config.n_bootstrap = original_n_bootstrap
+            analyzer.config.confidence_level = original_confidence_level
+    else:
+        # Implementación legacy simplificada
+        if len(matches_data) < 5:
+            margin = similarity_score * 0.1
+            return (max(0, similarity_score - margin), min(100, similarity_score + margin))
         
-    except Exception as e:
-        logging.getLogger(__name__).warning(f"Bootstrap CI calculation failed: {e}")
-        # Fallback conservador
-        margin = 0.1 * similarity_score if similarity_score > 0 else 0.05
-        return (
-            max(0.0, similarity_score - margin),
-            min(100.0, similarity_score + margin)
-        )
+        # Bootstrap básico
+        bootstrap_scores = []
+        for _ in range(min(n_bootstrap, 100)):  # Limitar para rendimiento
+            resampled = np.random.choice(len(matches_data), len(matches_data), replace=True)
+            resampled_matches = [matches_data[i] for i in resampled]
+            
+            # Calcular score para muestra
+            score = similarity_score * (len(resampled_matches) / len(matches_data))
+            bootstrap_scores.append(score)
+        
+        # Calcular percentiles
+        alpha = 1 - confidence_level
+        lower_percentile = (alpha / 2) * 100
+        upper_percentile = (1 - alpha / 2) * 100
+        
+        ci_lower = np.percentile(bootstrap_scores, lower_percentile)
+        ci_upper = np.percentile(bootstrap_scores, upper_percentile)
+        
+        return ci_lower, ci_upper
 
 if __name__ == "__main__":
     # Test básico del módulo

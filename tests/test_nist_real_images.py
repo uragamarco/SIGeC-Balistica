@@ -30,8 +30,8 @@ class NISTRealImageTester:
     """Test spatial calibration with real NIST images and metadata."""
     
     def __init__(self):
-        self.excel_path = '/home/marco/SIGeC-Balistica/uploads/Muestras NIST FADB/Cary Persistence/StudyInfo.xlsx'
-        self.images_dir = '/home/marco/SIGeC-Balistica/uploads/Muestras NIST FADB/Cary Persistence/cc'
+        self.excel_path = 'get_project_root()/uploads/Muestras NIST FADB/Cary Persistence/StudyInfo.xlsx'
+        self.images_dir = 'get_project_root()/uploads/Muestras NIST FADB/Cary Persistence/cc'
         self.calibrator = SpatialCalibrator()
         self.validator = NISTComplianceValidator()
         self.preprocessor = UnifiedPreprocessor()

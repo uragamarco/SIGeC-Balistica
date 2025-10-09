@@ -20,7 +20,7 @@ from typing import Dict, List, Tuple, Optional, Any
 from datetime import datetime
 
 # Agregar el directorio raíz al path
-sys.path.append('/home/marco/SIGeC-Balistica')
+sys.path.append('get_project_root()')
 
 class AdvancedModuleTester:
     """Clase para pruebas avanzadas de módulos individuales"""

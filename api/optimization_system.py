@@ -828,7 +828,7 @@ if __name__ == "__main__":
     
     # Ejecutar servidor
     print("Iniciando servidor API optimizado...")
-    print("Métricas disponibles en: http://localhost:8000/api/metrics")
-    print("Rendimiento disponible en: http://localhost:8000/api/performance")
+    print("Métricas disponibles en: f"http://{get_config_value('api.host', 'localhost')}:{get_config_value('api.port', 8000)}"/api/metrics")
+    print("Rendimiento disponible en: f"http://{get_config_value('api.host', 'localhost')}:{get_config_value('api.port', 8000)}"/api/performance")
     
     uvicorn.run(app, host="0.0.0.0", port=8000, loop="uvloop")

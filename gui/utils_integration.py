@@ -27,7 +27,7 @@ from pathlib import Path
 try:
     from utils.logger import get_logger
     from utils.validators import SystemValidator
-    from utils.memory_cache import MemoryCache
+    from core.intelligent_cache import MemoryCache
     from utils.config import load_config, save_config
     from utils.dependency_manager import DependencyManager
     UTILS_AVAILABLE = True

@@ -24,6 +24,8 @@ from PyQt5.QtWidgets import (
 from PyQt5.QtCore import Qt, pyqtSignal, QThread, QTimer
 from PyQt5.QtGui import QFont, QPixmap, QIcon, QPainter, QPen, QColor
 
+from gui.backend_integration import AnalysisResult, AnalysisStatus, ProcessingMode
+
 from .shared_widgets import (
     ImageDropZone, ResultCard, CollapsiblePanel, StepIndicator, 
     ProgressCard, ImageViewer
@@ -60,7 +62,7 @@ class BallisticComparisonWorker(QThread):
     """Worker thread especializado para comparaciones balísticas con pipeline unificado"""
     
     progressUpdated = pyqtSignal(int, str)
-    comparisonCompleted = pyqtSignal(dict)
+    comparisonCompleted = pyqtSignal(object)
     comparisonError = pyqtSignal(str)
     
     def __init__(self, comparison_params: dict):
@@ -154,23 +156,26 @@ class BallisticComparisonWorker(QThread):
             self.logger.error(f"Error en comparación unificada: {e}")
             self.comparisonError.emit(f"Error en análisis: {str(e)}")
     
-    def _format_unified_pipeline_results(self, pipeline_result, evidence_type, img1_path, img2_path):
-        """Formatea los resultados del pipeline unificado para la interfaz"""
+    def _format_unified_pipeline_results(self, pipeline_result, evidence_type, img1_path, img2_path) -> AnalysisResult:
+        """Formatea los resultados del pipeline unificado para la interfaz en un objeto AnalysisResult"""
         try:
-            # Información básica
-            results = {
-                'comparison_type': 'direct_unified',
-                'evidence_type': evidence_type,
-                'evidence_a': img1_path,
-                'evidence_b': img2_path,
-                'timestamp': pipeline_result.analysis_timestamp,
-                'processing_time': pipeline_result.processing_time,
-                'success': pipeline_result.afte_conclusion != pipeline_result.afte_conclusion.UNSUITABLE
-            }
+            # Inicializar AnalysisResult con datos básicos
+            analysis_result = AnalysisResult(
+                status=AnalysisStatus.COMPLETED if pipeline_result.afte_conclusion != pipeline_result.afte_conclusion.UNSUITABLE else AnalysisStatus.ERROR,
+                mode=ProcessingMode.COMPARISON_DIRECT,
+                processing_time=pipeline_result.processing_time,
+                image_path=img1_path, # O el path relevante para la visualización principal
+                query_image_path=img2_path,
+                analysis_timestamp=pipeline_result.analysis_timestamp,
+                evidence_type=evidence_type,
+                afte_conclusion=pipeline_result.afte_conclusion.value,
+                confidence=pipeline_result.confidence,
+                afte_reasoning=self._get_afte_reasoning(pipeline_result)
+            )
             
             # Resultados de calidad NIST
             if pipeline_result.image1_quality and pipeline_result.image2_quality:
-                results['quality_assessment'] = {
+                analysis_result.quality_assessment = {
                     'image1_quality': {
                         'score': pipeline_result.image1_quality.quality_score,
                         'level': pipeline_result.image1_quality.quality_level.value if hasattr(pipeline_result.image1_quality, 'quality_level') else 'unknown',
@@ -184,12 +189,15 @@ class BallisticComparisonWorker(QThread):
                     'assessment_passed': pipeline_result.quality_assessment_passed
                 }
             
+            # Asignar similarity_score directamente desde pipeline_result (siempre es un float)
+            analysis_result.similarity_score = pipeline_result.similarity_score if pipeline_result.similarity_score is not None else 0.0
+
             # Resultados de matching
             if pipeline_result.match_result:
-                results['matching'] = {
+                analysis_result.matching_results = {
                     'algorithm': pipeline_result.match_result.algorithm.value if hasattr(pipeline_result.match_result, 'algorithm') else 'unknown',
-                    'similarity_score': pipeline_result.similarity_score,
-                    'quality_weighted_score': pipeline_result.quality_weighted_score,
+                    'similarity_score': pipeline_result.match_result.similarity_score, # Usar el score del match_result
+                    'quality_weighted_score': pipeline_result.match_result.quality_weighted_score, # Usar el score ponderado del match_result
                     'keypoints_1': pipeline_result.match_result.keypoints_1 if hasattr(pipeline_result.match_result, 'keypoints_1') else 0,
                     'keypoints_2': pipeline_result.match_result.keypoints_2 if hasattr(pipeline_result.match_result, 'keypoints_2') else 0,
                     'matches_found': pipeline_result.match_result.matches_found if hasattr(pipeline_result.match_result, 'matches_found') else 0,
@@ -198,23 +206,16 @@ class BallisticComparisonWorker(QThread):
             
             # Resultados CMC
             if pipeline_result.cmc_result:
-                results['cmc_analysis'] = {
+                analysis_result.cmc_analysis = {
                     'cmc_count': pipeline_result.cmc_count,
                     'cmc_passed': pipeline_result.cmc_passed,
                     'cmc_threshold': pipeline_result.cmc_result.cmc_threshold if hasattr(pipeline_result.cmc_result, 'cmc_threshold') else 0,
                     'correlation_cells': pipeline_result.cmc_result.correlation_cells if hasattr(pipeline_result.cmc_result, 'correlation_cells') else []
                 }
             
-            # Conclusión AFTE
-            results['afte_conclusion'] = {
-                'conclusion': pipeline_result.afte_conclusion.value,
-                'confidence': pipeline_result.confidence,
-                'reasoning': self._get_afte_reasoning(pipeline_result)
-            }
-            
             # ROI detectadas
             if pipeline_result.roi1_detected or pipeline_result.roi2_detected:
-                results['roi_detection'] = {
+                analysis_result.roi_detection = {
                     'image1_roi_detected': pipeline_result.roi1_detected,
                     'image2_roi_detected': pipeline_result.roi2_detected,
                     'image1_regions': pipeline_result.roi1_regions,
@@ -223,30 +224,31 @@ class BallisticComparisonWorker(QThread):
             
             # Pasos de preprocesamiento aplicados
             if pipeline_result.preprocessing_steps:
-                results['preprocessing'] = {
+                analysis_result.preprocessing = {
                     'successful': pipeline_result.preprocessing_successful,
                     'steps_applied': pipeline_result.preprocessing_steps
                 }
             
             # Mensajes de error y advertencias
             if pipeline_result.error_messages:
-                results['errors'] = pipeline_result.error_messages
+                analysis_result.error_message = "; ".join(pipeline_result.error_messages)
             if pipeline_result.warnings:
-                results['warnings'] = pipeline_result.warnings
+                analysis_result.warnings = pipeline_result.warnings
             
             # Datos intermedios para visualización
             if pipeline_result.intermediate_results:
-                results['intermediate_data'] = pipeline_result.intermediate_results
+                analysis_result.intermediate_data = pipeline_result.intermediate_results
             
-            return results
+            return analysis_result
             
         except Exception as e:
             self.logger.error(f"Error formateando resultados del pipeline: {e}")
-            return {
-                'comparison_type': 'direct_unified',
-                'success': False,
-                'error': f"Error formateando resultados: {str(e)}"
-            }
+            return AnalysisResult(
+                status=AnalysisStatus.ERROR,
+                mode=ProcessingMode.COMPARISON_DIRECT,
+                processing_time=pipeline_result.processing_time if pipeline_result else 0.0,
+                error_message=f"Error formateando resultados: {str(e)}"
+            )
     
     def _get_afte_reasoning(self, pipeline_result):
         """Genera explicación del razonamiento para la conclusión AFTE"""
@@ -557,33 +559,35 @@ class BallisticComparisonWorker(QThread):
         else:
             return "Inconclusive"
     
-    def _format_empty_search_results(self, query_path, evidence_type):
+    def _format_empty_search_results(self, query_path, evidence_type) -> AnalysisResult:
         """Formatea resultado vacío cuando no hay coincidencias"""
-        return {
-            'mode': 'database',
-            'evidence_type': evidence_type,
-            'query_image': query_path,
-            'total_searched': 0,
-            'candidates_found': 0,
-            'high_confidence_matches': 0,
-            'search_time': 0.1,
-            'results': []
-        }
+        return AnalysisResult(
+            status=AnalysisStatus.COMPLETED,
+            mode=ProcessingMode.COMPARISON_DATABASE,
+            processing_time=0.1,
+            query_image_path=query_path,
+            evidence_type=evidence_type,
+            total_searched=0,
+            candidates_found=0,
+            high_confidence_matches=0,
+            search_results=[]
+        )
     
-    def _format_search_results(self, query_path, evidence_type, total_searched, candidates_found, results):
+    def _format_search_results(self, query_path, evidence_type, total_searched, candidates_found, results) -> AnalysisResult:
         """Formatea resultados finales de búsqueda"""
         high_confidence = len([r for r in results if r['cmc_score'] >= 0.8])
         
-        return {
-            'mode': 'database',
-            'evidence_type': evidence_type,
-            'query_image': query_path,
-            'total_searched': total_searched,
-            'candidates_found': candidates_found,
-            'high_confidence_matches': high_confidence,
-            'search_time': 2.5,  # Tiempo simulado
-            'results': results
-        }
+        return AnalysisResult(
+            status=AnalysisStatus.COMPLETED,
+            mode=ProcessingMode.COMPARISON_DATABASE,
+            processing_time=2.5,  # Tiempo simulado
+            query_image_path=query_path,
+            evidence_type=evidence_type,
+            total_searched=total_searched,
+            candidates_found=candidates_found,
+            high_confidence_matches=high_confidence,
+            search_results=results
+        )
 
 class CMCVisualizationWidget(QWidget):
     """Widget especializado para visualizar curvas CMC y análisis estadístico"""
@@ -884,6 +888,18 @@ class ComparisonTab(QWidget):
                 if total_height > 0:
                     visual_ratio = sizes[0] / total_height
                     results_ratio = sizes[1] / total_height
+
+                    # Ajustar políticas de tamaño basadas en las proporciones
+                    if hasattr(self, 'visual_panel') and hasattr(self, 'results_panel'):
+                        if visual_ratio > 0.6:  # Panel visual muy grande
+                            self.visual_panel.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Expanding)
+                            self.results_panel.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Expanding)
+                        elif results_ratio > 0.7:  # Panel de resultados muy grande
+                            self.visual_panel.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Expanding)
+                            self.results_panel.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+                        else:  # Proporciones equilibradas
+                            self.visual_panel.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Expanding)
+                            self.results_panel.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Expanding)
                     
                     # Ajustar visibilidad y políticas basadas en las proporciones
                     if results_ratio < 0.15:  # Panel de resultados muy pequeño
@@ -2310,7 +2326,7 @@ class ComparisonTab(QWidget):
         self.direct_progress_card.hide()
         self.direct_step_indicator.set_current_step(3)
         
-        if results['mode'] == 'direct':
+        if results.mode == ProcessingMode.COMPARISON_DIRECT:
             self.display_ballistic_comparison_results(results)
         else:
             self.display_ballistic_search_results(results)
@@ -2333,7 +2349,7 @@ class ComparisonTab(QWidget):
         QMessageBox.critical(self, "Error en Búsqueda Balística", 
                            f"Error durante la búsqueda: {error_message}")
         
-    def display_ballistic_comparison_results(self, results: dict):
+    def display_ballistic_comparison_results(self, results: AnalysisResult):
         """Muestra los resultados de comparación balística con interfaz de pestañas"""
         # Crear widget de pestañas para resultados detallados
         results_tabs = QTabWidget()
@@ -2344,28 +2360,28 @@ class ComparisonTab(QWidget):
         
         # Actualizar visualización CMC
         if hasattr(self, 'interactive_cmc') and self.interactive_cmc:
-            self.interactive_cmc.update_cmc_data(results.get('cmc_analysis', {}))
+            self.interactive_cmc.update_cmc_data(results.cmc_analysis)
         
         # Métricas principales
         metrics_group = QGroupBox("Métricas de Comparación")
         metrics_layout = QGridLayout(metrics_group)
         
-        cmc_data = results.get('cmc_analysis', {})
+        cmc_data = results.cmc_analysis if results.cmc_analysis else {}
         
         # Verificar que los labels existen antes de actualizarlos
         if hasattr(self, 'cmc_score_label') and self.cmc_score_label:
-            self.cmc_score_label.setText(f"Score CMC: {results.get('cmc_score', 0):.3f}")
+            self.cmc_score_label.setText(f"Score CMC: {(results.similarity_score if results.similarity_score is not None else 0.0):.3f}")
         if hasattr(self, 'total_cells_label') and self.total_cells_label:
-            self.total_cells_label.setText(f"Células Totales: {cmc_data.get('total_cells', 0)}")
+            self.total_cells_label.setText(f"Células Totales: {cmc_data.get('cmc_count', 0)}")
         if hasattr(self, 'valid_cells_label') and self.valid_cells_label:
-            self.valid_cells_label.setText(f"Células Válidas: {cmc_data.get('valid_cells', 0)}")
+            self.valid_cells_label.setText(f"Células Válidas: {cmc_data.get('correlation_cells', [])}") # Assuming valid cells are related to correlation_cells
         if hasattr(self, 'congruent_cells_label') and self.congruent_cells_label:
-            self.congruent_cells_label.setText(f"Células Congruentes: {cmc_data.get('congruent_cells', 0)}")
+            self.congruent_cells_label.setText(f"Células Congruentes: {cmc_data.get('congruent_cells', 0)}") # Assuming congruent_cells is a key in cmc_analysis
         
         # Crear nuevos labels si no existen o fueron eliminados
-        cmc_score_label = QLabel(f"Score CMC: {results.get('cmc_score', 0):.3f}")
-        total_cells_label = QLabel(f"Células Totales: {cmc_data.get('total_cells', 0)}")
-        valid_cells_label = QLabel(f"Células Válidas: {cmc_data.get('valid_cells', 0)}")
+        cmc_score_label = QLabel(f"Score CMC: {(results.similarity_score if results.similarity_score is not None else 0.0):.3f}")
+        total_cells_label = QLabel(f"Células Totales: {cmc_data.get('cmc_count', 0)}")
+        valid_cells_label = QLabel(f"Células Válidas: {cmc_data.get('correlation_cells', [])}")
         congruent_cells_label = QLabel(f"Células Congruentes: {cmc_data.get('congruent_cells', 0)}")
         
         metrics_layout.addWidget(QLabel("Score CMC:"), 0, 0)
@@ -2380,8 +2396,12 @@ class ComparisonTab(QWidget):
         summary_layout.addWidget(metrics_group)
         
         # Conclusión AFTE
-        afte_conclusion = results.get('afte_conclusion', 'Inconclusive')
-        result_type = results.get('result_type', 'warning')
+        afte_conclusion = results.afte_conclusion
+        result_type = "warning" # Default
+        if afte_conclusion == "Identification":
+            result_type = "success"
+        elif afte_conclusion == "Elimination":
+            result_type = "danger"
         
         conclusion_text = f"Conclusión AFTE: {afte_conclusion}"
         if afte_conclusion == "Identification":
@@ -2406,13 +2426,13 @@ class ComparisonTab(QWidget):
         stats_group = QGroupBox("Análisis Estadístico")
         stats_layout = QGridLayout(stats_group)
         
-        stats = results.get('statistical_analysis', {})
+        statistical_results = results.statistical_results if results.statistical_results else {}
         
         # Crear nuevos labels para estadísticas
-        p_value_label = QLabel(f"{stats.get('p_value', 0):.4f}")
-        ci = stats.get('confidence_interval', [0, 0])
+        p_value_label = QLabel(f"{statistical_results.get('p_value', 0):.4f}")
+        ci = statistical_results.get('confidence_interval', [0, 0])
         confidence_interval_label = QLabel(f"[{ci[0]:.3f}, {ci[1]:.3f}]")
-        false_positive_rate_label = QLabel(f"{stats.get('false_positive_rate', 0):.4f}")
+        false_positive_rate_label = QLabel(f"{statistical_results.get('false_positive_rate', 0):.4f}")
         
         stats_layout.addWidget(QLabel("Valor P:"), 0, 0)
         stats_layout.addWidget(p_value_label, 0, 1)
@@ -2433,7 +2453,7 @@ class ComparisonTab(QWidget):
         features_widget = QWidget()
         features_layout = QVBoxLayout(features_widget)
         
-        features_text = self.format_ballistic_features(results.get('ballistic_features', {}))
+        features_text = self.format_ballistic_features(results.features if results.features else {})
         self.ballistic_features_text.setText(features_text)
         features_layout.addWidget(self.ballistic_features_text)
         
@@ -2474,18 +2494,18 @@ class ComparisonTab(QWidget):
         # Emitir señal de finalización
         self.comparisonCompleted.emit(results)
         
-    def display_ballistic_search_results(self, results: dict):
+    def display_ballistic_search_results(self, results: AnalysisResult):
         """Muestra los resultados de búsqueda balística"""
         # Actualizar estadísticas de búsqueda
-        stats_text = (f"Búsqueda completada: {results.get('total_searched', 0)} evidencias analizadas, "
-                     f"{results.get('candidates_found', 0)} candidatos encontrados, "
-                     f"{results.get('high_confidence_matches', 0)} coincidencias de alta confianza")
+        stats_text = (f"Búsqueda completada: {results.total_searched} evidencias analizadas, "
+                     f"{results.candidates_found} candidatos encontrados, "
+                     f"{results.high_confidence_matches} coincidencias de alta confianza")
         self.search_stats_label.setText(stats_text)
         
         # Limpiar y llenar lista de resultados
         self.results_list.clear()
         
-        for result in results.get('results', []):
+        for result in results.search_results:
             item_widget = self.create_ballistic_result_item_widget(result)
             item = QListWidgetItem()
             item.setSizeHint(item_widget.sizeHint())

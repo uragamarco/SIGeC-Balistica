@@ -561,7 +561,7 @@ pip install SIGeC-Balistica-sdk
 # Uso básico
 from SIGeC-Balistica_sdk import SIGeC-BalisticaClient
 
-client = SIGeC-BalisticaClient("http://localhost:8080")
+client = SIGeC-BalisticaClient("f"http://{get_config_value('api.host', 'localhost')}:{get_config_value('api.port', 8080)}"")
 result = client.analyze_image("fingerprint.png")
         </code></pre>
         """

@@ -602,7 +602,7 @@ class TestLegacyMigration:
             shutil.rmtree(config_dir)
         
         # También limpiar el archivo de configuración global si existe
-        global_config = Path("/home/marco/SIGeC-Balistica/config/unified_config.yaml")
+        global_config = Path("get_project_root()/config/unified_config.yaml")
         if global_config.exists():
             global_config.unlink()
     

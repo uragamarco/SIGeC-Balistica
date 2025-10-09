@@ -41,6 +41,15 @@ from sklearn.preprocessing import StandardScaler
 from sklearn.cluster import KMeans, DBSCAN
 from sklearn.metrics import silhouette_score
 
+# Importaciones adicionales para clustering avanzado
+from sklearn.cluster import AgglomerativeClustering, SpectralClustering, OPTICS, MeanShift, Birch
+from sklearn.mixture import GaussianMixture
+from sklearn.metrics import adjusted_rand_score, normalized_mutual_info_score, calinski_harabasz_score, davies_bouldin_score
+from sklearn.neighbors import NearestNeighbors
+from sklearn.cluster import estimate_bandwidth
+from scipy.cluster.hierarchy import dendrogram, linkage, fcluster
+from scipy.spatial.distance import pdist
+
 # Configurar logging
 logger = logging.getLogger(__name__)
 
@@ -1602,13 +1611,31 @@ class UnifiedStatisticalAnalysis:
     def perform_clustering(
         self,
         data: Union[np.ndarray, pd.DataFrame],
-        methods: List[str] = ['kmeans', 'dbscan'],
+        methods: List[str] = ['kmeans', 'dbscan', 'hierarchical', 'spectral', 'gmm', 'optics', 'meanshift', 'birch'],
         n_clusters: Optional[int] = None,
-        standardize: bool = True
+        standardize: bool = True,
+        advanced_metrics: bool = True
     ) -> Dict[str, Any]:
         """
-        Realiza clustering usando múltiples algoritmos
+        Realiza clustering usando múltiples algoritmos avanzados
         Compatible con funcionalidades dispersas en el sistema
+        
+        Métodos disponibles:
+        - kmeans: K-Means clustering
+        - dbscan: DBSCAN clustering
+        - hierarchical: Agglomerative Hierarchical clustering
+        - spectral: Spectral clustering
+        - gmm: Gaussian Mixture Models
+        - optics: OPTICS clustering (versión mejorada de DBSCAN)
+        - meanshift: Mean Shift clustering
+        - birch: BIRCH clustering (para datasets grandes)
+        
+        Args:
+            data: Datos para clustering
+            methods: Lista de métodos a usar
+            n_clusters: Número de clusters (None para auto-determinación)
+            standardize: Si estandarizar los datos
+            advanced_metrics: Si calcular métricas avanzadas de evaluación
         """
         try:
             # Convertir a numpy array
@@ -1633,7 +1660,8 @@ class UnifiedStatisticalAnalysis:
                 'n_features': data_scaled.shape[1],
                 'feature_names': feature_names,
                 'standardized': standardize,
-                'clustering_results': {}
+                'clustering_results': {},
+                'comparative_analysis': {}
             }
             
             # K-Means Clustering
@@ -1760,7 +1788,526 @@ class UnifiedStatisticalAnalysis:
                 
                 results['clustering_results']['dbscan']['cluster_statistics'] = cluster_stats
             
-            logger.info(f"Clustering completado con métodos: {methods}")
+            # Hierarchical Clustering
+            if 'hierarchical' in methods:
+                # Determinar número de clusters si no se especifica
+                if n_clusters is None:
+                    # Usar método del codo con linkage para determinar número óptimo
+                    max_k = min(10, data_scaled.shape[0] // 2)
+                    linkage_matrix = linkage(data_scaled, method='ward')
+                    
+                    # Calcular distancias entre clusters para diferentes k
+                    distances = []
+                    k_range = range(2, max_k + 1)
+                    
+                    for k in k_range:
+                        labels = fcluster(linkage_matrix, k, criterion='maxclust')
+                        # Usar distancia intra-cluster promedio como métrica
+                        intra_dist = 0
+                        for cluster_id in range(1, k + 1):
+                            cluster_mask = labels == cluster_id
+                            if np.sum(cluster_mask) > 1:
+                                cluster_data = data_scaled[cluster_mask]
+                                intra_dist += np.mean(pdist(cluster_data))
+                        distances.append(intra_dist / k)
+                    
+                    # Método del codo
+                    if len(distances) >= 3:
+                        diffs = np.diff(distances)
+                        diffs2 = np.diff(diffs)
+                        optimal_k = k_range[np.argmax(np.abs(diffs2)) + 1]
+                    else:
+                        optimal_k = k_range[0]
+                else:
+                    optimal_k = n_clusters
+                    distances = []
+                    k_range = [optimal_k]
+                
+                # Ejecutar clustering jerárquico
+                hierarchical = AgglomerativeClustering(n_clusters=optimal_k, linkage='ward')
+                hierarchical_labels = hierarchical.fit_predict(data_scaled)
+                
+                # Calcular métricas
+                if optimal_k > 1:
+                    silhouette_hier = silhouette_score(data_scaled, hierarchical_labels)
+                else:
+                    silhouette_hier = 0.0
+                
+                # Crear dendrograma para análisis
+                linkage_matrix = linkage(data_scaled, method='ward')
+                
+                results['clustering_results']['hierarchical'] = {
+                    'labels': hierarchical_labels.tolist(),
+                    'n_clusters': optimal_k,
+                    'silhouette_score': float(silhouette_hier),
+                    'linkage_method': 'ward',
+                    'elbow_data': {
+                        'k_values': list(k_range),
+                        'distances': distances
+                    } if n_clusters is None else None
+                }
+                
+                # Estadísticas por cluster
+                cluster_stats = {}
+                for cluster_id in range(optimal_k):
+                    cluster_mask = hierarchical_labels == cluster_id
+                    cluster_data = data_array[cluster_mask]
+                    cluster_stats[f'cluster_{cluster_id}'] = {
+                        'size': int(np.sum(cluster_mask)),
+                        'percentage': float(np.sum(cluster_mask) / len(hierarchical_labels) * 100),
+                        'centroid': np.mean(cluster_data, axis=0).tolist(),
+                        'std': np.std(cluster_data, axis=0).tolist()
+                    }
+                
+                results['clustering_results']['hierarchical']['cluster_statistics'] = cluster_stats
+            
+            # Spectral Clustering
+            if 'spectral' in methods:
+                # Determinar número de clusters si no se especifica
+                if n_clusters is None:
+                    # Para spectral clustering, usar eigenvalues para determinar k óptimo
+                    max_k = min(8, data_scaled.shape[0] // 3)  # Más conservador para spectral
+                    eigenvalues = []
+                    k_range = range(2, max_k + 1)
+                    
+                    for k in k_range:
+                        try:
+                            spectral = SpectralClustering(
+                                n_clusters=k, 
+                                random_state=self.random_state,
+                                affinity='rbf'
+                            )
+                            labels = spectral.fit_predict(data_scaled)
+                            if len(set(labels)) > 1:
+                                silh_score = silhouette_score(data_scaled, labels)
+                                eigenvalues.append(silh_score)
+                            else:
+                                eigenvalues.append(0.0)
+                        except:
+                            eigenvalues.append(0.0)
+                    
+                    # Seleccionar k con mejor silhouette score
+                    if eigenvalues:
+                        optimal_k = k_range[np.argmax(eigenvalues)]
+                    else:
+                        optimal_k = 2
+                else:
+                    optimal_k = n_clusters
+                    eigenvalues = []
+                    k_range = [optimal_k]
+                
+                # Ejecutar Spectral Clustering
+                try:
+                    spectral = SpectralClustering(
+                        n_clusters=optimal_k,
+                        random_state=self.random_state,
+                        affinity='rbf',
+                        gamma=1.0
+                    )
+                    spectral_labels = spectral.fit_predict(data_scaled)
+                    
+                    # Calcular métricas
+                    if optimal_k > 1 and len(set(spectral_labels)) > 1:
+                        silhouette_spec = silhouette_score(data_scaled, spectral_labels)
+                    else:
+                        silhouette_spec = 0.0
+                    
+                    results['clustering_results']['spectral'] = {
+                        'labels': spectral_labels.tolist(),
+                        'n_clusters': optimal_k,
+                        'silhouette_score': float(silhouette_spec),
+                        'affinity': 'rbf',
+                        'gamma': 1.0,
+                        'eigenvalue_analysis': {
+                            'k_values': list(k_range),
+                            'silhouette_scores': eigenvalues
+                        } if n_clusters is None else None
+                    }
+                    
+                    # Estadísticas por cluster
+                    cluster_stats = {}
+                    unique_labels = set(spectral_labels)
+                    for cluster_id in unique_labels:
+                        cluster_mask = spectral_labels == cluster_id
+                        cluster_data = data_array[cluster_mask]
+                        cluster_stats[f'cluster_{cluster_id}'] = {
+                            'size': int(np.sum(cluster_mask)),
+                            'percentage': float(np.sum(cluster_mask) / len(spectral_labels) * 100),
+                            'centroid': np.mean(cluster_data, axis=0).tolist(),
+                            'std': np.std(cluster_data, axis=0).tolist()
+                        }
+                    
+                    results['clustering_results']['spectral']['cluster_statistics'] = cluster_stats
+                    
+                except Exception as e:
+                    logger.warning(f"Error en Spectral Clustering: {str(e)}")
+                    results['clustering_results']['spectral'] = {
+                        'error': f"Spectral clustering falló: {str(e)}",
+                        'n_clusters': 0
+                    }
+            
+            # Gaussian Mixture Models
+            if 'gmm' in methods:
+                # Determinar número de componentes si no se especifica
+                if n_clusters is None:
+                    # Usar BIC/AIC para determinar número óptimo de componentes
+                    max_k = min(10, data_scaled.shape[0] // 5)
+                    bic_scores = []
+                    aic_scores = []
+                    k_range = range(1, max_k + 1)
+                    
+                    for k in k_range:
+                        try:
+                            gmm = GaussianMixture(
+                                n_components=k,
+                                random_state=self.random_state,
+                                covariance_type='full'
+                            )
+                            gmm.fit(data_scaled)
+                            bic_scores.append(gmm.bic(data_scaled))
+                            aic_scores.append(gmm.aic(data_scaled))
+                        except:
+                            bic_scores.append(np.inf)
+                            aic_scores.append(np.inf)
+                    
+                    # Seleccionar k con menor BIC
+                    optimal_k = k_range[np.argmin(bic_scores)]
+                else:
+                    optimal_k = n_clusters
+                    bic_scores = []
+                    aic_scores = []
+                    k_range = [optimal_k]
+                
+                # Ejecutar GMM
+                try:
+                    gmm = GaussianMixture(
+                        n_components=optimal_k,
+                        random_state=self.random_state,
+                        covariance_type='full'
+                    )
+                    gmm.fit(data_scaled)
+                    gmm_labels = gmm.predict(data_scaled)
+                    gmm_probs = gmm.predict_proba(data_scaled)
+                    
+                    # Calcular métricas
+                    if optimal_k > 1:
+                        silhouette_gmm = silhouette_score(data_scaled, gmm_labels)
+                    else:
+                        silhouette_gmm = 0.0
+                    
+                    log_likelihood = gmm.score(data_scaled)
+                    bic_final = gmm.bic(data_scaled)
+                    aic_final = gmm.aic(data_scaled)
+                    
+                    results['clustering_results']['gmm'] = {
+                        'labels': gmm_labels.tolist(),
+                        'probabilities': gmm_probs.tolist(),
+                        'n_components': optimal_k,
+                        'silhouette_score': float(silhouette_gmm),
+                        'log_likelihood': float(log_likelihood),
+                        'bic': float(bic_final),
+                        'aic': float(aic_final),
+                        'covariance_type': 'full',
+                        'converged': bool(gmm.converged_),
+                        'n_iter': int(gmm.n_iter_),
+                        'model_selection': {
+                            'k_values': list(k_range),
+                            'bic_scores': bic_scores,
+                            'aic_scores': aic_scores
+                        } if n_clusters is None else None
+                    }
+                    
+                    # Estadísticas por componente
+                    cluster_stats = {}
+                    for cluster_id in range(optimal_k):
+                        cluster_mask = gmm_labels == cluster_id
+                        cluster_data = data_array[cluster_mask]
+                        
+                        # Probabilidad promedio de pertenencia
+                        avg_prob = np.mean(gmm_probs[cluster_mask, cluster_id]) if np.sum(cluster_mask) > 0 else 0.0
+                        
+                        cluster_stats[f'component_{cluster_id}'] = {
+                            'size': int(np.sum(cluster_mask)),
+                            'percentage': float(np.sum(cluster_mask) / len(gmm_labels) * 100),
+                            'weight': float(gmm.weights_[cluster_id]),
+                            'mean': gmm.means_[cluster_id].tolist(),
+                            'covariance': gmm.covariances_[cluster_id].tolist(),
+                            'avg_probability': float(avg_prob)
+                        }
+                    
+                    results['clustering_results']['gmm']['component_statistics'] = cluster_stats
+                    
+                except Exception as e:
+                    logger.warning(f"Error en Gaussian Mixture Model: {str(e)}")
+                    results['clustering_results']['gmm'] = {
+                        'error': f"GMM falló: {str(e)}",
+                        'n_components': 0
+                    }
+            
+            # OPTICS Clustering (Mejorado)
+            if 'optics' in methods:
+                try:
+                    # Estimar min_samples basado en dimensionalidad
+                    min_samples = max(2, min(data_scaled.shape[1] + 1, data_scaled.shape[0] // 10))
+                    
+                    optics = OPTICS(
+                        min_samples=min_samples,
+                        xi=0.05,  # Parámetro para extracción de clusters
+                        min_cluster_size=0.1  # Tamaño mínimo relativo del cluster
+                    )
+                    optics_labels = optics.fit_predict(data_scaled)
+                    
+                    # Calcular métricas
+                    n_clusters_optics = len(set(optics_labels)) - (1 if -1 in optics_labels else 0)
+                    n_noise = list(optics_labels).count(-1)
+                    
+                    if n_clusters_optics > 1:
+                        non_noise_mask = optics_labels != -1
+                        if np.sum(non_noise_mask) > 1:
+                            silhouette_optics = silhouette_score(
+                                data_scaled[non_noise_mask], 
+                                optics_labels[non_noise_mask]
+                            )
+                        else:
+                            silhouette_optics = 0.0
+                    else:
+                        silhouette_optics = 0.0
+                    
+                    results['clustering_results']['optics'] = {
+                        'labels': optics_labels.tolist(),
+                        'n_clusters': n_clusters_optics,
+                        'n_noise_points': n_noise,
+                        'noise_percentage': float(n_noise / len(optics_labels) * 100),
+                        'min_samples': min_samples,
+                        'xi': 0.05,
+                        'silhouette_score': float(silhouette_optics),
+                        'reachability_distances': optics.reachability_.tolist() if hasattr(optics, 'reachability_') else [],
+                        'ordering': optics.ordering_.tolist() if hasattr(optics, 'ordering_') else []
+                    }
+                    
+                    # Estadísticas por cluster (excluyendo ruido)
+                    cluster_stats = {}
+                    unique_labels = set(optics_labels)
+                    if -1 in unique_labels:
+                        unique_labels.remove(-1)
+                    
+                    for cluster_id in unique_labels:
+                        cluster_mask = optics_labels == cluster_id
+                        cluster_data = data_array[cluster_mask]
+                        cluster_stats[f'cluster_{cluster_id}'] = {
+                            'size': int(np.sum(cluster_mask)),
+                            'percentage': float(np.sum(cluster_mask) / len(optics_labels) * 100),
+                            'centroid': np.mean(cluster_data, axis=0).tolist(),
+                            'std': np.std(cluster_data, axis=0).tolist()
+                        }
+                    
+                    results['clustering_results']['optics']['cluster_statistics'] = cluster_stats
+                    
+                except Exception as e:
+                    logger.warning(f"Error en OPTICS Clustering: {str(e)}")
+                    results['clustering_results']['optics'] = {
+                        'error': f"OPTICS clustering falló: {str(e)}",
+                        'n_clusters': 0
+                    }
+            
+            # Mean Shift Clustering
+            if 'meanshift' in methods:
+                try:
+                    # Estimar bandwidth automáticamente
+                    bandwidth = estimate_bandwidth(data_scaled, quantile=0.2, n_samples=min(500, data_scaled.shape[0]))
+                    
+                    if bandwidth <= 0:
+                        # Fallback si la estimación automática falla
+                        bandwidth = np.std(data_scaled) * 0.5
+                    
+                    meanshift = MeanShift(bandwidth=bandwidth, bin_seeding=True)
+                    meanshift_labels = meanshift.fit_predict(data_scaled)
+                    
+                    n_clusters_ms = len(set(meanshift_labels))
+                    
+                    # Calcular métricas
+                    if n_clusters_ms > 1:
+                        silhouette_ms = silhouette_score(data_scaled, meanshift_labels)
+                    else:
+                        silhouette_ms = 0.0
+                    
+                    results['clustering_results']['meanshift'] = {
+                        'labels': meanshift_labels.tolist(),
+                        'n_clusters': n_clusters_ms,
+                        'bandwidth': float(bandwidth),
+                        'cluster_centers': meanshift.cluster_centers_.tolist(),
+                        'silhouette_score': float(silhouette_ms)
+                    }
+                    
+                    # Estadísticas por cluster
+                    cluster_stats = {}
+                    for cluster_id in range(n_clusters_ms):
+                        cluster_mask = meanshift_labels == cluster_id
+                        cluster_data = data_array[cluster_mask]
+                        cluster_stats[f'cluster_{cluster_id}'] = {
+                            'size': int(np.sum(cluster_mask)),
+                            'percentage': float(np.sum(cluster_mask) / len(meanshift_labels) * 100),
+                            'centroid': np.mean(cluster_data, axis=0).tolist(),
+                            'std': np.std(cluster_data, axis=0).tolist()
+                        }
+                    
+                    results['clustering_results']['meanshift']['cluster_statistics'] = cluster_stats
+                    
+                except Exception as e:
+                    logger.warning(f"Error en Mean Shift Clustering: {str(e)}")
+                    results['clustering_results']['meanshift'] = {
+                        'error': f"Mean Shift clustering falló: {str(e)}",
+                        'n_clusters': 0
+                    }
+            
+            # BIRCH Clustering
+            if 'birch' in methods:
+                try:
+                    # Configurar BIRCH para el tamaño del dataset
+                    threshold = 0.5
+                    branching_factor = 50
+                    
+                    if n_clusters is None:
+                        # Usar BIRCH sin especificar n_clusters para auto-determinación
+                        birch = Birch(threshold=threshold, branching_factor=branching_factor, n_clusters=None)
+                        birch_labels = birch.fit_predict(data_scaled)
+                        n_clusters_birch = len(set(birch_labels))
+                    else:
+                        birch = Birch(threshold=threshold, branching_factor=branching_factor, n_clusters=n_clusters)
+                        birch_labels = birch.fit_predict(data_scaled)
+                        n_clusters_birch = n_clusters
+                    
+                    # Calcular métricas
+                    if n_clusters_birch > 1:
+                        silhouette_birch = silhouette_score(data_scaled, birch_labels)
+                    else:
+                        silhouette_birch = 0.0
+                    
+                    results['clustering_results']['birch'] = {
+                        'labels': birch_labels.tolist(),
+                        'n_clusters': n_clusters_birch,
+                        'threshold': threshold,
+                        'branching_factor': branching_factor,
+                        'silhouette_score': float(silhouette_birch),
+                        'n_features_in_': int(birch.n_features_in_)
+                    }
+                    
+                    # Estadísticas por cluster
+                    cluster_stats = {}
+                    for cluster_id in range(n_clusters_birch):
+                        cluster_mask = birch_labels == cluster_id
+                        cluster_data = data_array[cluster_mask]
+                        cluster_stats[f'cluster_{cluster_id}'] = {
+                            'size': int(np.sum(cluster_mask)),
+                            'percentage': float(np.sum(cluster_mask) / len(birch_labels) * 100),
+                            'centroid': np.mean(cluster_data, axis=0).tolist(),
+                            'std': np.std(cluster_data, axis=0).tolist()
+                        }
+                    
+                    results['clustering_results']['birch']['cluster_statistics'] = cluster_stats
+                    
+                except Exception as e:
+                    logger.warning(f"Error en BIRCH Clustering: {str(e)}")
+                    results['clustering_results']['birch'] = {
+                        'error': f"BIRCH clustering falló: {str(e)}",
+                        'n_clusters': 0
+                    }
+            
+            # Análisis comparativo avanzado
+            if advanced_metrics and len(results['clustering_results']) > 1:
+                comparative_metrics = {}
+                
+                # Recopilar todas las etiquetas válidas
+                valid_results = {}
+                for method, result in results['clustering_results'].items():
+                    if 'error' not in result and 'labels' in result:
+                        labels = np.array(result['labels'])
+                        n_clusters = result.get('n_clusters', len(set(labels)))
+                        if n_clusters > 1:
+                            valid_results[method] = labels
+                
+                # Calcular métricas comparativas
+                if len(valid_results) > 1:
+                    methods_list = list(valid_results.keys())
+                    
+                    # Matriz de similitud entre métodos (Adjusted Rand Index)
+                    similarity_matrix = np.zeros((len(methods_list), len(methods_list)))
+                    for i, method1 in enumerate(methods_list):
+                        for j, method2 in enumerate(methods_list):
+                            if i != j:
+                                ari = adjusted_rand_score(valid_results[method1], valid_results[method2])
+                                similarity_matrix[i, j] = ari
+                            else:
+                                similarity_matrix[i, j] = 1.0
+                    
+                    comparative_metrics['similarity_matrix'] = {
+                        'methods': methods_list,
+                        'matrix': similarity_matrix.tolist(),
+                        'description': 'Adjusted Rand Index entre métodos'
+                    }
+                    
+                    # Métricas avanzadas para cada método válido
+                    advanced_scores = {}
+                    for method, labels in valid_results.items():
+                        # Filtrar ruido si existe
+                        if -1 in labels:
+                            non_noise_mask = labels != -1
+                            if np.sum(non_noise_mask) > 1:
+                                clean_data = data_scaled[non_noise_mask]
+                                clean_labels = labels[non_noise_mask]
+                            else:
+                                continue
+                        else:
+                            clean_data = data_scaled
+                            clean_labels = labels
+                        
+                        if len(set(clean_labels)) > 1:
+                            # Calinski-Harabasz Index (mayor es mejor)
+                            ch_score = calinski_harabasz_score(clean_data, clean_labels)
+                            
+                            # Davies-Bouldin Index (menor es mejor)
+                            db_score = davies_bouldin_score(clean_data, clean_labels)
+                            
+                            advanced_scores[method] = {
+                                'calinski_harabasz_score': float(ch_score),
+                                'davies_bouldin_score': float(db_score),
+                                'silhouette_score': float(silhouette_score(clean_data, clean_labels))
+                            }
+                    
+                    comparative_metrics['advanced_scores'] = advanced_scores
+                    
+                    # Ranking de métodos basado en métricas
+                    if advanced_scores:
+                        # Normalizar scores para ranking
+                        methods_ranking = []
+                        for method, scores in advanced_scores.items():
+                            # Score compuesto (normalizado)
+                            silh = scores['silhouette_score']
+                            ch = scores['calinski_harabasz_score']
+                            db = scores['davies_bouldin_score']
+                            
+                            # Normalizar CH score (0-1)
+                            ch_norm = min(1.0, ch / 1000.0) if ch > 0 else 0.0
+                            
+                            # Normalizar DB score (invertir porque menor es mejor)
+                            db_norm = max(0.0, 1.0 - (db / 10.0)) if db > 0 else 0.0
+                            
+                            # Score compuesto
+                            composite_score = (silh + ch_norm + db_norm) / 3.0
+                            
+                            methods_ranking.append({
+                                'method': method,
+                                'composite_score': float(composite_score),
+                                'individual_scores': scores
+                            })
+                        
+                        # Ordenar por score compuesto
+                        methods_ranking.sort(key=lambda x: x['composite_score'], reverse=True)
+                        comparative_metrics['ranking'] = methods_ranking
+                
+                results['comparative_analysis'] = comparative_metrics
+            
+            logger.info(f"Clustering avanzado completado con métodos: {methods}")
             
             return results
             

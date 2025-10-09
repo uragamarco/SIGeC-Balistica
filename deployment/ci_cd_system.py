@@ -308,7 +308,7 @@ EXPOSE 8000
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \\
-    CMD curl -f http://localhost:8000/health || exit 1
+    CMD curl -f f"http://{get_config_value('api.host', 'localhost')}:{get_config_value('api.port', 8000)}"/health || exit 1
 
 # Comando por defecto
 CMD ["python", "-m", "uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
@@ -569,7 +569,7 @@ class DeploymentManager:
                     'restart': 'unless-stopped',
                     'healthcheck': {
                         'test': deployment_config.health_check.get(
-                            'test', ['CMD', 'curl', '-f', 'http://localhost:8000/health']
+                            'test', ['CMD', 'curl', '-f', 'f"http://{get_config_value('api.host', 'localhost')}:{get_config_value('api.port', 8000)}"/health']
                         ),
                         'interval': deployment_config.health_check.get('interval', '30s'),
                         'timeout': deployment_config.health_check.get('timeout', '10s'),
@@ -682,7 +682,7 @@ docker-compose -f docker-compose.yml up -d
 
 # Verificar salud
 sleep 10
-curl -f http://localhost:8000/health || exit 1
+curl -f f"http://{get_config_value('api.host', 'localhost')}:{get_config_value('api.port', 8000)}"/health || exit 1
 
 echo "Despliegue Docker completado exitosamente"
 '''
@@ -987,7 +987,7 @@ class CICDSystem:
                 "PROJECT_NAME": self.config.project_name
             },
             health_check={
-                "test": ["CMD", "curl", "-f", "http://localhost:8000/health"],
+                "test": ["CMD", "curl", "-f", "f"http://{get_config_value('api.host', 'localhost')}:{get_config_value('api.port', 8000)}"/health"],
                 "interval": "30s",
                 "timeout": "10s",
                 "retries": 3
@@ -1270,7 +1270,7 @@ if __name__ == "__main__":
         'workspace_dir': args.workspace,
         'project_name': 'SIGeC-Balistica',
         'container_platform': ContainerPlatform.DOCKER,
-        'registry_url': 'localhost:5000'
+        'registry_url': 'get_config_value('api.host', 'localhost') + ':' + str(get_config_value('api.port', 5000))'
     }
     
     cicd_system = initialize_cicd_system(config)

@@ -578,6 +578,62 @@ class UnifiedConfig:
             logger.error(f"Error al cargar configuración: {e}")
             logger.info("Usando configuración por defecto")
     
+    def load_config(self) -> None:
+        """Carga la configuración desde el archivo"""
+        if not self.config_path.exists():
+            logger.info(f"Archivo de configuración no encontrado: {self.config_path}")
+            self.save_config()  # Crear configuración por defecto
+            return
+        
+        try:
+            with open(self.config_path, 'r', encoding='utf-8') as f:
+                config_data = yaml.safe_load(f)
+            
+            if not config_data:
+                logger.warning("Archivo de configuración vacío, usando valores por defecto")
+                return
+            
+            # Cargar configuraciones con validación
+            if 'database' in config_data:
+                self.database = DatabaseConfig(**config_data['database'])
+            
+            if 'image_processing' in config_data:
+                self.image_processing = ImageProcessingConfig(**config_data['image_processing'])
+            
+            if 'matching' in config_data:
+                matching_data = config_data['matching'].copy()
+                # Convertir strings de vuelta a enums
+                if 'algorithm' in matching_data:
+                    from matching.unified_matcher import AlgorithmType
+                    if isinstance(matching_data['algorithm'], str):
+                        matching_data['algorithm'] = AlgorithmType(matching_data['algorithm'])
+                
+                if 'level' in matching_data:
+                    from matching.unified_matcher import MatchingLevel
+                    if isinstance(matching_data['level'], str):
+                        matching_data['level'] = MatchingLevel(matching_data['level'])
+                
+                self.matching = MatchingConfig(**matching_data)
+            
+            if 'gui' in config_data:
+                self.gui = GUIConfig(**config_data['gui'])
+            
+            if 'logging' in config_data:
+                self.logging = LoggingConfig(**config_data['logging'])
+            
+            if 'deep_learning' in config_data:
+                self.deep_learning = DeepLearningConfig(**config_data['deep_learning'])
+            
+            if 'nist' in config_data:
+                self.nist = NISTConfig(**config_data['nist'])
+            
+            logger.info(f"Configuración cargada desde: {self.config_path}")
+            
+        except Exception as e:
+            logger.error(f"Error al cargar configuración: {e}")
+            logger.info("Usando configuración por defecto")
+            # No re-lanzar la excepción, usar configuración por defecto
+    
     def _update_from_dict(self, config_data: Dict[str, Any]) -> None:
         """Actualiza la configuración desde un diccionario"""
         # Mapeo de secciones a objetos de configuración
@@ -686,10 +742,15 @@ class UnifiedConfig:
     
     def save_config(self) -> None:
         """Guarda la configuración actual"""
+        # Convertir enums a strings para evitar problemas de serialización
+        matching_dict = asdict(self.matching)
+        matching_dict['algorithm'] = self.matching.algorithm.value if hasattr(self.matching.algorithm, 'value') else str(self.matching.algorithm)
+        matching_dict['level'] = self.matching.level.value if hasattr(self.matching.level, 'value') else str(self.matching.level)
+        
         config_dict = {
             'database': asdict(self.database),
             'image_processing': asdict(self.image_processing),
-            'matching': asdict(self.matching),
+            'matching': matching_dict,
             'gui': asdict(self.gui),
             'logging': asdict(self.logging),
             'deep_learning': asdict(self.deep_learning),
@@ -791,25 +852,52 @@ class UnifiedConfig:
             logger.info("Toda la configuración reseteada a valores por defecto")
     
     def export_config(self, format: str = "yaml", file_path: Optional[str] = None) -> str:
-        """Exporta la configuración a un archivo"""
-        if not file_path:
+        """Exporta la configuración a un archivo en el formato especificado"""
+        if format not in ["yaml", "json"]:
+            raise ValueError("Formato debe ser 'yaml' o 'json'")
+        
+        # Usar la misma lógica que save_config para manejar enums
+        matching_dict = asdict(self.matching)
+        matching_dict['algorithm'] = self.matching.algorithm.value if hasattr(self.matching.algorithm, 'value') else str(self.matching.algorithm)
+        matching_dict['level'] = self.matching.level.value if hasattr(self.matching.level, 'value') else str(self.matching.level)
+        
+        config_dict = {
+            'database': asdict(self.database),
+            'image_processing': asdict(self.image_processing),
+            'matching': matching_dict,
+            'gui': asdict(self.gui),
+            'logging': asdict(self.logging),
+            'deep_learning': asdict(self.deep_learning),
+            'nist': asdict(self.nist),
+            '_metadata': {
+                'version': '1.0.0',
+                'environment': self.environment.value,
+                'exported': datetime.now().isoformat(),
+                'project_root': str(self.project_root)
+            }
+        }
+        
+        if file_path is None:
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-            file_path = f"config_export_{timestamp}.{format}"
+            file_path = f"config/exported_config_{timestamp}.{format}"
         
-        config_dict = self.get_config_dict()
+        export_path = self.get_absolute_path(file_path)
+        export_path.parent.mkdir(parents=True, exist_ok=True)
         
-        if format.lower() == "json":
-            with open(file_path, 'w', encoding='utf-8') as f:
-                json.dump(config_dict, f, indent=2, ensure_ascii=False)
-        elif format.lower() == "yaml":
-            with open(file_path, 'w', encoding='utf-8') as f:
-                yaml.dump(config_dict, f, default_flow_style=False, 
-                         allow_unicode=True, indent=2)
-        else:
-            raise ValueError(f"Formato no soportado: {format}")
-        
-        logger.info(f"Configuración exportada a: {file_path}")
-        return file_path
+        try:
+            with open(export_path, 'w', encoding='utf-8') as f:
+                if format == "yaml":
+                    yaml.dump(config_dict, f, default_flow_style=False, 
+                             allow_unicode=True, indent=2, sort_keys=True)
+                else:  # json
+                    json.dump(config_dict, f, indent=2, ensure_ascii=False, sort_keys=True)
+            
+            logger.info(f"Configuración exportada a: {export_path}")
+            return str(export_path)
+            
+        except Exception as e:
+            logger.error(f"Error al exportar configuración: {e}")
+            raise
 
 # Instancia global del sistema de configuración
 _unified_config_instance: Optional[UnifiedConfig] = None

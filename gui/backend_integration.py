@@ -26,6 +26,7 @@ from pathlib import Path
 from typing import Dict, List, Optional, Any, Tuple, Union
 from dataclasses import dataclass
 from enum import Enum
+from core.unified_pipeline import AFTEConclusion
 import numpy as np
 from PyQt5.QtCore import QObject, pyqtSignal, QThread, QTimer
 from PyQt5.QtWidgets import QApplication
@@ -78,7 +79,7 @@ except ImportError as e:
 try:
     from utils.logger import get_logger
     from utils.validators import SystemValidator
-    from utils.memory_cache import MemoryCache
+    from core.intelligent_cache import MemoryCache
     UTILS_AVAILABLE = True
 except ImportError as e:
     logging.warning(f"Módulos utils no disponibles: {e}")
@@ -126,33 +127,53 @@ class AnalysisResult:
     status: AnalysisStatus
     mode: ProcessingMode
     processing_time: float
-    
+    analysis_timestamp: Optional[str] = None
+    evidence_type: Optional[str] = None
+    afte_conclusion: Optional[AFTEConclusion] = None
+    confidence: Optional[float] = None
+    afte_reasoning: Optional[str] = None
+
     # Datos de entrada
     image_path: Optional[str] = None
+    query_image_path: Optional[str] = None
     image_data: Optional[np.ndarray] = None
     case_data: Optional[Dict[str, Any]] = None
     nist_metadata: Optional[Dict[str, Any]] = None
-    
+
     # Resultados de procesamiento
     processed_image: Optional[np.ndarray] = None
     features: Optional[Dict[str, Any]] = None
     quality_metrics: Optional[Dict[str, Any]] = None
-    
+    quality_assessment: Optional[Dict[str, Any]] = None
+    roi_detection: Optional[Dict[str, Any]] = None
+    preprocessing: Optional[Dict[str, Any]] = None
+
     # Resultados estadísticos
     statistical_results: Optional[Dict[str, Any]] = None
     nist_compliance: Optional[Dict[str, Any]] = None
-    
+
     # Resultados de comparación
     similarity_score: Optional[float] = None
     matches: Optional[List[Dict[str, Any]]] = None
     comparison_results: Optional[Dict[str, Any]] = None
-    
+    matching_results: Optional[Dict[str, Any]] = None
+    cmc_analysis: Optional[Dict[str, Any]] = None
+
     # Visualizaciones
     visualizations: Optional[Dict[str, Any]] = None
-    
+    intermediate_data: Optional[Dict[str, Any]] = None
+
     # Errores
     error_message: Optional[str] = None
     error_details: Optional[str] = None
+    warnings: Optional[List[str]] = None
+
+    # Resultados de búsqueda
+    total_searched: Optional[int] = None
+    candidates_found: Optional[int] = None
+    high_confidence_matches: Optional[int] = None
+    search_time: Optional[float] = None
+    search_results: Optional[List[Dict[str, Any]]] = None
 
 class BackendIntegration(QObject):
     """

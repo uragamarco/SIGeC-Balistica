@@ -7,6 +7,7 @@ Flujo guiado paso a paso: Cargar evidencia → Datos del caso → Metadatos NIST
 import os
 import json
 import numpy as np
+from datetime import datetime
 from typing import Optional, Dict, Any, List, Tuple
 from pathlib import Path
 from PyQt5.QtWidgets import (
@@ -32,6 +33,14 @@ from .interactive_matching_widget import InteractiveMatchingWidget
 # Importaciones del sistema real
 from core.unified_pipeline import ScientificPipeline, PipelineResult, PipelineConfiguration
 from core.pipeline_config import PipelineLevel
+from enum import Enum
+
+class ConfigurationLevel(Enum):
+    """Niveles de configuración para análisis"""
+    BASIC = "basic"
+    STANDARD = "standard"
+    HIGH_PRECISION = "high_precision"
+    RESEARCH = "research"
 from image_processing.unified_preprocessor import UnifiedPreprocessor, PreprocessingConfig
 from image_processing.unified_roi_detector import UnifiedROIDetector, ROIDetectionConfig, DetectionLevel
 from nist_standards.quality_metrics import NISTQualityMetrics, NISTQualityReport
@@ -40,7 +49,7 @@ from nist_standards.validation_protocols import NISTValidationProtocols, Validat
 from database.unified_database import UnifiedDatabase
 from utils.logger import LoggerMixin, get_logger
 from utils.validators import SystemValidator, SecurityUtils, FileUtils
-from utils.memory_cache import get_global_cache, cache_features
+from core.intelligent_cache import get_global_cache, cache_features
 from config.unified_config import get_unified_config
 
 # Importaciones condicionales para Deep Learning
@@ -92,8 +101,7 @@ class AnalysisWorker(QThread, LoggerMixin):
             pipeline_config = PipelineConfiguration(level=config_level)
             
             self.scientific_pipeline = ScientificPipeline(
-                config=pipeline_config,
-                enable_deep_learning=self.analysis_params.get('enable_deep_learning', False)
+                config=pipeline_config
             )
             
             self.progressUpdated.emit(10, "Configurando pipeline científico...")

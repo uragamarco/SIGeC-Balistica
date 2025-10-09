@@ -1001,6 +1001,179 @@ def cache_invalidate(pattern: str):
         return wrapper
     return decorator
 
+# ============================================================================
+# COMPATIBILIDAD CON MEMORY_CACHE.PY
+# ============================================================================
+
+@dataclass
+class CacheStats:
+    """Estadísticas del caché (compatibilidad con memory_cache)"""
+    hits: int = 0
+    misses: int = 0
+    evictions: int = 0
+    memory_usage_mb: float = 0.0
+    total_items: int = 0
+    
+    @property
+    def hit_rate(self) -> float:
+        total = self.hits + self.misses
+        return self.hits / total if total > 0 else 0.0
+
+class MemoryCache:
+    """
+    Clase de compatibilidad que envuelve IntelligentCache
+    para mantener la API simple de memory_cache.py
+    """
+    
+    def __init__(self, 
+                 max_size: int = 1000,
+                 max_memory_mb: float = 500.0,
+                 default_ttl: Optional[float] = 3600.0,
+                 cleanup_interval: float = 300.0,
+                 memory_threshold: float = 0.8):
+        """Inicializa el caché con compatibilidad memory_cache"""
+        
+        config = {
+            'max_entries': max_size,
+            'max_memory_mb': max_memory_mb,
+            'default_ttl': default_ttl,
+            'cleanup_interval': cleanup_interval,
+            'strategy': 'lru',  # Usar LRU para compatibilidad
+            'compression': 'none',  # Sin compresión por defecto
+            'enable_disk_cache': False  # Solo memoria por defecto
+        }
+        
+        self._intelligent_cache = IntelligentCache(config)
+        self.max_size = max_size
+        self.max_memory_mb = max_memory_mb
+        self.default_ttl = default_ttl
+    
+    def put(self, key: Union[str, tuple, Any], value: Any, ttl: Optional[float] = None) -> bool:
+        """Almacenar valor (compatibilidad)"""
+        key_str = self._generate_key(key)
+        return self._intelligent_cache.set(key_str, value, ttl=ttl)
+    
+    def get(self, key: Union[str, tuple, Any]) -> Optional[Any]:
+        """Obtener valor (compatibilidad)"""
+        key_str = self._generate_key(key)
+        return self._intelligent_cache.get(key_str)
+    
+    def get_or_compute(self, key: Union[str, tuple, Any], 
+                      compute_func: Callable[[], Any],
+                      ttl: Optional[float] = None) -> Any:
+        """Obtener o computar valor (compatibilidad)"""
+        key_str = self._generate_key(key)
+        result = self._intelligent_cache.get(key_str)
+        
+        if result is None:
+            result = compute_func()
+            self._intelligent_cache.set(key_str, result, ttl=ttl)
+        
+        return result
+    
+    def invalidate(self, key: Union[str, tuple, Any]) -> bool:
+        """Invalidar clave (compatibilidad)"""
+        key_str = self._generate_key(key)
+        return self._intelligent_cache.invalidate(key_str)
+    
+    def clear(self):
+        """Limpiar caché (compatibilidad)"""
+        self._intelligent_cache.clear()
+    
+    def size(self) -> int:
+        """Obtener tamaño del caché"""
+        stats = self._intelligent_cache.get_stats()
+        return stats.entry_count
+    
+    def get_stats(self) -> CacheStats:
+        """Obtener estadísticas (compatibilidad)"""
+        intelligent_stats = self._intelligent_cache.get_stats()
+        
+        return CacheStats(
+            hits=intelligent_stats.hits,
+            misses=intelligent_stats.misses,
+            evictions=intelligent_stats.evictions,
+            memory_usage_mb=intelligent_stats.size_bytes / (1024 * 1024),
+            total_items=intelligent_stats.entry_count
+        )
+    
+    def shutdown(self):
+        """Cerrar caché (compatibilidad)"""
+        self._intelligent_cache.shutdown()
+    
+    def _generate_key(self, key: Union[str, tuple, Any]) -> str:
+        """Generar clave string (compatibilidad)"""
+        if isinstance(key, str):
+            return key
+        elif isinstance(key, (tuple, list)):
+            return hashlib.md5(str(key).encode()).hexdigest()
+        else:
+            return hashlib.md5(str(key).encode()).hexdigest()
+
+# Variables globales para compatibilidad
+_global_cache: Optional[MemoryCache] = None
+_cache_lock = threading.Lock()
+
+def get_global_cache() -> MemoryCache:
+    """Obtener instancia global del caché (compatibilidad)"""
+    global _global_cache
+    if _global_cache is None:
+        with _cache_lock:
+            if _global_cache is None:
+                _global_cache = MemoryCache()
+    return _global_cache
+
+def cache_features(func: Callable) -> Callable:
+    """Decorador para cachear características (compatibilidad)"""
+    def wrapper(*args, **kwargs):
+        cache_key = (func.__name__, args, tuple(sorted(kwargs.items())))
+        
+        cache = get_global_cache()
+        return cache.get_or_compute(
+            cache_key,
+            lambda: func(*args, **kwargs),
+            ttl=1800  # 30 minutos para características
+        )
+    
+    return wrapper
+
+def cache_matches(func: Callable) -> Callable:
+    """Decorador para cachear resultados de matching (compatibilidad)"""
+    def wrapper(*args, **kwargs):
+        cache_key = (func.__name__, args, tuple(sorted(kwargs.items())))
+        
+        cache = get_global_cache()
+        return cache.get_or_compute(
+            cache_key,
+            lambda: func(*args, **kwargs),
+            ttl=900  # 15 minutos para matches
+        )
+    
+    return wrapper
+
+def clear_cache():
+    """Limpiar caché global (compatibilidad)"""
+    cache = get_global_cache()
+    cache.clear()
+
+def get_cache_stats() -> CacheStats:
+    """Obtener estadísticas del caché global (compatibilidad)"""
+    cache = get_global_cache()
+    return cache.get_stats()
+
+def configure_cache(max_size: int = 1000, max_memory_mb: float = 500.0):
+    """Configurar caché global (compatibilidad)"""
+    global _global_cache
+    with _cache_lock:
+        if _global_cache is not None:
+            _global_cache.shutdown()
+        _global_cache = MemoryCache(
+            max_size=max_size,
+            max_memory_mb=max_memory_mb
+        )
+
+# ============================================================================
+
 if __name__ == "__main__":
     # Ejemplo de uso
     cache = initialize_cache({
@@ -1032,3 +1205,11 @@ if __name__ == "__main__":
     
     # Cerrar
     cache.shutdown()
+    
+    # Ejemplo de compatibilidad con memory_cache
+    print("\n--- Prueba de compatibilidad ---")
+    memory_cache = MemoryCache(max_size=100)
+    memory_cache.put("test", "value")
+    print(f"Valor recuperado: {memory_cache.get('test')}")
+    print(f"Estadísticas: {memory_cache.get_stats()}")
+    memory_cache.shutdown()

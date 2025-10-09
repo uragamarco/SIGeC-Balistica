@@ -16,7 +16,7 @@ from datetime import datetime
 class TestOrganizer:
     """Organizador de archivos de prueba"""
     
-    def __init__(self, root_dir: str = "/home/marco/SIGeC-Balistica"):
+    def __init__(self, root_dir: str = "get_project_root()"):
         self.root_dir = Path(root_dir)
         self.tests_dir = self.root_dir / "tests"
         self.backup_dir = self.root_dir / "test_backup" / datetime.now().strftime("%Y%m%d_%H%M%S")
