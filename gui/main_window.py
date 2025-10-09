@@ -92,18 +92,22 @@ class MainWindow(QMainWindow):
         self.tab_widget = QTabWidget()
         self.tab_widget.setProperty("class", "main-tabs")
         
-        # Importar pestañas reales
+        # Importar pestañas
         try:
             from .analysis_tab import AnalysisTab
             from .comparison_tab import ComparisonTab
             from .database_tab import DatabaseTab
             from .reports_tab import ReportsTab
+            from .assisted_alignment import AssistedAlignmentWidget
+            from .statistical_visualizations_tab import StatisticalVisualizationsTab
             
             # Crear pestañas reales
             self.analysis_tab = AnalysisTab()
             self.comparison_tab = ComparisonTab()
             self.database_tab = DatabaseTab()
             self.reports_tab = ReportsTab()
+            self.alignment_tab = AssistedAlignmentWidget()
+            self.statistical_visualizations_tab = StatisticalVisualizationsTab()
             
         except ImportError as e:
             print(f"Error importando pestañas: {e}")
@@ -131,12 +135,23 @@ class MainWindow(QMainWindow):
                 "Generar reportes profesionales de análisis",
                 "📊"
             )
+            
+            self.alignment_tab = self.create_placeholder_tab(
+                "Alineación Asistida",
+                "Alinear manualmente imágenes usando puntos de correspondencia",
+                "🎯"
+            )
         
         # Añadir pestañas
         self.tab_widget.addTab(self.analysis_tab, "🔍 Análisis")
         self.tab_widget.addTab(self.comparison_tab, "⚖️ Comparación")
         self.tab_widget.addTab(self.database_tab, "🗄️ Base de Datos")
         self.tab_widget.addTab(self.reports_tab, "📊 Reportes")
+        self.tab_widget.addTab(self.alignment_tab, "🎯 Alineación")
+        
+        # Agregar pestaña de visualizaciones estadísticas si está disponible
+        if hasattr(self, 'statistical_visualizations_tab'):
+            self.tab_widget.addTab(self.statistical_visualizations_tab, "📈 Estadísticas")
         
         # Conectar cambio de pestaña
         self.tab_widget.currentChanged.connect(self.on_tab_changed)

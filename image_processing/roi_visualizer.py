@@ -121,9 +121,6 @@ class ROIVisualizer(LoggerMixin):
         """
         Genera visualización general de todas las ROI
         """
-        # Configurar matplotlib para usar backend no interactivo
-        plt.switch_backend('Agg')
-        
         fig, ax = plt.subplots(1, 1, figsize=(12, 8))
         
         # Verificar que ax es un objeto Axes válido
@@ -182,30 +179,40 @@ class ROIVisualizer(LoggerMixin):
             rows = (n_methods + cols - 1) // cols
             
             fig, axes = plt.subplots(rows, cols, figsize=(6*cols, 4*rows))
+            
+            # Normalizar axes a una lista para manejo consistente
             if n_methods == 1:
                 axes = [axes]
-            elif rows == 1:
-                axes = [axes]
+            elif rows == 1 and cols > 1:
+                axes = list(axes)
+            elif rows > 1 and cols == 1:
+                axes = list(axes)
             else:
                 axes = axes.flatten()
             
             for idx, (method, rois) in enumerate(roi_by_method.items()):
-                ax = axes[idx] if n_methods > 1 else axes[0]
+                current_ax = axes[idx]
+                
+                # Verificar que current_ax es un objeto Axes válido
+                if not hasattr(current_ax, 'imshow'):
+                    self.logger.error(f"Error: axes[{idx}] no es un objeto matplotlib Axes válido")
+                    continue
                 
                 # Mostrar imagen
-                ax.imshow(image)
-                ax.set_title(f'{method.replace("_", " ").title()}\n'
+                current_ax.imshow(image)
+                current_ax.set_title(f'{method.replace("_", " ").title()}\n'
                            f'{len(rois)} regiones', fontweight='bold')
                 
                 # Dibujar ROI de este método
                 for i, roi in enumerate(rois):
-                    self._draw_roi_region(ax, roi, i, method)
+                    self._draw_roi_region(current_ax, roi, i, method)
                 
-                ax.axis('off')
+                current_ax.axis('off')
             
             # Ocultar subplots vacíos
             for idx in range(n_methods, len(axes)):
-                axes[idx].axis('off')
+                if hasattr(axes[idx], 'axis'):
+                    axes[idx].axis('off')
         
         plt.tight_layout()
         
@@ -300,34 +307,44 @@ class ROIVisualizer(LoggerMixin):
             rows = (n_rois + cols - 1) // cols
             
             fig, axes = plt.subplots(rows, cols, figsize=(4*cols, 3*rows))
-            if n_rois == 1:
-                axes = [axes]
-            elif rows == 1:
-                axes = [axes]
+            
+            # Manejar consistentemente los axes independientemente del número
+            if rows == 1 and cols == 1:
+                # Un solo subplot
+                axes_list = [axes]
+            elif rows == 1 or cols == 1:
+                # Una fila o una columna - asegurar que sea una lista
+                axes_list = axes.flatten() if hasattr(axes, 'flatten') else [axes]
             else:
-                axes = axes.flatten()
+                # Múltiples filas y columnas
+                axes_list = axes.flatten()
             
             for i, roi in enumerate(roi_regions):
-                ax = axes[i] if n_rois > 1 else axes[0]
+                current_ax = axes_list[i]
+                
+                # Verificar que current_ax es un objeto Axes válido
+                if not hasattr(current_ax, 'imshow'):
+                    self.logger.error(f"Error: axes[{i}] no es un objeto matplotlib Axes válido")
+                    continue
                 
                 # Extraer región de la imagen
                 roi_image = self._extract_roi_region(image, roi)
                 
                 if roi_image is not None:
-                    ax.imshow(roi_image)
+                    current_ax.imshow(roi_image)
                     method = roi.get('detection_method', 'unknown')
                     confidence = roi.get('confidence', 0.0)
-                    ax.set_title(f'ROI {i+1}\n{method}\nConf: {confidence:.3f}', 
+                    current_ax.set_title(f'ROI {i+1}\n{method}\nConf: {confidence:.3f}', 
                                fontsize=10)
                 else:
-                    ax.text(0.5, 0.5, f'ROI {i+1}\nError', 
+                    current_ax.text(0.5, 0.5, f'ROI {i+1}\nError', 
                            ha='center', va='center')
                 
-                ax.axis('off')
+                current_ax.axis('off')
             
             # Ocultar subplots vacíos
-            for i in range(n_rois, len(axes)):
-                axes[i].axis('off')
+            for i in range(n_rois, len(axes_list)):
+                axes_list[i].axis('off')
         
         plt.tight_layout()
         
@@ -344,7 +361,19 @@ class ROIVisualizer(LoggerMixin):
         """
         Genera mapa de calor de confianza de las ROI
         """
-        fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(16, 6))
+        fig, axes = plt.subplots(1, 2, figsize=(16, 6))
+        
+        # Asegurar que tenemos dos axes válidos
+        if not hasattr(axes, '__len__') or len(axes) != 2:
+            self.logger.error("Error: no se pudieron crear dos subplots")
+            raise ValueError("Error en la creación de subplots para mapa de calor")
+        
+        ax1, ax2 = axes[0], axes[1]
+        
+        # Verificar que ambos axes son objetos Axes válidos
+        if not hasattr(ax1, 'imshow') or not hasattr(ax2, 'imshow'):
+            self.logger.error("Error: axes no son objetos matplotlib Axes válidos")
+            raise ValueError("Error en la creación de axes matplotlib")
         
         # Imagen original
         ax1.imshow(image)

@@ -390,6 +390,63 @@ class UnifiedPreprocessor(LoggerMixin):
         if not SKIMAGE_AVAILABLE:
             self.logger.warning("scikit-image no disponible - algunas funciones pueden estar limitadas")
     
+    def load_image(self, image_path: str) -> Optional[np.ndarray]:
+        """
+        Cargar imagen desde archivo
+        
+        Args:
+            image_path: Ruta al archivo de imagen
+            
+        Returns:
+            np.ndarray: Imagen cargada o None si hay error
+        """
+        try:
+            if not os.path.exists(image_path):
+                self.logger.error(f"Archivo de imagen no encontrado: {image_path}")
+                return None
+            
+            # Cargar imagen usando OpenCV
+            image = cv2.imread(image_path)
+            
+            if image is None:
+                self.logger.error(f"No se pudo cargar la imagen: {image_path}")
+                return None
+            
+            self.logger.info(f"Imagen cargada exitosamente: {image_path} - Shape: {image.shape}")
+            return image
+            
+        except Exception as e:
+            self.logger.error(f"Error cargando imagen {image_path}: {str(e)}")
+            return None
+    
+    def convert_to_grayscale(self, image: np.ndarray) -> np.ndarray:
+        """
+        Convertir imagen a escala de grises
+        
+        Args:
+            image: Imagen de entrada (BGR o ya en escala de grises)
+            
+        Returns:
+            Imagen en escala de grises
+        """
+        try:
+            if len(image.shape) == 3:
+                # Imagen en color, convertir a escala de grises
+                gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+                self.logger.info("Imagen convertida a escala de grises")
+                return gray
+            elif len(image.shape) == 2:
+                # Ya está en escala de grises
+                self.logger.info("Imagen ya está en escala de grises")
+                return image
+            else:
+                raise ValueError(f"Formato de imagen no soportado: {image.shape}")
+                
+        except Exception as e:
+            self.logger.error(f"Error al convertir imagen a escala de grises: {str(e)}")
+            # Retornar imagen original en caso de error
+            return image
+    
     def _save_intermediate_step(self, image: np.ndarray, step_name: str, 
                                intermediate_images: Dict[str, np.ndarray],
                                visualization_paths: Dict[str, str]) -> None:
@@ -768,6 +825,18 @@ class UnifiedPreprocessor(LoggerMixin):
         
         return processed, calibration_data, nist_compliance_report
     
+    def correct_illumination(self, image: np.ndarray) -> np.ndarray:
+        """
+        Método público para corrección de iluminación
+        
+        Args:
+            image: Imagen a corregir
+            
+        Returns:
+            Imagen con iluminación corregida
+        """
+        return self._correct_illumination(image)
+    
     def _correct_illumination(self, image: np.ndarray) -> np.ndarray:
         """
         Corrección de iluminación completa según estándares NIST
@@ -963,6 +1032,10 @@ class UnifiedPreprocessor(LoggerMixin):
         except Exception as e:
             self.logger.error(f"Error calculando uniformidad: {e}")
             return 0.0
+    
+    def reduce_noise(self, image: np.ndarray) -> np.ndarray:
+        """Método público para reducir ruido usando filtro bilateral con aceleración GPU"""
+        return self._reduce_noise(image)
     
     def _reduce_noise(self, image: np.ndarray) -> np.ndarray:
         """Reducir ruido usando filtro bilateral con aceleración GPU"""
@@ -1195,3 +1268,111 @@ class UnifiedPreprocessor(LoggerMixin):
             'average_processing_time': self.processing_stats['average_processing_time'],
             'compliance_status': 'GOOD' if compliant_rate >= 0.8 else 'NEEDS_IMPROVEMENT'
         }
+    
+    def get_image_info(self, image_path: str) -> Dict[str, Any]:
+        """
+        Obtiene información detallada de una imagen sin procesarla completamente
+        
+        Args:
+            image_path: Ruta de la imagen
+            
+        Returns:
+            Diccionario con información de la imagen
+        """
+        try:
+            # Verificar que el archivo existe
+            if not os.path.exists(image_path):
+                raise FileNotFoundError(f"Archivo no encontrado: {image_path}")
+            
+            # Obtener información básica del archivo
+            file_stat = os.stat(image_path)
+            
+            # Cargar imagen para obtener dimensiones y formato
+            from PIL import Image
+            with Image.open(image_path) as img:
+                width, height = img.size
+                format_name = img.format or 'Unknown'
+                mode = img.mode
+                
+                # Determinar número de canales
+                channels = len(img.getbands()) if hasattr(img, 'getbands') else 3
+                
+                # Obtener información de color
+                color_space = mode
+                if mode == 'RGB':
+                    color_space = 'RGB'
+                elif mode == 'RGBA':
+                    color_space = 'RGBA'
+                elif mode == 'L':
+                    color_space = 'Grayscale'
+                elif mode == 'CMYK':
+                    color_space = 'CMYK'
+                
+                # Obtener DPI si está disponible
+                dpi = img.info.get('dpi', (72, 72))
+                
+                # Calcular puntuación de calidad básica
+                quality_score = self._calculate_basic_quality_score(width, height, file_stat.st_size)
+            
+            return {
+                'width': width,
+                'height': height,
+                'format': format_name,
+                'channels': channels,
+                'color_space': color_space,
+                'file_size': file_stat.st_size,
+                'dpi': dpi,
+                'quality_score': quality_score,
+                'last_modified': file_stat.st_mtime,
+                'path': image_path
+            }
+            
+        except Exception as e:
+            self.logger.error(f"Error obteniendo información de imagen {image_path}: {e}")
+            return {
+                'width': 0,
+                'height': 0,
+                'format': 'Unknown',
+                'channels': 3,
+                'color_space': 'Unknown',
+                'file_size': 0,
+                'dpi': (72, 72),
+                'quality_score': 0.0,
+                'error': str(e)
+            }
+    
+    def _calculate_basic_quality_score(self, width: int, height: int, file_size: int) -> float:
+        """
+        Calcula una puntuación básica de calidad basada en dimensiones y tamaño de archivo
+        
+        Args:
+            width: Ancho de la imagen
+            height: Alto de la imagen
+            file_size: Tamaño del archivo en bytes
+            
+        Returns:
+            Puntuación de calidad entre 0.0 y 1.0
+        """
+        try:
+            # Calcular resolución total
+            total_pixels = width * height
+            
+            # Puntuación basada en resolución (normalizada)
+            resolution_score = min(total_pixels / (2048 * 2048), 1.0)  # Normalizar a 2048x2048
+            
+            # Puntuación basada en tamaño de archivo (bytes por pixel)
+            if total_pixels > 0:
+                bytes_per_pixel = file_size / total_pixels
+                # Asumir que 3-4 bytes por pixel es óptimo para imágenes de calidad
+                size_score = min(bytes_per_pixel / 4.0, 1.0)
+            else:
+                size_score = 0.0
+            
+            # Combinar puntuaciones
+            quality_score = (resolution_score * 0.6) + (size_score * 0.4)
+            
+            return min(max(quality_score, 0.0), 1.0)  # Asegurar rango [0, 1]
+            
+        except Exception as e:
+            self.logger.warning(f"Error calculando puntuación de calidad: {e}")
+            return 0.5  # Valor por defecto

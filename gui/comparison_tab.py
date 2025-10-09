@@ -58,6 +58,20 @@ try:
 except ImportError:
     DEEP_LEARNING_AVAILABLE = False
 
+# Importaciones para visualización estadística
+try:
+    from image_processing.statistical_visualizer import StatisticalVisualizer
+    from common.statistical_core import StatisticalAnalyzer
+    from gui.visualization_widgets import StatisticalVisualizationWidget
+    from gui.statistical_methods_extension import StatisticalMethodsExtension
+    STATISTICAL_VISUALIZATIONS_AVAILABLE = True
+except ImportError:
+    STATISTICAL_VISUALIZATIONS_AVAILABLE = False
+    # Crear una clase base vacía si StatisticalMethodsExtension no está disponible
+    class StatisticalMethodsExtension:
+        """Clase base vacía para cuando las extensiones estadísticas no están disponibles"""
+        pass
+
 class BallisticComparisonWorker(QThread):
     """Worker thread especializado para comparaciones balísticas con pipeline unificado"""
     
@@ -103,8 +117,20 @@ class BallisticComparisonWorker(QThread):
             use_deep_learning = self.comparison_params.get('use_deep_learning', False)
             enable_nist_validation = self.comparison_params.get('enable_nist_validation', True)
             
-            if not img1_path or not img2_path:
-                self.comparisonError.emit("Rutas de imágenes no válidas")
+            # Validación robusta de rutas de imagen
+            if not img1_path or not isinstance(img1_path, str) or not img1_path.strip():
+                self.comparisonError.emit("Ruta de imagen A no válida o vacía")
+                return
+            if not img2_path or not isinstance(img2_path, str) or not img2_path.strip():
+                self.comparisonError.emit("Ruta de imagen B no válida o vacía")
+                return
+                
+            # Verificar que los archivos existan
+            if not os.path.exists(img1_path):
+                self.comparisonError.emit(f"No se encuentra el archivo de imagen A: {img1_path}")
+                return
+            if not os.path.exists(img2_path):
+                self.comparisonError.emit(f"No se encuentra el archivo de imagen B: {img2_path}")
                 return
             
             self.progressUpdated.emit(10, "Inicializando pipeline científico unificado...")
@@ -596,6 +622,15 @@ class CMCVisualizationWidget(QWidget):
         super().__init__()
         self.cmc_data = None
         
+        # Crear query_image_viewer si no existe
+        try:
+            from .image_viewer import ImageViewer
+            self.query_image_viewer = ImageViewer()
+        except ImportError:
+            # Fallback a QLabel si ImageViewer no está disponible
+            from PyQt5.QtWidgets import QLabel
+            self.query_image_viewer = QLabel("Image Viewer")
+        
         self.setup_ui()
         self.setup_connections()
         
@@ -655,7 +690,7 @@ class CMCVisualizationWidget(QWidget):
         painter.end()
         self.visualization_area.setPixmap(pixmap)
 
-class ComparisonTab(QWidget):
+class ComparisonTab(QWidget, StatisticalMethodsExtension):
     """Pestaña de análisis comparativo balístico especializada"""
     
     comparisonCompleted = pyqtSignal(dict)
@@ -669,9 +704,6 @@ class ComparisonTab(QWidget):
         
         # Navigation state variables
         self.current_step = 0
-        
-        # Inicializar widgets faltantes para evitar AttributeError
-        self.cmc_visualization = CMCVisualizationWidget()
         
         # Inicializar ballistic_features_text
         self.ballistic_features_text = QTextEdit()
@@ -1519,7 +1551,22 @@ class ComparisonTab(QWidget):
         
         self.results_tabs.addTab(heatmap_tab, " Mapa de Correlación")
         
-        # Tab 6: Conclusión AFTE
+        # Tab 6: Análisis Estadístico (NUEVO)
+        if STATISTICAL_VISUALIZATIONS_AVAILABLE:
+            statistical_tab = QWidget()
+            statistical_layout = QVBoxLayout(statistical_tab)
+            
+            # Widget de análisis estadístico
+            self.statistical_visualization = StatisticalVisualizationWidget()
+            statistical_layout.addWidget(self.statistical_visualization)
+            
+            # Panel de controles estadísticos
+            stats_controls = self.create_statistical_controls_panel()
+            statistical_layout.addWidget(stats_controls)
+            
+            self.results_tabs.addTab(statistical_tab, "📊 Análisis Estadístico")
+        
+        # Tab 7: Conclusión AFTE
         conclusion_tab = QWidget()
         conclusion_layout = QVBoxLayout(conclusion_tab)
         
@@ -1527,8 +1574,6 @@ class ComparisonTab(QWidget):
         conclusion_layout.addWidget(self.dynamic_results)
         
         self.results_tabs.addTab(conclusion_tab, " Conclusión AFTE")
-        
-        self.results_tabs.addTab(conclusion_tab, " Conclusión")
         
         layout.addWidget(self.results_tabs)
         
@@ -2167,11 +2212,35 @@ class ComparisonTab(QWidget):
     def on_evidence_a_loaded(self, image_path: str):
         """Maneja la carga de la evidencia A"""
         self.comparison_data['evidence_a'] = image_path
+        # Cargar imagen en el visor sincronizado si está disponible
+        if hasattr(self, 'synchronized_viewer') and self.synchronized_viewer:
+            pixmap_a = QPixmap(image_path)
+            if not pixmap_a.isNull():
+                # Si ya hay una imagen B cargada, actualizar ambas
+                if 'evidence_b' in self.comparison_data:
+                    pixmap_b = QPixmap(self.comparison_data['evidence_b'])
+                    if not pixmap_b.isNull():
+                        self.synchronized_viewer.set_images(pixmap_a, pixmap_b)
+                else:
+                    # Solo cargar imagen A por ahora
+                    self.synchronized_viewer.image1_label.set_image(pixmap_a)
         self.check_direct_ready()
         
     def on_evidence_b_loaded(self, image_path: str):
         """Maneja la carga de la evidencia B"""
         self.comparison_data['evidence_b'] = image_path
+        # Cargar imagen en el visor sincronizado si está disponible
+        if hasattr(self, 'synchronized_viewer') and self.synchronized_viewer:
+            pixmap_b = QPixmap(image_path)
+            if not pixmap_b.isNull():
+                # Si ya hay una imagen A cargada, actualizar ambas
+                if 'evidence_a' in self.comparison_data:
+                    pixmap_a = QPixmap(self.comparison_data['evidence_a'])
+                    if not pixmap_a.isNull():
+                        self.synchronized_viewer.set_images(pixmap_a, pixmap_b)
+                else:
+                    # Solo cargar imagen B por ahora
+                    self.synchronized_viewer.image2_label.set_image(pixmap_b)
         self.check_direct_ready()
         
     def on_query_evidence_loaded(self, image_path: str):
@@ -2205,18 +2274,36 @@ class ComparisonTab(QWidget):
                 self.case_data_group.setEnabled(True)
             if hasattr(self, 'processing_group'):
                 self.processing_group.setEnabled(True)
+            # Habilitar automáticamente el Paso 5: Configuración CMC y AFTE
+            if hasattr(self, 'ballistic_config_group'):
+                self.ballistic_config_group.setEnabled(True)
+            # Avanzar automáticamente al paso 4 para habilitar todos los controles
+            if self.current_step < 4:
+                self.current_step = 4
+                self.update_step_visibility()
+                self.update_navigation_buttons()
             
     def start_ballistic_comparison(self):
         """Inicia la comparación balística directa"""
         if self.comparison_worker and self.comparison_worker.isRunning():
             return
             
-        # Verificar que las imágenes estén cargadas
-        if not (hasattr(self, 'evidence_a_zone') and self.evidence_a_zone.image_path):
+        # Verificar que las imágenes estén cargadas y sean rutas válidas
+        if not (hasattr(self, 'evidence_a_zone') and self.evidence_a_zone.image_path and 
+                self.evidence_a_zone.image_path.strip()):
             QMessageBox.warning(self, "Error", "Debe cargar la imagen de evidencia A")
             return
-        if not (hasattr(self, 'evidence_b_zone') and self.evidence_b_zone.image_path):
+        if not (hasattr(self, 'evidence_b_zone') and self.evidence_b_zone.image_path and 
+                self.evidence_b_zone.image_path.strip()):
             QMessageBox.warning(self, "Error", "Debe cargar la imagen de evidencia B")
+            return
+            
+        # Verificar que los archivos existan
+        if not os.path.exists(self.evidence_a_zone.image_path):
+            QMessageBox.warning(self, "Error", f"No se encuentra el archivo de evidencia A: {self.evidence_a_zone.image_path}")
+            return
+        if not os.path.exists(self.evidence_b_zone.image_path):
+            QMessageBox.warning(self, "Error", f"No se encuentra el archivo de evidencia B: {self.evidence_b_zone.image_path}")
             return
             
         evidence_type_text = self.evidence_type_combo.currentText()
@@ -2629,7 +2716,7 @@ class ComparisonTab(QWidget):
             
         return "\n".join(text_parts) if text_parts else "No hay características disponibles"
     
-    def create_nist_validation_tab(self, results: dict) -> QWidget:
+    def create_nist_validation_tab(self, results: AnalysisResult) -> QWidget:
         """Crea la pestaña de validación NIST"""
         nist_widget = QWidget()
         nist_layout = QVBoxLayout(nist_widget)
@@ -2638,8 +2725,9 @@ class ComparisonTab(QWidget):
         quality_group = QGroupBox("Validación de Calidad de Imagen")
         quality_layout = QVBoxLayout(quality_group)
         
-        nist_data = results.get('nist_validation', {})
-        quality_metrics = nist_data.get('quality_metrics', {})
+        # Acceder a los atributos del objeto AnalysisResult
+        nist_data = getattr(results, 'nist_compliance', {}) or {}
+        quality_metrics = getattr(results, 'quality_metrics', {}) or {}
         
         # Tabla de métricas de calidad
         quality_table = QTableWidget()
@@ -2915,45 +3003,58 @@ class ComparisonTab(QWidget):
         if hasattr(self, 'evidence_selection_group'):
             self.evidence_selection_group.setEnabled(True)
         
-        # Paso 2: Datos del caso (habilitado desde paso 1)
+        # Paso 2: Datos del caso (habilitado desde paso 1 o cuando hay evidencias cargadas)
         if hasattr(self, 'case_data_group'):
-            self.case_data_group.setEnabled(self.current_step >= 1)
+            has_evidence = ('evidence_a' in self.comparison_data and 'evidence_b' in self.comparison_data)
+            self.case_data_group.setEnabled(self.current_step >= 1 or has_evidence)
         
-        # Paso 3: Metadatos NIST (habilitado desde paso 2)
+        # Paso 3: Metadatos NIST (habilitado desde paso 2 o cuando hay evidencias cargadas)
         if hasattr(self, 'nist_group'):
-            self.nist_group.setEnabled(self.current_step >= 2)
+            has_evidence = ('evidence_a' in self.comparison_data and 'evidence_b' in self.comparison_data)
+            self.nist_group.setEnabled(self.current_step >= 2 or has_evidence)
         
-        # Paso 4: Configuración de análisis (habilitado desde paso 3)
+        # Paso 4: Configuración de análisis (habilitado desde paso 3 o cuando hay evidencias cargadas)
         if hasattr(self, 'processing_group'):
-            self.processing_group.setEnabled(self.current_step >= 3)
+            has_evidence = ('evidence_a' in self.comparison_data and 'evidence_b' in self.comparison_data)
+            self.processing_group.setEnabled(self.current_step >= 3 or has_evidence)
         
-        # Paso 5: Configuración CMC y AFTE (habilitado desde paso 4)
+        # Paso 5: Configuración CMC y AFTE (habilitado desde paso 4 o cuando hay evidencias cargadas)
         if hasattr(self, 'ballistic_config_group'):
-            self.ballistic_config_group.setEnabled(self.current_step >= 4)
+            has_evidence = ('evidence_a' in self.comparison_data and 'evidence_b' in self.comparison_data)
+            self.ballistic_config_group.setEnabled(self.current_step >= 4 or has_evidence)
     
     def update_navigation_buttons(self):
         """Actualiza el estado de los botones de navegación"""
-        # Botón anterior: habilitado si no estamos en el primer paso
-        self.prev_button.setEnabled(self.current_step > 0)
+        # Verificar si hay evidencias cargadas para habilitar navegación libre
+        has_evidence = ('evidence_a' in self.comparison_data and 'evidence_b' in self.comparison_data) if hasattr(self, 'comparison_data') and self.comparison_data else False
+        has_query = hasattr(self, 'query_evidence_zone') and self.query_evidence_zone.image_path if hasattr(self, 'query_evidence_zone') else False
         
-        # Botón siguiente: habilitado según el paso actual y validaciones
-        if self.current_step == 0:
-            # Paso 0: Verificar que hay imágenes cargadas
-            if self.current_mode == 0:  # Modo directo
-                self.next_button.setEnabled(
-                    hasattr(self, 'evidence_a_zone') and self.evidence_a_zone.image_path and
-                    hasattr(self, 'evidence_b_zone') and self.evidence_b_zone.image_path
-                )
-            else:  # Modo búsqueda
-                self.next_button.setEnabled(
-                    hasattr(self, 'query_evidence_zone') and self.query_evidence_zone.image_path
-                )
-        elif self.current_step < 4:
-            # Pasos intermedios: siempre habilitado para avanzar
-            self.next_button.setEnabled(True)
+        # Si hay evidencias cargadas, permitir navegación libre
+        if has_evidence or has_query:
+            self.prev_button.setEnabled(self.current_step > 0)
+            self.next_button.setEnabled(self.current_step < 4)
         else:
-            # Último paso
-            self.next_button.setEnabled(False)
+            # Navegación secuencial estricta cuando no hay evidencias
+            self.prev_button.setEnabled(self.current_step > 0)
+            
+            # Botón siguiente: habilitado según el paso actual y validaciones
+            if self.current_step == 0:
+                # Paso 0: Verificar que hay imágenes cargadas
+                if self.current_mode == 0:  # Modo directo
+                    self.next_button.setEnabled(
+                        hasattr(self, 'evidence_a_zone') and self.evidence_a_zone.image_path and
+                        hasattr(self, 'evidence_b_zone') and self.evidence_b_zone.image_path
+                    )
+                else:  # Modo búsqueda
+                    self.next_button.setEnabled(
+                        hasattr(self, 'query_evidence_zone') and self.query_evidence_zone.image_path
+                    )
+            elif self.current_step < 4:
+                # Pasos intermedios: siempre habilitado para avanzar
+                self.next_button.setEnabled(True)
+            else:
+                # Último paso
+                self.next_button.setEnabled(False)
     
     def reset_workflow(self):
         """Reinicia el flujo de trabajo completo"""

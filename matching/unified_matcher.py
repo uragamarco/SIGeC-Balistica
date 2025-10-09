@@ -422,7 +422,8 @@ class UnifiedMatcher(LoggerMixin):
                     "descriptors": None,
                     "num_keypoints": 0,
                     "keypoint_density": 0.0,
-                    "image_shape": processed.shape
+                    "image_shape": processed.shape,
+                    "original_image": image  # Incluir imagen original para cálculo de quality score
                 }
             
             # Verificar que el algoritmo está disponible
@@ -501,7 +502,8 @@ class UnifiedMatcher(LoggerMixin):
                 "descriptors": descriptors,
                 "num_keypoints": len(keypoints),
                 "keypoint_density": density,
-                "image_shape": processed.shape
+                "image_shape": processed.shape,
+                "original_image": image  # Incluir imagen original para cálculo de quality score
             }
             
         except Exception as e:
@@ -1046,31 +1048,22 @@ class UnifiedMatcher(LoggerMixin):
                 
                 if matches_data:
                     # Calcular bootstrap con módulo unificado
-                    bootstrap_result = analyzer.calculate_bootstrap_confidence_interval(
+                    ci_lower, ci_upper, bootstrap_info_result = analyzer.analyze_bootstrap_confidence_interval(
                         matches_data, base_confidence, algorithm
                     )
                     
                     # Actualizar información bootstrap
-                    bootstrap_info.update({
-                        'confidence_interval_lower': bootstrap_result.confidence_interval[0],
-                        'confidence_interval_upper': bootstrap_result.confidence_interval[1],
-                        'confidence_interval_method': bootstrap_result.method,
-                        'bootstrap_samples': bootstrap_result.n_bootstrap,
-                        'bootstrap_confidence_level': bootstrap_result.confidence_level,
-                        'bootstrap_bias': bootstrap_result.bias,
-                        'bootstrap_std_error': bootstrap_result.standard_error,
-                        'bootstrap_used': True
-                    })
+                    bootstrap_info.update(bootstrap_info_result)
                     
                     # Usar el ancho del intervalo para ajustar la confianza
-                    ci_width = bootstrap_result.confidence_interval[1] - bootstrap_result.confidence_interval[0]
+                    ci_width = ci_upper - ci_lower
                     max_expected_width = 30.0
                     width_factor = max(0.8, min(1.2, 1.0 - (ci_width / max_expected_width) * 0.2))
                     bootstrap_confidence = base_confidence * width_factor
                     
                     self.logger.debug(f"Unified bootstrap confidence - "
                                     f"Base: {base_confidence:.2f}, "
-                                    f"CI: [{bootstrap_result.confidence_interval[0]:.2f}, {bootstrap_result.confidence_interval[1]:.2f}], "
+                                    f"CI: [{ci_lower:.2f}, {ci_upper:.2f}], "
                                     f"Final: {bootstrap_confidence:.2f}")
                     
                     return min(bootstrap_confidence, 100.0), bootstrap_info

@@ -494,60 +494,122 @@ class VectorDatabase(LoggerMixin):
     
     def add_case(self, case: BallisticCase) -> int:
         """Agrega un nuevo caso balístico"""
-        with self._get_connection() as conn:
-            cursor = conn.cursor()
+        try:
+            with self._get_connection() as conn:
+                cursor = conn.cursor()
+                
+                # Establecer timestamps
+                now = datetime.now().isoformat()
+                if not case.created_at:
+                    case.created_at = now
+                case.updated_at = now
+                
+                # Validar campos requeridos
+                if not case.case_number:
+                    raise ValueError("case_number es requerido")
+                if not case.investigator:
+                    raise ValueError("investigator es requerido")
+                if not case.date_created:
+                    case.date_created = now
+                
+                # Verificar si el case_number ya existe
+                cursor.execute("SELECT id FROM ballistic_cases WHERE case_number = ?", (case.case_number,))
+                if cursor.fetchone():
+                    # Generar un case_number único
+                    base_number = case.case_number
+                    counter = 1
+                    while True:
+                        new_case_number = f"{base_number}_{counter}"
+                        cursor.execute("SELECT id FROM ballistic_cases WHERE case_number = ?", (new_case_number,))
+                        if not cursor.fetchone():
+                            case.case_number = new_case_number
+                            break
+                        counter += 1
+                
+                cursor.execute("""
+                    INSERT INTO ballistic_cases 
+                    (case_number, investigator, date_created, weapon_type, weapon_model, 
+                     caliber, description, status, created_at, updated_at)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """, (
+                    case.case_number, case.investigator, case.date_created,
+                    case.weapon_type, case.weapon_model, case.caliber,
+                    case.description, case.status, case.created_at, case.updated_at
+                ))
+                
+                case_id = cursor.lastrowid
+                conn.commit()
+                
+            self.logger.info(f"Caso agregado (ID: {case_id}, Número: {case.case_number})")
+            return case_id
             
-            # Establecer timestamps
-            now = datetime.now().isoformat()
-            if not case.created_at:
-                case.created_at = now
-            case.updated_at = now
-            
-            cursor.execute("""
-                INSERT INTO ballistic_cases 
-                (case_number, investigator, date_created, weapon_type, weapon_model, 
-                 caliber, description, status, created_at, updated_at)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            """, (
-                case.case_number, case.investigator, case.date_created,
-                case.weapon_type, case.weapon_model, case.caliber,
-                case.description, case.status, case.created_at, case.updated_at
-            ))
-            
-            case_id = cursor.lastrowid
-            conn.commit()
-            
-        self.logger.info(f"Caso agregado (ID: {case_id}, Número: {case.case_number})")
-        return case_id
+        except sqlite3.IntegrityError as e:
+            self.logger.error(f"Error de integridad al agregar caso: {e}")
+            raise ValueError(f"Error de integridad en base de datos: {e}")
+        except Exception as e:
+            self.logger.error(f"Error al agregar caso: {e}")
+            raise
     
     def add_image(self, image: BallisticImage) -> int:
         """Agrega una nueva imagen balística"""
-        with self._get_connection() as conn:
-            cursor = conn.cursor()
+        try:
+            with self._get_connection() as conn:
+                cursor = conn.cursor()
+                
+                # Establecer timestamp
+                now = datetime.now().isoformat()
+                if not image.created_at:
+                    image.created_at = now
+                if not image.date_added:
+                    image.date_added = now
+                
+                # Validar campos requeridos
+                if not image.case_id:
+                    raise ValueError("case_id es requerido")
+                if not image.filename:
+                    raise ValueError("filename es requerido")
+                if not image.file_path:
+                    raise ValueError("file_path es requerido")
+                if not image.evidence_type:
+                    raise ValueError("evidence_type es requerido")
+                
+                # Verificar que el caso existe
+                cursor.execute("SELECT id FROM ballistic_cases WHERE id = ?", (image.case_id,))
+                if not cursor.fetchone():
+                    raise ValueError(f"El caso con ID {image.case_id} no existe")
+                
+                # Manejar image_hash duplicado
+                if image.image_hash:
+                    cursor.execute("SELECT id FROM ballistic_images WHERE image_hash = ?", (image.image_hash,))
+                    if cursor.fetchone():
+                        # Generar un hash único agregando timestamp
+                        import hashlib
+                        unique_suffix = hashlib.md5(now.encode()).hexdigest()[:8]
+                        image.image_hash = f"{image.image_hash}_{unique_suffix}"
+                
+                cursor.execute("""
+                    INSERT INTO ballistic_images 
+                    (case_id, filename, file_path, evidence_type, image_hash, 
+                     width, height, file_size, date_added, processed, feature_vector_id, created_at)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """, (
+                    image.case_id, image.filename, image.file_path, image.evidence_type,
+                    image.image_hash, image.width, image.height, image.file_size,
+                    image.date_added, image.processed, image.feature_vector_id, image.created_at
+                ))
+                
+                image_id = cursor.lastrowid
+                conn.commit()
+                
+            self.logger.info(f"Imagen agregada (ID: {image_id}, Archivo: {image.filename})")
+            return image_id
             
-            # Establecer timestamp
-            now = datetime.now().isoformat()
-            if not image.created_at:
-                image.created_at = now
-            if not image.date_added:
-                image.date_added = now
-            
-            cursor.execute("""
-                INSERT INTO ballistic_images 
-                (case_id, filename, file_path, evidence_type, image_hash, 
-                 width, height, file_size, date_added, processed, feature_vector_id, created_at)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            """, (
-                image.case_id, image.filename, image.file_path, image.evidence_type,
-                image.image_hash, image.width, image.height, image.file_size,
-                image.date_added, image.processed, image.feature_vector_id, image.created_at
-            ))
-            
-            image_id = cursor.lastrowid
-            conn.commit()
-            
-        self.logger.info(f"Imagen agregada (ID: {image_id}, Archivo: {image.filename})")
-        return image_id
+        except sqlite3.IntegrityError as e:
+            self.logger.error(f"Error de integridad al agregar imagen: {e}")
+            raise ValueError(f"Error de integridad en base de datos: {e}")
+        except Exception as e:
+            self.logger.error(f"Error al agregar imagen: {e}")
+            raise
 
     def add_cases_batch(self, cases: List[BallisticCase]) -> List[int]:
         """Agrega múltiples casos en una transacción"""

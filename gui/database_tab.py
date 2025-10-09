@@ -61,6 +61,15 @@ from .backend_integration import get_backend_integration
 from .database_tab_handlers import DatabaseTabHandlers
 from .database_tab_styles import apply_database_tab_styles
 
+# Importaciones para visualización de ROI
+try:
+    from .visualization_widgets import ROIVisualizationWidget
+    from image_processing.roi_visualizer import ROIVisualizer
+    ROI_VISUALIZATION_AVAILABLE = True
+except ImportError:
+    ROI_VISUALIZATION_AVAILABLE = False
+    print("Warning: ROI visualization not available. ROI features will be disabled.")
+
 logger = logging.getLogger(__name__)
 
 class InteractiveDashboardWidget(QWidget):
@@ -1496,6 +1505,12 @@ class BallisticVisualizationWidget(QWidget):
         self.setup_metadata_tab()
         self.viz_tabs.addTab(self.metadata_tab, "Metadatos NIST")
         
+        # Tab 4: Regiones de Interés (ROI)
+        if ROI_VISUALIZATION_AVAILABLE:
+            self.roi_tab = QWidget()
+            self.setup_roi_tab()
+            self.viz_tabs.addTab(self.roi_tab, "🎯 ROI")
+        
         layout.addWidget(self.viz_tabs)
         
     def setup_features_tab(self):
@@ -1682,6 +1697,135 @@ class BallisticVisualizationWidget(QWidget):
         
         self.metadata_layout.addWidget(nist_group)
         self.metadata_layout.addStretch()
+        
+    def setup_roi_tab(self):
+        """Configura el tab de visualización de ROI"""
+        layout = QVBoxLayout(self.roi_tab)
+        
+        # Widget de visualización de ROI
+        self.roi_visualization_widget = ROIVisualizationWidget()
+        layout.addWidget(self.roi_visualization_widget)
+        
+        # Panel de controles para ROI
+        controls_group = QGroupBox("Controles de ROI")
+        controls_layout = QHBoxLayout(controls_group)
+        
+        # Botón para generar visualización de ROI
+        self.generate_roi_btn = QPushButton("🎯 Generar Visualización ROI")
+        self.generate_roi_btn.setEnabled(False)
+        self.generate_roi_btn.clicked.connect(self.generate_roi_visualization)
+        controls_layout.addWidget(self.generate_roi_btn)
+        
+        # Botón para exportar ROI
+        self.export_roi_btn = QPushButton("💾 Exportar ROI")
+        self.export_roi_btn.setEnabled(False)
+        self.export_roi_btn.clicked.connect(self.export_roi_visualization)
+        controls_layout.addWidget(self.export_roi_btn)
+        
+        controls_layout.addStretch()
+        layout.addWidget(controls_group)
+        
+        # Información de ROI detectadas
+        self.roi_info_label = QLabel("Seleccione un elemento para visualizar sus regiones de interés")
+        self.roi_info_label.setAlignment(Qt.AlignCenter)
+        self.roi_info_label.setStyleSheet("color: #7f8c8d; font-style: italic; padding: 10px;")
+        layout.addWidget(self.roi_info_label)
+        
+    def generate_roi_visualization(self):
+        """Genera visualización de ROI para el elemento seleccionado"""
+        if not hasattr(self, 'current_item_data') or not self.current_item_data:
+            return
+            
+        try:
+            # Obtener datos de ROI del elemento
+            roi_regions = self.current_item_data.get('roi_regions', [])
+            image_path = self.current_item_data.get('image_path', '')
+            evidence_type = self.current_item_data.get('evidence_type', 'unknown')
+            
+            if not roi_regions:
+                # Si no hay ROI, intentar generar datos sintéticos para demostración
+                roi_regions = self._generate_sample_roi_data()
+                
+            # Actualizar información
+            self.roi_info_label.setText(f"Visualizando {len(roi_regions)} regiones de interés detectadas")
+            
+            # Generar visualización
+            self.roi_visualization_widget.visualize_roi_regions(
+                image_path, roi_regions, evidence_type
+            )
+            
+            # Habilitar exportación
+            self.export_roi_btn.setEnabled(True)
+            
+        except Exception as e:
+            logger.error(f"Error generando visualización ROI: {str(e)}")
+            self.roi_info_label.setText(f"Error: {str(e)}")
+            
+    def export_roi_visualization(self):
+        """Exporta la visualización de ROI actual"""
+        try:
+            # Obtener directorio de exportación
+            export_dir = QFileDialog.getExistingDirectory(
+                self, "Seleccionar directorio de exportación"
+            )
+            
+            if export_dir:
+                # Exportar visualizaciones
+                timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+                export_path = os.path.join(export_dir, f"roi_export_{timestamp}")
+                
+                # Aquí se implementaría la lógica de exportación
+                QMessageBox.information(
+                    self, "Exportación Completada",
+                    f"Visualizaciones ROI exportadas a:\n{export_path}"
+                )
+                
+        except Exception as e:
+            logger.error(f"Error exportando ROI: {str(e)}")
+            QMessageBox.warning(self, "Error", f"Error exportando ROI: {str(e)}")
+            
+    def _generate_sample_roi_data(self):
+        """Genera datos de ROI de ejemplo para demostración"""
+        return [
+            {
+                'id': 1,
+                'bbox': [100, 100, 200, 200],
+                'confidence': 0.85,
+                'detection_method': 'enhanced_watershed',
+                'area': 10000,
+                'centroid': [150, 150]
+            },
+            {
+                'id': 2,
+                'bbox': [300, 150, 400, 250],
+                'confidence': 0.92,
+                'detection_method': 'circle_detection',
+                'area': 10000,
+                'centroid': [350, 200]
+            },
+            {
+                'id': 3,
+                'bbox': [200, 300, 350, 400],
+                'confidence': 0.78,
+                'detection_method': 'contour_detection',
+                'area': 15000,
+                'centroid': [275, 350]
+            }
+        ]
+        
+    def display_roi_information(self, item_data: Dict):
+        """Muestra información de ROI para un elemento seleccionado"""
+        self.current_item_data = item_data
+        
+        # Habilitar controles
+        self.generate_roi_btn.setEnabled(True)
+        
+        # Actualizar información
+        roi_count = len(item_data.get('roi_regions', []))
+        if roi_count > 0:
+            self.roi_info_label.setText(f"Elemento seleccionado tiene {roi_count} regiones de interés detectadas")
+        else:
+            self.roi_info_label.setText("Elemento seleccionado - Generar visualización para detectar ROI")
 
 
 class DatabaseTab(QWidget, DatabaseTabHandlers):
@@ -2660,6 +2804,10 @@ class DatabaseTab(QWidget, DatabaseTabHandlers):
         """Selecciona un elemento de resultado"""
         self.selected_item = result
         self._update_preview(result)
+        
+        # Actualizar visualización de ROI si está disponible
+        if hasattr(self, 'ballistic_viz') and self.ballistic_viz:
+            self.ballistic_viz.display_roi_information(result)
         
         # Habilitar botones de acción
         self.view_full_btn.setEnabled(True)

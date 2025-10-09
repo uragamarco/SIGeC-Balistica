@@ -407,7 +407,10 @@ class SynchronizedViewer(QWidget):
         
     def setup_ui(self):
         """Configura la interfaz principal"""
-        layout = QHBoxLayout(self)
+        main_layout = QVBoxLayout(self)
+        
+        # Layout superior para las imágenes
+        images_layout = QHBoxLayout()
         
         # Panel izquierdo - Primera imagen
         left_widget = QWidget()
@@ -421,60 +424,6 @@ class SynchronizedViewer(QWidget):
         
         left_panel.addWidget(self.image1_scroll)
         
-        # Panel central con controles
-        center_widget = QWidget()
-        center_panel = QVBoxLayout(center_widget)
-        center_widget.setMaximumWidth(200)
-        
-        # Controles de zoom
-        zoom_group = QGroupBox("Control de Zoom")
-        zoom_layout = QVBoxLayout(zoom_group)
-        
-        self.zoom_slider = QSlider(Qt.Vertical)
-        self.zoom_slider.setRange(10, 500)  # 0.1x a 5.0x
-        self.zoom_slider.setValue(100)  # 1.0x
-        self.zoom_slider.valueChanged.connect(self.on_zoom_changed)
-        
-        self.zoom_label = QLabel("100%")
-        self.zoom_label.setAlignment(Qt.AlignCenter)
-        
-        zoom_buttons_layout = QHBoxLayout()
-        self.zoom_in_btn = QPushButton("+")
-        self.zoom_out_btn = QPushButton("-")
-        self.zoom_reset_btn = QPushButton("Reset")
-        
-        self.zoom_in_btn.clicked.connect(lambda: self.adjust_zoom(10))
-        self.zoom_out_btn.clicked.connect(lambda: self.adjust_zoom(-10))
-        self.zoom_reset_btn.clicked.connect(self.reset_zoom)
-        
-        zoom_buttons_layout.addWidget(self.zoom_out_btn)
-        zoom_buttons_layout.addWidget(self.zoom_in_btn)
-        
-        zoom_layout.addWidget(self.zoom_label)
-        zoom_layout.addWidget(self.zoom_slider)
-        zoom_layout.addLayout(zoom_buttons_layout)
-        zoom_layout.addWidget(self.zoom_reset_btn)
-        
-        # Controles de sincronización
-        sync_group = QGroupBox("Sincronización")
-        sync_layout = QVBoxLayout(sync_group)
-        
-        self.sync_zoom_cb = QCheckBox("Sincronizar Zoom")
-        self.sync_pan_cb = QCheckBox("Sincronizar Panorámica")
-        self.mirror_cursor_cb = QCheckBox("Cursor Espejo")
-        
-        self.sync_zoom_cb.setChecked(True)
-        self.sync_pan_cb.setChecked(True)
-        self.mirror_cursor_cb.setChecked(True)
-        
-        sync_layout.addWidget(self.sync_zoom_cb)
-        sync_layout.addWidget(self.sync_pan_cb)
-        sync_layout.addWidget(self.mirror_cursor_cb)
-        
-        center_panel.addWidget(zoom_group)
-        center_panel.addWidget(sync_group)
-        center_panel.addStretch()
-        
         # Panel derecho - Segunda imagen
         right_widget = QWidget()
         right_panel = QVBoxLayout(right_widget)
@@ -487,10 +436,77 @@ class SynchronizedViewer(QWidget):
         
         right_panel.addWidget(self.image2_scroll)
         
-        # Agregar paneles al layout principal
-        layout.addWidget(left_widget, 2)
-        layout.addWidget(center_widget, 0)
-        layout.addWidget(right_widget, 2)
+        # Agregar paneles de imágenes al layout superior
+        images_layout.addWidget(left_widget)
+        images_layout.addWidget(right_widget)
+        
+        # Panel inferior compacto con controles
+        controls_widget = QWidget()
+        controls_widget.setMaximumHeight(120)  # Altura máxima compacta
+        controls_layout = QHBoxLayout(controls_widget)
+        
+        # Controles de zoom (compactos)
+        zoom_group = QGroupBox("Control de Zoom")
+        zoom_layout = QHBoxLayout(zoom_group)  # Cambio a horizontal para compactar
+        
+        self.zoom_label = QLabel("100%")
+        self.zoom_label.setAlignment(Qt.AlignCenter)
+        self.zoom_label.setMinimumWidth(50)
+        
+        self.zoom_slider = QSlider(Qt.Horizontal)  # Cambio a horizontal
+        self.zoom_slider.setRange(10, 500)  # 0.1x a 5.0x
+        self.zoom_slider.setValue(100)  # 1.0x
+        self.zoom_slider.valueChanged.connect(self.on_zoom_changed)
+        
+        zoom_buttons_layout = QVBoxLayout()  # Botones en vertical para ahorrar espacio
+        self.zoom_in_btn = QPushButton("+")
+        self.zoom_out_btn = QPushButton("-")
+        self.zoom_reset_btn = QPushButton("Reset")
+        
+        # Hacer botones más pequeños
+        for btn in [self.zoom_in_btn, self.zoom_out_btn, self.zoom_reset_btn]:
+            btn.setMaximumSize(40, 25)
+        
+        self.zoom_in_btn.clicked.connect(lambda: self.adjust_zoom(10))
+        self.zoom_out_btn.clicked.connect(lambda: self.adjust_zoom(-10))
+        self.zoom_reset_btn.clicked.connect(self.reset_zoom)
+        
+        zoom_buttons_layout.addWidget(self.zoom_in_btn)
+        zoom_buttons_layout.addWidget(self.zoom_out_btn)
+        zoom_buttons_layout.addWidget(self.zoom_reset_btn)
+        
+        zoom_layout.addWidget(self.zoom_label)
+        zoom_layout.addWidget(self.zoom_slider)
+        zoom_layout.addLayout(zoom_buttons_layout)
+        
+        # Controles de sincronización (compactos)
+        sync_group = QGroupBox("Sincronización")
+        sync_layout = QVBoxLayout(sync_group)
+        
+        self.sync_zoom_cb = QCheckBox("Sincronizar Zoom")
+        self.sync_pan_cb = QCheckBox("Sincronizar Panorámica")
+        self.mirror_cursor_cb = QCheckBox("Cursor Espejo")
+        
+        self.sync_zoom_cb.setChecked(True)
+        self.sync_pan_cb.setChecked(True)
+        self.mirror_cursor_cb.setChecked(True)
+        
+        # Hacer checkboxes más compactos
+        for cb in [self.sync_zoom_cb, self.sync_pan_cb, self.mirror_cursor_cb]:
+            cb.setStyleSheet("QCheckBox { font-size: 11px; }")
+        
+        sync_layout.addWidget(self.sync_zoom_cb)
+        sync_layout.addWidget(self.sync_pan_cb)
+        sync_layout.addWidget(self.mirror_cursor_cb)
+        
+        # Agregar grupos de controles al layout inferior
+        controls_layout.addWidget(zoom_group)
+        controls_layout.addWidget(sync_group)
+        controls_layout.addStretch()  # Espacio flexible al final
+        
+        # Agregar layouts al layout principal
+        main_layout.addLayout(images_layout, 1)  # Las imágenes ocupan la mayor parte del espacio
+        main_layout.addWidget(controls_widget, 0)  # Los controles ocupan espacio mínimo
         
     def connect_signals(self):
         """Conecta las señales entre los componentes"""

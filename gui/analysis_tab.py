@@ -6,6 +6,7 @@ Flujo guiado paso a paso: Cargar evidencia → Datos del caso → Metadatos NIST
 
 import os
 import json
+import cv2
 import numpy as np
 from datetime import datetime
 from typing import Optional, Dict, Any, List, Tuple
@@ -29,6 +30,10 @@ from .graphics_widgets import GraphicsVisualizationPanel
 from .detailed_results_tabs import DetailedResultsTabWidget
 from .dynamic_results_panel import DynamicResultsPanel
 from .interactive_matching_widget import InteractiveMatchingWidget
+from .visualization_widgets import (
+    PreprocessingVisualizationWidget, FeatureVisualizationWidget,
+    StatisticalVisualizationWidget, ROIVisualizationWidget
+)
 
 # Importaciones del sistema real
 from core.unified_pipeline import ScientificPipeline, PipelineResult, PipelineConfiguration
@@ -225,6 +230,10 @@ class AnalysisWorker(QThread, LoggerMixin):
                 'description': case_data.get('description', '')
             })
             
+            # Verificar que el caso se creó correctamente
+            if case_id is None:
+                raise ValueError("No se pudo crear el caso en la base de datos")
+            
             # Agregar imagen
             image_path = self.analysis_params.get('image_path')
             image_hash = SecurityUtils.calculate_file_hash(image_path)
@@ -328,12 +337,12 @@ class AnalysisWorker(QThread, LoggerMixin):
     
     def _extract_afte_conclusion(self, pipeline_result: PipelineResult) -> dict:
         """Extrae conclusión AFTE del resultado"""
-        if hasattr(pipeline_result, 'afte_result') and pipeline_result.afte_result:
+        if hasattr(pipeline_result, 'afte_conclusion') and pipeline_result.afte_conclusion:
             return {
-                'conclusion_level': pipeline_result.afte_result.conclusion.value,
-                'confidence': pipeline_result.afte_result.confidence_score,
-                'reasoning': pipeline_result.afte_result.reasoning,
-                'examiner_notes': getattr(pipeline_result.afte_result, 'notes', '')
+                'conclusion_level': pipeline_result.afte_conclusion.value,
+                'confidence': pipeline_result.confidence,
+                'reasoning': getattr(pipeline_result, 'afte_reasoning', 'Análisis completado'),
+                'examiner_notes': getattr(pipeline_result, 'examiner_notes', '')
             }
         return {
             'conclusion_level': 'Inconclusive',
@@ -1035,10 +1044,20 @@ class AnalysisTab(QWidget, VisualizationMethods):
         self.setup_visualization_tab_content(viz_tab)
         self.main_tabs.addTab(viz_tab, "Visualización de Muestra")
         
-        # Pestaña de Resultados del Análisis
+        # Pestaña de Preprocesamiento (NUEVA)
+        preprocessing_tab = QWidget()
+        self.setup_preprocessing_tab_content(preprocessing_tab)
+        self.main_tabs.addTab(preprocessing_tab, "Preprocesamiento")
+        
+        # Pestaña de Características (NUEVA)
+        features_tab = QWidget()
+        self.setup_features_tab_content(features_tab)
+        self.main_tabs.addTab(features_tab, "Características")
+        
+        # Pestaña de Resultados (NECESARIA para inicializar self.results_layout)
         results_tab = QWidget()
         self.setup_results_tab_content(results_tab)
-        self.main_tabs.addTab(results_tab, "Resultados del Análisis")
+        self.main_tabs.addTab(results_tab, "Resultados")
         
         main_layout.addWidget(self.main_tabs)
         
@@ -1192,6 +1211,125 @@ class AnalysisTab(QWidget, VisualizationMethods):
         main_layout.addWidget(controls_frame)
         
         layout.addWidget(main_panel)
+        
+    def setup_preprocessing_tab_content(self, tab_widget):
+        """Configura el contenido de la pestaña de preprocesamiento"""
+        layout = QVBoxLayout(tab_widget)
+        layout.setContentsMargins(5, 5, 5, 5)
+        
+        # Widget de visualización de preprocesamiento
+        self.preprocessing_widget = PreprocessingVisualizationWidget()
+        layout.addWidget(self.preprocessing_widget)
+        
+        # Panel de controles para preprocesamiento
+        controls_frame = QFrame()
+        controls_layout = QHBoxLayout(controls_frame)
+        
+        # Botón para ejecutar preprocesamiento
+        self.run_preprocessing_btn = QPushButton("🔄 Ejecutar Preprocesamiento")
+        self.run_preprocessing_btn.setEnabled(False)
+        self.run_preprocessing_btn.clicked.connect(self.execute_preprocessing_visualization)
+        controls_layout.addWidget(self.run_preprocessing_btn)
+        
+        # Selector de tipo de evidencia para preprocesamiento
+        controls_layout.addWidget(QLabel("Tipo:"))
+        self.preprocessing_evidence_combo = QComboBox()
+        self.preprocessing_evidence_combo.addItems([
+            "Casquillo", "Proyectil", "Arma", "Desconocido"
+        ])
+        controls_layout.addWidget(self.preprocessing_evidence_combo)
+        
+        controls_layout.addStretch()
+        
+        layout.addWidget(controls_frame)
+        
+    def extract_features_visualization(self):
+        """Ejecuta la extracción de características para visualización"""
+        try:
+            if not hasattr(self, 'analysis_data') or 'image_path' not in self.analysis_data:
+                QMessageBox.warning(self, "Advertencia", "Primero debe cargar una imagen.")
+                return
+                
+            image_path = self.analysis_data['image_path']
+            algorithm = self.features_algorithm_combo.currentText()
+            show_descriptors = self.show_descriptors_cb.isChecked()
+            
+            # Configurar parámetros de extracción
+            feature_config = {
+                'algorithm': algorithm.lower(),
+                'show_descriptors': show_descriptors,
+                'max_features': 1000,  # Límite para visualización
+                'quality_level': 0.01,
+                'min_distance': 10
+            }
+            
+            # Ejecutar extracción en el widget
+            self.features_widget.extract_features(image_path, feature_config)
+            
+        except Exception as e:
+            self.logger.error(f"Error en extracción de características: {e}")
+            QMessageBox.critical(self, "Error", f"Error extrayendo características:\n{str(e)}")
+            
+    def execute_preprocessing_visualization(self):
+        """Ejecuta la visualización de preprocesamiento"""
+        try:
+            if not hasattr(self, 'analysis_data') or 'image_path' not in self.analysis_data:
+                QMessageBox.warning(self, "Advertencia", "Primero debe cargar una imagen.")
+                return
+                
+            image_path = self.analysis_data['image_path']
+            evidence_type = self.evidence_type_combo.currentText()
+            
+            # Configurar parámetros de preprocesamiento
+            preprocessing_config = {
+                'evidence_type': evidence_type.lower(),
+                'enhance_contrast': True,
+                'denoise': True,
+                'normalize': True,
+                'show_intermediate': True
+            }
+            
+            # Ejecutar preprocesamiento en el widget
+            self.preprocessing_widget.visualize_preprocessing(image_path, evidence_type.lower())
+            
+        except Exception as e:
+            self.logger.error(f"Error en preprocesamiento: {e}")
+            QMessageBox.critical(self, "Error", f"Error en preprocesamiento:\n{str(e)}")
+        
+    def setup_features_tab_content(self, tab_widget):
+        """Configura el contenido de la pestaña de características"""
+        layout = QVBoxLayout(tab_widget)
+        layout.setContentsMargins(5, 5, 5, 5)
+        
+        # Widget de visualización de características
+        self.features_widget = FeatureVisualizationWidget()
+        layout.addWidget(self.features_widget)
+        
+        # Panel de controles para características
+        controls_frame = QFrame()
+        controls_layout = QHBoxLayout(controls_frame)
+        
+        # Botón para extraer características
+        self.extract_features_btn = QPushButton("🔍 Extraer Características")
+        self.extract_features_btn.setEnabled(False)
+        self.extract_features_btn.clicked.connect(self.extract_features_visualization)
+        controls_layout.addWidget(self.extract_features_btn)
+        
+        # Selector de algoritmo de características
+        controls_layout.addWidget(QLabel("Algoritmo:"))
+        self.features_algorithm_combo = QComboBox()
+        self.features_algorithm_combo.addItems([
+            "SIFT", "ORB", "AKAZE", "BRISK"
+        ])
+        controls_layout.addWidget(self.features_algorithm_combo)
+        
+        # Checkbox para mostrar descriptores
+        self.show_descriptors_cb = QCheckBox("Mostrar Descriptores")
+        controls_layout.addWidget(self.show_descriptors_cb)
+        
+        controls_layout.addStretch()
+        
+        layout.addWidget(controls_frame)
         
     def setup_results_tab_content(self, tab_widget):
         """Configura el contenido de la pestaña de resultados"""
@@ -1487,6 +1625,15 @@ class AnalysisTab(QWidget, VisualizationMethods):
         self.side_by_side_btn.clicked.connect(self.show_side_by_side_comparison)
         self.export_viz_btn.clicked.connect(self.export_visualization)
         
+        # Conexiones de widgets de visualización avanzada
+        if hasattr(self, 'preprocessing_widget'):
+            self.preprocessing_widget.visualizationReady.connect(self.on_preprocessing_ready)
+            self.preprocessing_widget.visualizationError.connect(self.on_visualization_error)
+            
+        if hasattr(self, 'features_widget'):
+            self.features_widget.visualizationReady.connect(self.on_features_ready)
+            self.features_widget.visualizationError.connect(self.on_visualization_error)
+        
     def on_image_loaded(self, image_path: str):
         """Maneja la carga de imagen con validación real"""
         try:
@@ -1547,15 +1694,21 @@ class AnalysisTab(QWidget, VisualizationMethods):
             
             # Realizar análisis preliminar de calidad NIST
             try:
-                quality_report = self.quality_metrics.analyze_image_quality(image_path)
-                if quality_report.overall_score < 0.5:
-                    QMessageBox.information(
-                        self,
-                        "Calidad de imagen",
-                        f"La imagen tiene una calidad baja (puntuación: {quality_report.overall_score:.2f}). "
-                        "Considere usar una imagen de mejor calidad para obtener mejores resultados."
-                    )
-                self.logger.info(f"Análisis de calidad NIST completado: {quality_report.overall_score:.2f}")
+                # Cargar imagen para análisis de calidad
+                import cv2
+                image_for_quality = cv2.imread(image_path)
+                if image_for_quality is not None:
+                    quality_report = self.quality_metrics.analyze_image_quality(image_for_quality)
+                    if quality_report.quality_score < 0.5:
+                        QMessageBox.information(
+                            self,
+                            "Calidad de imagen",
+                            f"La imagen tiene una calidad baja (puntuación: {quality_report.quality_score:.2f}). "
+                            "Considere usar una imagen de mejor calidad para obtener mejores resultados."
+                        )
+                    self.logger.info(f"Análisis de calidad NIST completado: {quality_report.quality_score:.2f}")
+                else:
+                    self.logger.warning("No se pudo cargar la imagen para análisis de calidad NIST")
             except Exception as e:
                 self.logger.warning(f"Error en análisis de calidad NIST: {e}")
             
@@ -1563,6 +1716,17 @@ class AnalysisTab(QWidget, VisualizationMethods):
             self.step2_group.setEnabled(True)
             self.next_button.setEnabled(True)
             self.update_step_indicator(0)
+            
+            # Actualizar visualizaciones avanzadas si están disponibles
+            # Comentado para evitar procesamiento automático - el usuario debe iniciarlo manualmente
+            # self.update_preprocessing_visualization(image_path)
+            # self.update_features_visualization(image_path)
+            
+            # Habilitar botones de visualización
+            if hasattr(self, 'run_preprocessing_btn'):
+                self.run_preprocessing_btn.setEnabled(True)
+            if hasattr(self, 'extract_features_btn'):
+                self.extract_features_btn.setEnabled(True)
             
             self.logger.info(f"Imagen cargada exitosamente: {image_path}")
             
@@ -1882,6 +2046,7 @@ class AnalysisTab(QWidget, VisualizationMethods):
                     'case_number': self.case_number_edit.text().strip(),
                     'evidence_id': self.evidence_id_edit.text().strip(),
                     'examiner': self.examiner_edit.text().strip(),
+                    'investigator': self.examiner_edit.text().strip(),  # Mapear examiner a investigator
                     'evidence_type': evidence_type,
                     'description': self.case_description_edit.toPlainText().strip(),
                     'weapon_make': self.weapon_make_edit.text().strip(),
@@ -2690,3 +2855,61 @@ class AnalysisTab(QWidget, VisualizationMethods):
         except Exception as e:
             self.logger.warning(f"Error preprocesando imagen para DL: {e}")
             return image
+    
+    def on_preprocessing_ready(self, visualization_data: dict):
+        """Maneja cuando la visualización de preprocesamiento está lista"""
+        try:
+            self.logger.info("Visualización de preprocesamiento lista")
+            # Actualizar la interfaz con los datos de visualización
+            if hasattr(self, 'preprocessing_widget'):
+                self.preprocessing_widget.update_visualization(visualization_data)
+        except Exception as e:
+            self.logger.error(f"Error manejando visualización de preprocesamiento: {e}")
+            
+    def on_features_ready(self, visualization_data: dict):
+        """Maneja cuando la visualización de características está lista"""
+        try:
+            self.logger.info("Visualización de características lista")
+            # Actualizar la interfaz con los datos de visualización
+            if hasattr(self, 'features_widget'):
+                self.features_widget.update_visualization(visualization_data)
+        except Exception as e:
+            self.logger.error(f"Error manejando visualización de características: {e}")
+            
+    def on_visualization_error(self, error_message: str):
+        """Maneja errores en las visualizaciones"""
+        try:
+            self.logger.error(f"Error en visualización: {error_message}")
+            QMessageBox.warning(self, "Error de Visualización", 
+                              f"Error al generar visualización:\n{error_message}")
+        except Exception as e:
+            self.logger.error(f"Error manejando error de visualización: {e}")
+            
+    def update_preprocessing_visualization(self, image_path: str = None):
+        """Actualiza la visualización de preprocesamiento con la imagen actual"""
+        try:
+            if hasattr(self, 'preprocessing_widget') and image_path:
+                # Obtener el tipo de evidencia seleccionado
+                evidence_type = self.evidence_type_combo.currentText()
+                
+                # Obtener configuración de preprocesamiento
+                config = self._get_real_processing_config()
+                preprocessing_config = config.get('preprocessing', {})
+                
+                # Ejecutar visualización de preprocesamiento
+                self.preprocessing_widget.visualize_preprocessing(image_path, evidence_type.lower())
+        except Exception as e:
+            self.logger.error(f"Error actualizando visualización de preprocesamiento: {e}")
+            
+    def update_features_visualization(self, image_path: str = None):
+        """Actualiza la visualización de características con la imagen actual"""
+        try:
+            if hasattr(self, 'features_widget') and image_path:
+                # Obtener configuración de extracción de características
+                config = self._get_real_processing_config()
+                feature_config = config.get('feature_extraction', {})
+                
+                # Ejecutar visualización de características
+                self.features_widget.extract_features(image_path, feature_config)
+        except Exception as e:
+            self.logger.error(f"Error actualizando visualización de características: {e}")

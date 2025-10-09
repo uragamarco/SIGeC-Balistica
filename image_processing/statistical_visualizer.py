@@ -404,28 +404,32 @@ class StatisticalVisualizer:
             raise
     
     def generate_comprehensive_report(self, 
-                                    correlation_data: Optional[Dict[str, Any]] = None,
-                                    pca_data: Optional[Dict[str, Any]] = None,
-                                    clustering_data: Optional[Dict[str, Any]] = None,
+                                    analysis_results: Optional[Dict[str, Any]] = None,
                                     features_data: Optional[List[Dict[str, float]]] = None,
-                                    output_prefix: str = "statistical_report") -> Dict[str, str]:
+                                    output_prefix: str = "statistical_report") -> str:
         """
         Genera un reporte completo con todas las visualizaciones
         
         Args:
-            correlation_data: Datos de análisis de correlación
-            pca_data: Datos de análisis PCA
-            clustering_data: Datos de análisis de clustering
+            analysis_results: Diccionario con todos los resultados de análisis
             features_data: Datos originales de características
             output_prefix: Prefijo para los archivos de salida
             
         Returns:
-            Diccionario con las rutas de los archivos generados
+            Ruta del archivo HTML generado o diccionario con rutas de archivos
         """
+        if analysis_results is None:
+            analysis_results = {}
+            
         generated_files = {}
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         
         try:
+            # Extraer datos individuales del diccionario de resultados
+            correlation_data = analysis_results.get('correlation')
+            pca_data = analysis_results.get('pca')
+            clustering_data = analysis_results.get('clustering')
+            
             # Generar visualización de correlación
             if correlation_data:
                 corr_path = os.path.join(self.output_dir, f"{output_prefix}_correlation_{timestamp}.png")
@@ -444,12 +448,96 @@ class StatisticalVisualizer:
                 generated_files['clustering'] = self.visualize_clustering_analysis(
                     clustering_data, features_data, cluster_path)
             
-            self.logger.info(f"Reporte completo generado. Archivos: {list(generated_files.keys())}")
-            return generated_files
+            # Crear un reporte HTML simple cuando no hay Plotly
+            html_path = os.path.join(self.output_dir, f"{output_prefix}_report_{timestamp}.html")
+            
+            html_content = f"""
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <title>Reporte Estadístico - Análisis Balístico</title>
+                <style>
+                    body {{ font-family: Arial, sans-serif; margin: 20px; background-color: #f5f5f5; }}
+                    .header {{ text-align: center; background: #2196f3; color: white; padding: 20px; border-radius: 10px; }}
+                    .section {{ background: white; margin: 20px 0; padding: 20px; border-radius: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }}
+                    .image-container {{ text-align: center; margin: 20px 0; }}
+                    .image-container img {{ max-width: 100%; height: auto; border: 1px solid #ddd; border-radius: 5px; }}
+                    .warning {{ background: #fff3cd; border: 1px solid #ffeaa7; color: #856404; padding: 15px; border-radius: 5px; margin: 10px 0; }}
+                </style>
+            </head>
+            <body>
+                <div class="header">
+                    <h1>📊 Reporte Estadístico - Análisis Balístico</h1>
+                    <p>Generado el {datetime.now().strftime("%d/%m/%Y %H:%M:%S")}</p>
+                </div>
+                
+                <div class="warning">
+                    <strong>⚠️ Nota:</strong> Plotly no está disponible. Se muestran visualizaciones estáticas.
+                </div>
+            """
+            
+            # Agregar secciones para cada análisis
+            if 'correlation' in generated_files:
+                html_content += f"""
+                <div class="section">
+                    <h2>🔗 Análisis de Correlaciones</h2>
+                    <p>Matriz de correlación entre características balísticas.</p>
+                    <div class="image-container">
+                        <img src="{os.path.basename(generated_files['correlation'])}" alt="Matriz de Correlación">
+                    </div>
+                </div>
+                """
+            
+            if 'pca' in generated_files:
+                html_content += f"""
+                <div class="section">
+                    <h2>📈 Análisis de Componentes Principales (PCA)</h2>
+                    <p>Reducción de dimensionalidad y análisis de componentes principales.</p>
+                    <div class="image-container">
+                        <img src="{os.path.basename(generated_files['pca'])}" alt="Análisis PCA">
+                    </div>
+                </div>
+                """
+            
+            if 'clustering' in generated_files:
+                html_content += f"""
+                <div class="section">
+                    <h2>🎯 Análisis de Clustering</h2>
+                    <p>Agrupación de muestras basada en similitudes.</p>
+                    <div class="image-container">
+                        <img src="{os.path.basename(generated_files['clustering'])}" alt="Análisis de Clustering">
+                    </div>
+                </div>
+                """
+            
+            html_content += """
+            </body>
+            </html>
+            """
+            
+            # Guardar archivo HTML
+            with open(html_path, 'w', encoding='utf-8') as f:
+                f.write(html_content)
+            
+            self.logger.info(f"Reporte completo generado en: {html_path}")
+            return html_path
             
         except Exception as e:
             self.logger.error(f"Error generando reporte completo: {str(e)}")
-            return generated_files
+            # Retornar un archivo HTML de error
+            error_html = os.path.join(self.output_dir, f"error_report_{timestamp}.html")
+            with open(error_html, 'w', encoding='utf-8') as f:
+                f.write(f"""
+                <!DOCTYPE html>
+                <html>
+                <head><title>Error en Reporte</title></head>
+                <body>
+                    <h1>Error generando reporte</h1>
+                    <p>Error: {str(e)}</p>
+                </body>
+                </html>
+                """)
+            return error_html
 
     def create_interactive_correlation_heatmap(self, correlation_data: Dict[str, Any], 
                                              save_path: Optional[str] = None) -> str:

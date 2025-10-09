@@ -353,9 +353,19 @@ class ScientificPipeline(LoggerMixin):
         
         try:
             # 1. Cargar imágenes
-            img1_array, img2_array = self._load_images(image1, image2)
+            try:
+                img1_array, img2_array = self._load_images(image1, image2)
+            except ValueError as e:
+                result.error_messages.append(f"Error cargando imágenes: {str(e)}")
+                result.afte_conclusion = AFTEConclusion.UNSUITABLE
+                return result
+            except Exception as e:
+                result.error_messages.append(f"Error inesperado cargando imágenes: {str(e)}")
+                result.afte_conclusion = AFTEConclusion.UNSUITABLE
+                return result
+            
             if img1_array is None or img2_array is None:
-                result.error_messages.append("Error cargando imágenes")
+                result.error_messages.append("Error cargando imágenes: arrays resultantes son None")
                 result.afte_conclusion = AFTEConclusion.UNSUITABLE
                 return result
             
@@ -407,20 +417,43 @@ class ScientificPipeline(LoggerMixin):
                     image2: Union[str, np.ndarray]) -> Tuple[Optional[np.ndarray], Optional[np.ndarray]]:
         """Carga las imágenes desde archivo o usa arrays directamente"""
         try:
+            # Validación inicial de parámetros
+            if image1 is None:
+                self.logger.error("La imagen 1 es None")
+                raise ValueError("La imagen 1 no puede ser None")
+            
+            if image2 is None:
+                self.logger.error("La imagen 2 es None")
+                raise ValueError("La imagen 2 no puede ser None")
+            
+            # Cargar imagen 1
             if isinstance(image1, str):
+                if not image1.strip():
+                    self.logger.error("La ruta de imagen 1 está vacía")
+                    raise ValueError("La ruta de imagen 1 no puede estar vacía")
                 img1 = cv2.imread(image1)
+                if img1 is None:
+                    self.logger.error(f"No se pudo cargar la imagen: {image1}")
+                    raise ValueError(f"No se pudo cargar la imagen 1: {image1}")
             else:
                 img1 = image1.copy()
             
+            # Cargar imagen 2
             if isinstance(image2, str):
+                if not image2.strip():
+                    self.logger.error("La ruta de imagen 2 está vacía")
+                    raise ValueError("La ruta de imagen 2 no puede estar vacía")
                 img2 = cv2.imread(image2)
+                if img2 is None:
+                    self.logger.error(f"No se pudo cargar la imagen: {image2}")
+                    raise ValueError(f"No se pudo cargar la imagen 2: {image2}")
             else:
                 img2 = image2.copy()
             
             return img1, img2
         except Exception as e:
             self.logger.error(f"Error cargando imágenes: {e}")
-            return None, None
+            raise
     
     def _assess_quality(self, img1: np.ndarray, img2: np.ndarray, 
                        result: PipelineResult) -> PipelineResult:

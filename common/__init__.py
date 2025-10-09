@@ -40,6 +40,9 @@ from .statistical_core import (
     calculate_bootstrap_confidence_interval
 )
 
+# Alias para compatibilidad hacia atrás
+StatisticalAnalyzer = UnifiedStatisticalAnalysis
+
 # Importar adaptadores de compatibilidad
 from .compatibility_adapters import (
     # Adaptadores principales
@@ -61,6 +64,7 @@ __all__ = [
     # Núcleo estadístico
     'UnifiedStatisticalAnalysis',
     'StatisticalCore',
+    'StatisticalAnalyzer',  # Alias para compatibilidad
     
     # Clases de datos
     'BootstrapResult',

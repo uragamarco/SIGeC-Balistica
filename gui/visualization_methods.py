@@ -179,8 +179,10 @@ class VisualizationMethods:
         self.overlay_transparency_slider.setEnabled(True)
         
         # Habilitar botones de exportación y comparación
-        self.export_btn.setEnabled(True)
-        self.compare_btn.setEnabled(True)
+        if hasattr(self, 'export_viz_btn'):
+            self.export_viz_btn.setEnabled(True)
+        if hasattr(self, 'compare_btn'):
+            self.compare_btn.setEnabled(True)
         
         # Configurar minimapa si existe un visor de imagen interactivo
         if hasattr(self, 'image_viewer') and hasattr(self.image_viewer, 'original_pixmap'):
