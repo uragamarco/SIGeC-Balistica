@@ -98,6 +98,51 @@ try:
     GPU_ACCELERATION_AVAILABLE = True
 except ImportError:
     GPU_ACCELERATION_AVAILABLE = False
+
+# Importar sistema de monitoreo de rendimiento
+try:
+    from core.performance_monitor import (
+        monitor_performance, 
+        monitor_image_processing, 
+        OperationType
+    )
+    PERFORMANCE_MONITORING_AVAILABLE = True
+except ImportError:
+    PERFORMANCE_MONITORING_AVAILABLE = False
+    # Crear decoradores dummy para mantener compatibilidad
+    def monitor_performance(operation_type=None):
+        def decorator(func):
+            return func
+        return decorator
+    
+    def monitor_image_processing(func):
+        return func
+
+# Importar sistema de validación de datos y manejo de errores
+try:
+    from core.data_validator import get_data_validator, ValidationResult
+    from core.error_handler import get_error_manager, with_error_handling, ErrorSeverity
+    DATA_VALIDATION_AVAILABLE = True
+except ImportError:
+    DATA_VALIDATION_AVAILABLE = False
+    # Crear clases dummy para mantener compatibilidad
+    class ValidationResult:
+        def __init__(self, is_valid=True, sanitized_data=None, errors=None):
+            self.is_valid = is_valid
+            self.sanitized_data = sanitized_data or {}
+            self.errors = errors or []
+    
+    def get_data_validator():
+        return None
+    
+    def with_error_handling(func):
+        return func
+    
+    class ErrorSeverity:
+        LOW = "low"
+        MEDIUM = "medium"
+        HIGH = "high"
+        CRITICAL = "critical"
     # Crear clase dummy para mantener compatibilidad
     class GPUAccelerator:
         def __init__(self, *args, **kwargs): pass
@@ -390,9 +435,10 @@ class UnifiedPreprocessor(LoggerMixin):
         if not SKIMAGE_AVAILABLE:
             self.logger.warning("scikit-image no disponible - algunas funciones pueden estar limitadas")
     
+    @with_error_handling
     def load_image(self, image_path: str) -> Optional[np.ndarray]:
         """
-        Cargar imagen desde archivo
+        Cargar imagen desde archivo con validación robusta
         
         Args:
             image_path: Ruta al archivo de imagen
@@ -401,15 +447,57 @@ class UnifiedPreprocessor(LoggerMixin):
             np.ndarray: Imagen cargada o None si hay error
         """
         try:
+            # Validar entrada usando el sistema de validación
+            if DATA_VALIDATION_AVAILABLE:
+                validator = get_data_validator()
+                if validator:
+                    # Validar la ruta del archivo
+                    validation_result = validator.validate_field(
+                        "file_path", 
+                        image_path, 
+                        {"required": True, "type": "string", "min_length": 1}
+                    )
+                    
+                    if not validation_result.is_valid:
+                        self.logger.error(f"Validación de ruta falló: {validation_result.errors}")
+                        return None
+                    
+                    # Usar la ruta sanitizada
+                    image_path = validation_result.sanitized_data.get("file_path", image_path)
+            
             if not os.path.exists(image_path):
                 self.logger.error(f"Archivo de imagen no encontrado: {image_path}")
                 return None
+            
+            # Validar que es un archivo de imagen válido usando SystemValidator
+            try:
+                from utils.validators import SystemValidator
+                validator = SystemValidator()
+                is_valid, message = validator.validate_image_file(image_path)
+                
+                if not is_valid:
+                    self.logger.error(f"Validación de imagen falló: {message}")
+                    return None
+                    
+            except ImportError:
+                # Validación básica si SystemValidator no está disponible
+                valid_extensions = {'.jpg', '.jpeg', '.png', '.tiff', '.tif', '.bmp'}
+                file_ext = Path(image_path).suffix.lower()
+                
+                if file_ext not in valid_extensions:
+                    self.logger.error(f"Formato de imagen no soportado: {file_ext}")
+                    return None
             
             # Cargar imagen usando OpenCV
             image = cv2.imread(image_path)
             
             if image is None:
                 self.logger.error(f"No se pudo cargar la imagen: {image_path}")
+                return None
+            
+            # Validar dimensiones mínimas
+            if image.shape[0] < 32 or image.shape[1] < 32:
+                self.logger.error(f"Imagen demasiado pequeña: {image.shape}")
                 return None
             
             self.logger.info(f"Imagen cargada exitosamente: {image_path} - Shape: {image.shape}")
@@ -502,11 +590,13 @@ class UnifiedPreprocessor(LoggerMixin):
             self.config.enable_visualization = original_visualization
             self.config.save_intermediate_steps = original_save_steps
     
+    @with_error_handling
+    @monitor_image_processing
     def preprocess_image(self, image_path: str, 
                         evidence_type: str = "unknown",
                         level: Optional[str] = None) -> PreprocessingResult:
         """
-        Preprocesar imagen balística
+        Preprocesar imagen balística con validación robusta
         
         Args:
             image_path: Ruta de la imagen
@@ -519,6 +609,33 @@ class UnifiedPreprocessor(LoggerMixin):
         start_time = time.time()
         
         try:
+            # Validar parámetros de entrada
+            if DATA_VALIDATION_AVAILABLE:
+                validator = get_data_validator()
+                
+                # Validar ruta de imagen
+                path_validation = validator.validate_data(
+                    {"image_path": image_path}, 
+                    "image_path"
+                )
+                if not path_validation.is_valid:
+                    return PreprocessingResult(
+                        original_image=np.array([]),
+                        processed_image=np.array([]),
+                        metadata={},
+                        success=False,
+                        error_message=f"Ruta de imagen inválida: {path_validation.errors}"
+                    )
+                
+                # Validar tipo de evidencia
+                evidence_validation = validator.validate_data(
+                    {"evidence_type": evidence_type}, 
+                    "evidence_type"
+                )
+                if not evidence_validation.is_valid:
+                    self.log_warning(f"Tipo de evidencia inválido: {evidence_validation.errors}")
+                    evidence_type = evidence_validation.sanitized_data.get("evidence_type", "unknown")
+            
             # Cargar imagen
             if isinstance(image_path, str):
                 if not os.path.exists(image_path):
@@ -530,6 +647,31 @@ class UnifiedPreprocessor(LoggerMixin):
                         error_message=f"Archivo no encontrado: {image_path}"
                     )
                 
+                # Validar archivo de imagen usando SystemValidator si está disponible
+                try:
+                    from utils.validators import SystemValidator
+                    validator = SystemValidator()
+                    if not validator.validate_image_file(image_path):
+                        return PreprocessingResult(
+                            original_image=np.array([]),
+                            processed_image=np.array([]),
+                            metadata={},
+                            success=False,
+                            error_message=f"Archivo de imagen inválido: {image_path}"
+                        )
+                except ImportError:
+                    # Validación básica de extensión
+                    allowed_extensions = {'.jpg', '.jpeg', '.png', '.bmp', '.tiff', '.tif'}
+                    file_ext = os.path.splitext(image_path)[1].lower()
+                    if file_ext not in allowed_extensions:
+                        return PreprocessingResult(
+                            original_image=np.array([]),
+                            processed_image=np.array([]),
+                            metadata={},
+                            success=False,
+                            error_message=f"Extensión de archivo no soportada: {file_ext}"
+                        )
+                
                 image = cv2.imread(image_path)
                 if image is None:
                     return PreprocessingResult(
@@ -538,6 +680,16 @@ class UnifiedPreprocessor(LoggerMixin):
                         metadata={},
                         success=False,
                         error_message=f"No se pudo cargar la imagen: {image_path}"
+                    )
+                
+                # Validar dimensiones mínimas de imagen
+                if image.shape[0] < 50 or image.shape[1] < 50:
+                    return PreprocessingResult(
+                        original_image=np.array([]),
+                        processed_image=np.array([]),
+                        metadata={},
+                        success=False,
+                        error_message=f"Imagen demasiado pequeña: {image.shape}"
                     )
             else:
                 image = image_path.copy()
@@ -682,6 +834,7 @@ class UnifiedPreprocessor(LoggerMixin):
                 processing_time=time.time() - start_time
             )
     
+    @monitor_performance(OperationType.IMAGE_PROCESSING)
     def preprocess_ballistic_image(self, 
                                  image: np.ndarray,
                                  evidence_type: str = "unknown",

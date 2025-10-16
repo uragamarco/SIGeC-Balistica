@@ -1,0 +1,227 @@
+# Configuración en Capas - SIGeC-Balistica
+# ========================================
+# 
+# Este archivo define la estructura de configuración en capas:
+# - base: Configuración común para todos los entornos
+# - testing: Configuración específica para pruebas
+# - production: Configuración específica para producción
+
+# Configuración Base (común a todos los entornos)
+base:
+  # Información del proyecto
+  project:
+    name: "SIGeC-Balistica"
+    version: "1.0.0"
+    description: "Sistema de Identificación y Gestión de Cartuchos Balísticos"
+  
+  # Configuración de base de datos
+  database:
+    type: "sqlite"
+    sqlite_path: "data/ballistics.db"
+    backup_enabled: true
+    backup_interval_hours: 24
+    max_connections: 10
+    timeout: 30
+  
+  # Configuración de procesamiento de imágenes
+  image_processing:
+    max_image_size_mb: 50
+    supported_formats: ["jpg", "jpeg", "png", "tiff", "bmp"]
+    default_quality: 95
+    resize_threshold: 4096
+    cache_processed: true
+    
+    # Algoritmos de extracción de características
+    feature_extraction:
+      default_algorithm: "ORB"
+      algorithms:
+        ORB:
+          n_features: 5000
+          scale_factor: 1.2
+          n_levels: 8
+        SIFT:
+          n_features: 0
+          n_octave_layers: 3
+          contrast_threshold: 0.04
+        AKAZE:
+          descriptor_type: "MLDB"
+          descriptor_size: 0
+          descriptor_channels: 3
+  
+  # Configuración de matching
+  matching:
+    default_matcher: "BruteForce"
+    similarity_threshold: 0.75
+    max_matches: 1000
+    cross_check: true
+    
+    # Configuración de CMC
+    cmc:
+      enabled: true
+      max_rank: 10
+      confidence_threshold: 0.8
+  
+  # Configuración de logging
+  logging:
+    level: "INFO"
+    format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+    file_enabled: true
+    console_enabled: true
+    max_file_size_mb: 10
+    backup_count: 5
+  
+  # Configuración de GUI
+  gui:
+    theme: "default"
+    window_size: [1200, 800]
+    auto_save: true
+    auto_save_interval: 300
+    max_recent_files: 10
+    
+    # Configuración de tabs
+    tabs:
+      analysis:
+        enabled: true
+        default_algorithm: "ORB"
+      comparison:
+        enabled: true
+        show_heatmap: true
+      database:
+        enabled: true
+        page_size: 50
+      reports:
+        enabled: true
+        default_format: "PDF"
+
+# Configuración para Testing
+testing:
+  # Hereda de base y sobrescribe valores específicos
+  database:
+    sqlite_path: "tests/data/test_ballistics.db"
+    backup_enabled: false
+  
+  logging:
+    level: "DEBUG"
+    console_enabled: true
+    file_enabled: false
+  
+  image_processing:
+    max_image_size_mb: 10
+    cache_processed: false
+  
+  # Configuración específica para tests
+  test_data:
+    sample_images_dir: "tests/data/images"
+    expected_results_dir: "tests/data/expected"
+    temp_dir: "tests/temp"
+  
+  # Configuración de performance para tests
+  performance:
+    timeout_seconds: 30
+    max_memory_mb: 512
+    enable_profiling: true
+
+# Configuración para Producción
+production:
+  # Hereda de base y sobrescribe valores específicos
+  database:
+    type: "postgresql"
+    host: "localhost"
+    port: 5432
+    database: "sigec_balistica_prod"
+    username: "sigec_user"
+    # password se carga desde variables de entorno
+    ssl_mode: "require"
+    connection_pool_size: 20
+    max_overflow: 30
+    backup_enabled: true
+    backup_schedule: "0 2 * * *"  # 2 AM diario
+  
+  logging:
+    level: "WARNING"
+    console_enabled: false
+    file_enabled: true
+    file_path: "/var/log/sigec-balistica/app.log"
+    max_file_size_mb: 100
+    backup_count: 10
+    enable_syslog: true
+  
+  # Configuración de seguridad
+  security:
+    secret_key_env: "SIGEC_SECRET_KEY"
+    jwt_secret_key_env: "SIGEC_JWT_SECRET"
+    jwt_expiration_hours: 24
+    max_login_attempts: 5
+    lockout_duration_minutes: 30
+    session_timeout_minutes: 60
+    https_only: true
+    csrf_protection: true
+  
+  # Configuración de rendimiento
+  performance:
+    cache_enabled: true
+    cache_max_size: 2000
+    cache_ttl_seconds: 3600
+    max_workers: 8
+    batch_size: 10
+    use_multiprocessing: true
+    max_concurrent_requests: 50
+    request_timeout_seconds: 300
+  
+  # Configuración de monitoreo
+  monitoring:
+    enabled: true
+    metrics_port: 9090
+    health_check_port: 8080
+    collect_system_metrics: true
+    collect_application_metrics: true
+    metrics_interval_seconds: 60
+    
+    # Alertas
+    enable_alerts: true
+    alert_email: "admin@sigec-balistica.com"
+    cpu_threshold_percent: 80.0
+    memory_threshold_percent: 85.0
+    disk_threshold_percent: 90.0
+  
+  # Configuración de respaldos
+  backup:
+    enabled: true
+    backup_directory: "/var/backups/sigec-balistica"
+    db_backup_schedule: "0 2 * * *"
+    db_backup_retention_days: 30
+    file_backup_schedule: "0 3 * * 0"
+    file_backup_retention_weeks: 12
+    compress_backups: true
+    compression_level: 6
+  
+  # Configuración de aplicación
+  app:
+    host: "0.0.0.0"
+    port: 8000
+    workers: 4
+    base_directory: "/opt/sigec-balistica"
+    data_directory: "/var/lib/sigec-balistica"
+    temp_directory: "/tmp/sigec-balistica"
+    log_directory: "/var/log/sigec-balistica"
+
+# Configuración de migración
+migration:
+  # Mapeo de claves legacy a nuevas
+  key_mappings:
+    db_path: "database.sqlite_path"
+    database_path: "database.sqlite_path"
+    backup_enabled: "database.backup_enabled"
+    log_level: "logging.level"
+    max_image_size: "image_processing.max_image_size_mb"
+    similarity_threshold: "matching.similarity_threshold"
+  
+  # Archivos de configuración legacy a migrar
+  legacy_files:
+    - "config.json"
+    - "settings.yaml"
+    - "database_config.json"
+    - "gui_settings.json"
+  
+  # Directorio de respaldo para archivos migrados
+  backup_directory: "config/backups/migration"

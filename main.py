@@ -9,6 +9,7 @@ Aplicación principal que integra todas las funcionalidades del sistema forense 
 - Comparación directa y búsqueda en base de datos balística
 - Gestión de base de datos de evidencia balística
 - Generación de reportes forenses con estándares NIST y conclusiones AFTE
+- Sistema de monitoreo y métricas avanzado
 
 Autor: SIGeC-Balistica Team
 Fecha: Octubre 2025
@@ -20,6 +21,7 @@ import os
 import logging
 import argparse
 import traceback
+import atexit
 from pathlib import Path
 
 # Añadir el directorio del proyecto al path
@@ -31,6 +33,23 @@ from utils.logger import get_logger
 
 # Logger inicial (se configurará en main())
 logger = None
+
+# Importar sistema de monitoreo
+try:
+    from monitoring.integration import (
+        initialize_monitoring, 
+        start_monitoring, 
+        stop_monitoring,
+        get_system_metrics
+    )
+    MONITORING_AVAILABLE = True
+except ImportError as e:
+    MONITORING_AVAILABLE = False
+    # Funciones fallback
+    def initialize_monitoring(config=None): return True
+    def start_monitoring(): return True
+    def stop_monitoring(): pass
+    def get_system_metrics(): return {}
 
 def check_dependencies():
     """Verifica que todas las dependencias estén disponibles"""
@@ -138,53 +157,76 @@ def setup_environment():
     
     logger.info("Configurando entorno...")
     
-    # Crear directorios necesarios
-    directories = [
-        "data",
-        "data/images",
-        "data/database", 
-        "data/exports",
-        "data/reports",
-        "data/temp",
-        "logs",
-        "config"
-    ]
-    
-    for dir_name in directories:
-        dir_path = project_root / dir_name
-        dir_path.mkdir(exist_ok=True)
-        logger.debug(f"✓ Directorio: {dir_path}")
-    
-    # Configurar variables de entorno
-    os.environ['SIGeC-Balistica_ROOT'] = str(project_root)
-    os.environ['SIGeC-Balistica_DATA'] = str(project_root / "data")
-    
-    logger.info("✓ Entorno configurado")
+    try:
+        # Crear directorios necesarios
+        directories = [
+            "data",
+            "data/images",
+            "data/database", 
+            "data/exports",
+            "data/reports",
+            "data/temp",
+            "logs",
+            "config"
+        ]
+        
+        for dir_name in directories:
+            dir_path = project_root / dir_name
+            dir_path.mkdir(exist_ok=True)
+            logger.debug(f"✓ Directorio: {dir_path}")
+        
+        # Configurar variables de entorno
+        logger.debug("Configurando variables de entorno...")
+        os.environ['SIGEC_BALISTICA_ROOT'] = str(project_root)
+        os.environ['SIGEC_BALISTICA_DATA'] = str(project_root / "data")
+        logger.debug("✓ Variables de entorno configuradas")
+        
+        logger.info("✓ Entorno configurado")
+        
+    except Exception as e:
+        logger.error(f"Error configurando entorno: {e}")
+        logger.error(f"Traceback: {traceback.format_exc()}")
+        raise  # Re-lanzar la excepción para que sea manejada por el caller
 
 def is_qt_functional():
     """
     Verifica si Qt está realmente funcional
     """
     logger = get_logger("qt_check")
+    logger.info("=== VERIFICANDO FUNCIONALIDAD DE QT ===")
     
     # Obtener la ruta de plugins de PyQt5 dinámicamente
     try:
+        logger.debug("Paso 1: Intentando importar PyQt5...")
         import PyQt5
         pyqt5_path = os.path.dirname(PyQt5.__file__)
         plugin_dir = os.path.join(pyqt5_path, 'Qt5', 'plugins')
+        logger.debug(f"✓ PyQt5 importado desde: {pyqt5_path}")
+        logger.debug(f"✓ Plugin directory esperado: {plugin_dir}")
         
         if not os.path.exists(plugin_dir):
             logger.warning(f"Plugin directory not found: {plugin_dir}")
-            return False
+            # Intentar rutas alternativas
+            alt_plugin_dir = os.path.join(pyqt5_path, 'Qt', 'plugins')
+            logger.debug(f"Intentando ruta alternativa: {alt_plugin_dir}")
+            if os.path.exists(alt_plugin_dir):
+                plugin_dir = alt_plugin_dir
+                logger.info(f"✓ Plugin directory encontrado en ruta alternativa: {plugin_dir}")
+            else:
+                logger.error(f"No se encontró directorio de plugins en ninguna ruta")
+                return False
             
-    except ImportError:
-        logger.warning("PyQt5 not available")
+    except ImportError as e:
+        logger.error(f"PyQt5 not available: {e}")
         return False
     
     # Verificar plugins específicos requeridos
+    logger.debug("Paso 2: Verificando plugins de plataforma...")
     platforms_dir = os.path.join(plugin_dir, 'platforms')
+    logger.debug(f"Buscando platforms en: {platforms_dir}")
+    
     if not os.path.exists(platforms_dir):
-        logger.warning(f"Platforms directory not found: {platforms_dir}")
+        logger.error(f"Platforms directory not found: {platforms_dir}")
         return False
     
     # Buscar cualquier plugin de plataforma disponible
@@ -194,24 +236,35 @@ def is_qt_functional():
             if file.endswith('.so'):
                 available_plugins.append(file)
     
+    logger.debug(f"Plugins encontrados: {available_plugins}")
+    
     if not available_plugins:
-        logger.warning("No platform plugins found")
+        logger.error("No platform plugins found")
         return False
     
-    logger.info(f"Available platform plugins: {available_plugins}")
+    logger.info(f"✓ Available platform plugins: {available_plugins}")
     
     # Verificar importaciones básicas de PyQt5
+    logger.debug("Paso 3: Verificando importaciones básicas de PyQt5...")
     try:
         import PyQt5.QtWidgets
+        logger.debug("✓ PyQt5.QtWidgets importado")
         import PyQt5.QtCore
+        logger.debug("✓ PyQt5.QtCore importado")
         import PyQt5.QtGui
+        logger.debug("✓ PyQt5.QtGui importado")
     except ImportError as e:
-        logger.warning(f"PyQt5 import error: {e}")
+        logger.error(f"PyQt5 import error: {e}")
         return False
     
-    # NO configurar plataforma aquí - dejar que se configure en create_application
     # Configurar ruta de plugins
+    logger.debug("Paso 4: Configurando variables de entorno...")
     os.environ['QT_QPA_PLATFORM_PLUGIN_PATH'] = plugin_dir
+    logger.debug(f"✓ QT_QPA_PLATFORM_PLUGIN_PATH = {plugin_dir}")
+    
+    # Verificar DISPLAY
+    display = os.environ.get('DISPLAY', 'No configurado')
+    logger.debug(f"DISPLAY = {display}")
     
     logger.info("✓ Qt funcional - verificaciones básicas completadas")
     return True
@@ -278,34 +331,73 @@ def create_application():
         return app
         
     except Exception as e:
-        logger.error(f"Error creando aplicación Qt: {e}")
+        logger.error(f"Error creando aplicación PyQt5: {e}")
+        logger.error(traceback.format_exc())
         return None
 
 def create_main_window():
     """Crea la ventana principal"""
     
     logger = get_logger("main_window")
+    logger.info("=== INICIANDO create_main_window() ===")
     
     try:
+        logger.debug("Paso 1: Intentando importar QApplication...")
         from PyQt5.QtWidgets import QApplication
+        logger.debug("✓ QApplication importado exitosamente.")
+        
+        logger.debug("Paso 2: Verificando que gui package existe...")
+        import gui
+        logger.debug(f"✓ gui package encontrado en: {gui.__file__}")
+        
+        logger.debug("Paso 3: Intentando importar gui.main_window module...")
+        import gui.main_window
+        logger.debug(f"✓ gui.main_window module importado desde: {gui.main_window.__file__}")
+        
+        logger.debug("Paso 4: Intentando importar MainWindow class...")
         from gui.main_window import MainWindow
+        logger.debug("✓ MainWindow class importada exitosamente.")
+        
+        logger.debug("Paso 5: Intentando importar gui.styles module...")
+        import gui.styles
+        logger.debug(f"✓ gui.styles module importado desde: {gui.styles.__file__}")
+        
+        logger.debug("Paso 6: Intentando importar apply_SIGeC_Balistica_theme...")
         from gui.styles import apply_SIGeC_Balistica_theme
+        logger.debug("✓ apply_SIGeC_Balistica_theme importado exitosamente.")
+        
+        logger.debug("✓ Todas las importaciones de GUI exitosas.")
         
         # Aplicar tema
+        logger.debug("Paso 7: Obteniendo instancia de QApplication...")
         app = QApplication.instance()
+        logger.debug(f"✓ QApplication instance: {app}")
+        
+        logger.debug("Paso 8: Aplicando tema SIGeC-Balistica...")
         apply_SIGeC_Balistica_theme(app)
+        logger.debug("✓ Tema aplicado exitosamente.")
         
         # Crear ventana principal
+        logger.debug("Paso 9: Creando instancia de MainWindow...")
         window = MainWindow()
+        logger.debug(f"✓ Instancia de MainWindow creada: {window}")
         
-        logger.info("✓ Ventana principal creada")
+        logger.info("✓ Ventana principal creada exitosamente")
+        logger.debug(f"create_main_window() retornando: {window}")
         return window
         
     except ImportError as e:
-        logger.error(f"Error importando componentes GUI: {e}")
+        logger.error(f"ERROR DE IMPORTACIÓN en create_main_window(): {e}")
+        logger.error(f"Tipo de error: {type(e).__name__}")
+        logger.error(f"Argumentos del error: {e.args}")
+        logger.error("Stack trace completo:")
+        logger.error(traceback.format_exc())
         return None
     except Exception as e:
-        logger.error(f"Error creando ventana principal: {e}")
+        logger.error(f"ERROR GENERAL en create_main_window(): {e}")
+        logger.error(f"Tipo de error: {type(e).__name__}")
+        logger.error(f"Argumentos del error: {e.args}")
+        logger.error("Stack trace completo:")
         logger.error(traceback.format_exc())
         return None
 
@@ -489,53 +581,153 @@ def main():
     setup_logging(log_level=log_level_str, log_file=args.log_file)
     logger = get_logger("main")
     
+    # DEBUG: Verificar argumentos inmediatamente después de configurar logging
     logger.info("=" * 60)
     logger.info("SIGeC-Balistica - Sistema de Evaluación Automatizada")
     logger.info("Versión 0.1.3")
     logger.info("=" * 60)
+    logger.debug("=== DEBUG: ARGUMENTOS PARSEADOS ===")
+    logger.debug(f"args.debug = {args.debug}")
+    logger.debug(f"args.headless = {args.headless}")
+    logger.debug(f"args.test = {args.test}")
+    logger.debug(f"log_level_str = {log_level_str}")
+    logger.debug(f"Todos los argumentos: {vars(args)}")
+    logger.debug("=== FIN DEBUG ARGUMENTOS ===")
+    logger.info("Continuando con inicialización del sistema...")
+    
+    # Configurar limpieza al salir
+    def cleanup():
+        """Función de limpieza al salir"""
+        logger.info("Ejecutando limpieza del sistema...")
+        stop_monitoring()
+        logger.info("Limpieza completada")
+    
+    atexit.register(cleanup)
     
     try:
         # Configurar manejo de excepciones
         setup_exception_handling()
+        logger.info("✓ Manejo de excepciones configurado")
         
         # Verificar requisitos del sistema
-        if not check_system_requirements():
-            logger.error("Los requisitos del sistema no se cumplen")
-            return 1
+        logger.info("Verificando requisitos del sistema...")
+        try:
+            if not check_system_requirements():
+                logger.error("Los requisitos del sistema no se cumplen")
+                return 1
+            logger.debug("✓ Requisitos del sistema verificados exitosamente")
+        except Exception as e:
+            logger.error(f"Error verificando requisitos del sistema: {e}")
+            logger.error(f"Traceback: {traceback.format_exc()}")
+            raise
         
         # Verificar dependencias
-        if not check_dependencies():
-            logger.error("Dependencias faltantes")
-            return 1
+        logger.info("Verificando dependencias...")
+        try:
+            if not check_dependencies():
+                logger.error("Dependencias faltantes")
+                return 1
+            logger.debug("✓ Dependencias verificadas exitosamente")
+        except Exception as e:
+            logger.error(f"Error verificando dependencias: {e}")
+            logger.error(f"Traceback: {traceback.format_exc()}")
+            raise
         
         # Configurar entorno
-        setup_environment()
+        logger.debug("Llamando a setup_environment()...")
+        try:
+            setup_environment()
+            logger.debug("✓ setup_environment() completado exitosamente")
+        except Exception as e:
+            logger.error(f"Error en setup_environment(): {e}")
+            logger.error(f"Traceback: {traceback.format_exc()}")
+            raise  # Re-lanzar para que sea manejada por el except general
+        
+        logger.debug("✓ Entorno configurado exitosamente")
+        
+        # Inicializar sistema de monitoreo
+        logger.debug("Iniciando configuración del sistema de monitoreo...")
+        try:
+            if MONITORING_AVAILABLE:
+                logger.info("Inicializando sistema de monitoreo...")
+                monitoring_config = {
+                    'metrics_interval': 30,
+                    'alert_check_interval': 60,
+                    'dashboard_port': 5001,
+                    'enable_dashboard': True
+                }
+                
+                if initialize_monitoring(monitoring_config):
+                    if start_monitoring():
+                        logger.info("✓ Sistema de monitoreo iniciado")
+                        logger.info("Dashboard disponible en: http://localhost:5001")
+                    else:
+                        logger.warning("No se pudo iniciar el sistema de monitoreo")
+                else:
+                    logger.warning("No se pudo inicializar el sistema de monitoreo")
+            else:
+                logger.info("Sistema de monitoreo no disponible")
+        except Exception as e:
+            logger.error(f"Error en inicialización del monitoreo: {e}")
+            logger.error(f"Traceback: {traceback.format_exc()}")
+            logger.info("Continuando sin sistema de monitoreo...")
+        
+        logger.debug("✓ Configuración de monitoreo completada")
+        logger.debug("Procediendo a verificar modo de ejecución...")
         
         # Ejecutar según modo
+        logger.debug(f"=== VERIFICANDO MODO DE EJECUCIÓN ===")
+        logger.debug(f"args.test = {args.test}")
+        logger.debug(f"args.headless = {args.headless}")
+        logger.debug(f"Argumentos completos: {vars(args)}")
+        
         if args.test:
+            logger.info("=== EJECUTANDO EN MODO TEST ===")
             return run_tests()
         
         elif args.headless:
+            logger.info("=== EJECUTANDO EN MODO HEADLESS (SOLICITADO) ===")
             return run_headless()
         
         else:
             # Modo GUI normal
+            logger.info("=== INICIANDO MODO GUI ===")
             logger.info("Iniciando interfaz gráfica...")
             
+            # Verificar Qt antes de crear la aplicación
+            logger.debug("=== VERIFICANDO QT FUNCIONAL ===")
+            try:
+                qt_functional = is_qt_functional()
+                logger.debug(f"Resultado is_qt_functional(): {qt_functional}")
+                if not qt_functional:
+                    logger.warning("Qt no está funcionando correctamente")
+                    logger.warning("=== EJECUTANDO EN MODO HEADLESS (FALLBACK QT) ===")
+                    return run_headless()
+            except Exception as e:
+                logger.error(f"Error verificando Qt: {e}")
+                logger.error(f"Traceback: {traceback.format_exc()}")
+                logger.warning("=== EJECUTANDO EN MODO HEADLESS (FALLBACK EXCEPCIÓN QT) ===")
+                return run_headless()
+            
             # Crear aplicación PyQt5
+            logger.debug("=== CREANDO APLICACIÓN QT ===")
             app = create_application()
+            logger.debug(f"create_application() returned: {app}")
             if app is None:
                 logger.warning("No se pudo crear la aplicación PyQt5. Ejecutando en modo headless como fallback...")
                 return run_headless()
             
             # Crear ventana principal
+            logger.debug("=== CREANDO VENTANA PRINCIPAL ===")
             window = create_main_window()
+            logger.debug(f"create_main_window() returned: {window}")
             if window is None:
                 logger.warning("No se pudo crear la ventana principal. Ejecutando en modo headless como fallback...")
                 return run_headless()
             
             try:
                 # Mostrar ventana
+                logger.debug("=== MOSTRANDO VENTANA PRINCIPAL ===")
                 window.show()
                 
                 # Centrar ventana en pantalla
@@ -546,9 +738,12 @@ def main():
                 window.move(x, y)
                 
                 logger.info("✓ Aplicación iniciada exitosamente")
+                if MONITORING_AVAILABLE:
+                    logger.info("Sistema de monitoreo activo - Dashboard: http://localhost:5001")
                 logger.info("Presione Ctrl+C en la consola o cierre la ventana para salir")
                 
                 # Ejecutar bucle principal
+                logger.debug("=== INICIANDO BUCLE PRINCIPAL QT ===")
                 try:
                     exit_code = app.exec_()
                     logger.info(f"Aplicación cerrada con código: {exit_code}")
@@ -560,16 +755,20 @@ def main():
                     
             except Exception as e:
                 logger.warning(f"Error mostrando la interfaz gráfica: {e}")
-                logger.warning("Ejecutando en modo headless como fallback...")
+                logger.warning(f"Traceback: {traceback.format_exc()}")
+                logger.warning("=== EJECUTANDO EN MODO HEADLESS (FALLBACK GUI) ===")
                 return run_headless()
     
     except Exception as e:
+        logger.critical(f"=== ERROR CRÍTICO EN MAIN() ===")
         logger.critical(f"Error crítico en main(): {e}")
         logger.critical(traceback.format_exc())
-        return 1
+        logger.critical("=== EJECUTANDO FALLBACK A HEADLESS MODE DEBIDO A EXCEPCIÓN ===")
+        return run_headless()
     
     finally:
         logger.info("Finalizando SIGeC-Balistica...")
+        # La limpieza se ejecutará automáticamente por atexit
 
 if __name__ == "__main__":
     exit_code = main()

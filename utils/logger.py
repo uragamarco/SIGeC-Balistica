@@ -8,8 +8,53 @@ Configuración centralizada de logging usando loguru
 import sys
 import logging
 from pathlib import Path
-from loguru import logger
 from typing import Optional
+
+# Import opcional de loguru
+try:
+    from loguru import logger
+    LOGURU_AVAILABLE = True
+except ImportError:
+    LOGURU_AVAILABLE = False
+    # Mock logger básico
+    class MockLogger:
+        def __init__(self, log_level_str="INFO"):
+            self.log_level = getattr(logging, log_level_str.upper(), logging.INFO)
+
+        def _should_log(self, level):
+            return level >= self.log_level
+
+        def debug(self, *args, **kwargs):
+            if self._should_log(logging.DEBUG):
+                print(f"DEBUG: {' '.join(map(str, args))}")
+
+        def info(self, *args, **kwargs):
+            if self._should_log(logging.INFO):
+                print(f"INFO: {' '.join(map(str, args))}")
+
+        def warning(self, *args, **kwargs):
+            if self._should_log(logging.WARNING):
+                print(f"WARNING: {' '.join(map(str, args))}")
+
+        def error(self, *args, **kwargs):
+            if self._should_log(logging.ERROR):
+                print(f"ERROR: {' '.join(map(str, args))}")
+
+        def critical(self, *args, **kwargs):
+            if self._should_log(logging.CRITICAL):
+                print(f"CRITICAL: {' '.join(map(str, args))}")
+
+        def exception(self, *args, **kwargs):
+            if self._should_log(logging.ERROR): # Exceptions are typically errors
+                print(f"EXCEPTION: {' '.join(map(str, args))}")
+
+        def add(self, *args, **kwargs): pass
+        def remove(self, *args, **kwargs): pass
+        def configure(self, *args, **kwargs): pass
+        def bind(self, **kwargs): return self
+        def opt(self, **kwargs): return self
+    
+    logger = MockLogger()
 
 def setup_logging(
     log_level: str = "INFO",
@@ -28,9 +73,18 @@ def setup_logging(
         backup_count: Número de archivos de backup
         console_output: Si mostrar logs en consola
     """
+    if not LOGURU_AVAILABLE:
+        # Configuración básica con logging estándar
+        logging.basicConfig(
+            level=getattr(logging, log_level.upper()),
+            format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+        )
+        global logger
+        logger = MockLogger(log_level)
+        return
     
-    # Remover configuración por defecto de loguru
-    logger.remove()
+    # Configuración con loguru si está disponible
+    logger.remove()  # Remover configuración por defecto
     
     # Configurar salida a consola si está habilitada
     if console_output:
@@ -95,9 +149,14 @@ def get_logger(name: str = None):
     Returns:
         Logger configurado
     """
-    if name:
-        return logger.bind(name=name)
-    return logger
+    if LOGURU_AVAILABLE:
+        if name:
+            return logger.bind(name=name)
+        else:
+            return logger
+    else:
+        # Usar el MockLogger cuando loguru no está disponible
+        return logger
 
 class LoggerMixin:
     """

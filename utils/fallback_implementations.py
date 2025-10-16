@@ -293,6 +293,137 @@ class SimpleVectorIndex:
         return np.array(distances), np.array(indices)
 
 
+class TorchFallback:
+    """Fallback para PyTorch"""
+    def __init__(self):
+        self.available = False
+        logger.warning("PyTorch no disponible - usando fallback con funcionalidad limitada")
+    
+    def tensor(self, data):
+        import numpy as np
+        return np.array(data)
+    
+    def load(self, path):
+        raise NotImplementedError("PyTorch no disponible - no se pueden cargar modelos")
+    
+    def save(self, model, path):
+        logger.warning("PyTorch no disponible - no se puede guardar modelo")
+        return False
+
+
+class TensorFlowFallback:
+    """Fallback para TensorFlow"""
+    def __init__(self):
+        self.available = False
+        logger.warning("TensorFlow no disponible - usando fallback con funcionalidad limitada")
+    
+    def keras(self):
+        return self
+    
+    def Sequential(self):
+        logger.warning("TensorFlow no disponible - no se puede crear modelo Sequential")
+        return None
+
+
+class FlaskFallback:
+    """Fallback para Flask"""
+    def __init__(self):
+        self.available = False
+        logger.warning("Flask no disponible - usando servidor HTTP básico")
+    
+    def Flask(self, name):
+        return self
+    
+    def run(self, host='localhost', port=5000, debug=False):
+        logger.info(f"Iniciando servidor HTTP básico en {host}:{port}")
+        return WebServiceFallback().create_simple_server(port)
+
+
+class RawPyFallback:
+    """Fallback para RawPy (procesamiento de archivos RAW)"""
+    def __init__(self):
+        self.available = False
+        logger.warning("RawPy no disponible - usando procesamiento básico de imágenes")
+    
+    def imread(self, path):
+        try:
+            from PIL import Image
+            import numpy as np
+            img = Image.open(path)
+            return np.array(img)
+        except Exception as e:
+            logger.error(f"Error procesando imagen RAW: {e}")
+            return None
+
+
+class CoreComponentsFallback:
+    """Fallbacks para componentes core cuando fallan en la inicialización"""
+    
+    class ScientificPipelineFallback:
+        """Mock temporal para ScientificPipeline"""
+        def __init__(self):
+            self.available = False
+            logger.warning("ScientificPipeline no disponible - usando mock temporal")
+        
+        def execute(self, config):
+            logger.warning("Ejecutando pipeline mock - funcionalidad limitada")
+            return {"status": "mock_execution", "results": {}}
+        
+        def get_status(self, pipeline_id):
+            return {"status": "running", "progress": 0.5}
+        
+        def cancel(self, pipeline_id):
+            return True
+    
+    class ErrorHandlerFallback:
+        """Mock temporal para ErrorHandler"""
+        def __init__(self):
+            self.available = False
+            logger.warning("ErrorHandler no disponible - usando mock temporal")
+        
+        def handle_error(self, error, context=None):
+            logger.error(f"Error manejado por fallback: {error}")
+            return {"handled": True, "fallback": True}
+    
+    class IntelligentCacheFallback:
+        """Mock temporal para IntelligentCache"""
+        def __init__(self):
+            self.available = False
+            self.cache = {}
+            logger.warning("IntelligentCache no disponible - usando cache simple")
+        
+        def get(self, key):
+            return self.cache.get(key)
+        
+        def set(self, key, value, metadata=None):
+            self.cache[key] = value
+        
+        def clear(self):
+            self.cache.clear()
+    
+    class NotificationSystemFallback:
+        """Mock temporal para NotificationSystem"""
+        def __init__(self):
+            self.available = False
+            logger.warning("NotificationSystem no disponible - usando mock temporal")
+        
+        def send(self, level, title, message):
+            logger.info(f"Notificación [{level}] {title}: {message}")
+    
+    class TelemetrySystemFallback:
+        """Mock temporal para TelemetrySystem"""
+        def __init__(self):
+            self.available = False
+            logger.warning("TelemetrySystem no disponible - usando mock temporal")
+        
+        def get_data(self):
+            return {
+                "system_health": "unknown",
+                "performance_metrics": {},
+                "fallback_mode": True
+            }
+
+
 class FallbackRegistry:
     """
     Registro centralizado de implementaciones de fallback
@@ -303,7 +434,12 @@ class FallbackRegistry:
             'deep_learning': DeepLearningFallback(),
             'web_service': WebServiceFallback(),
             'image_processing': ImageProcessingFallback(),
-            'database': DatabaseFallback()
+            'database': DatabaseFallback(),
+            'torch': TorchFallback(),
+            'tensorflow': TensorFlowFallback(),
+            'flask': FlaskFallback(),
+            'rawpy': RawPyFallback(),
+            'core_components': CoreComponentsFallback()
         }
     
     def get_fallback(self, category: str) -> Any:

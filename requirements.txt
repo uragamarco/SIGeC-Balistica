@@ -14,6 +14,8 @@ scikit-image==0.20.0
 Pillow==10.0.1
 rawpy==0.18.1
 tifffile==2023.7.10
+matplotlib==3.8.0
+seaborn==0.12.2
 
 # Interfaz gráfica de usuario
 PyQt5==5.15.9
@@ -47,6 +49,13 @@ wheel>=0.37.0
 # ============================================================================
 # DEPENDENCIAS OPCIONALES
 # ============================================================================
+
+# Monitoreo del sistema y rendimiento
+psutil==5.9.5  # Para monitoreo de memoria, CPU y sistema
+
+# Cache y almacenamiento en memoria
+redis==4.6.0  # Para cache distribuido (opcional)
+diskcache==5.6.3  # Para cache en disco
 
 # APIs y servicios web (opcional - solo si se requiere funcionalidad web)
 Flask==2.3.3

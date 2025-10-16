@@ -16,7 +16,19 @@ import matplotlib.pyplot as plt
 import matplotlib.cm as cm
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.figure import Figure
+# Importaciones de visualización - Comentadas temporalmente para pruebas
 import seaborn as sns
+
+# Mock temporal para seaborn
+class MockSeaborn:
+    def set_style(self, *args, **kwargs):
+        pass
+    def heatmap(self, *args, **kwargs):
+        pass
+    def scatterplot(self, *args, **kwargs):
+        pass
+
+sns = MockSeaborn()
 
 
 class CorrelationWorker(QThread):

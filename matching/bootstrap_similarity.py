@@ -14,28 +14,59 @@ import warnings
 from typing import List, Dict, Tuple, Optional, Any, Callable
 from dataclasses import dataclass, field
 
-# Importar el módulo unificado
-try:
-    from common.similarity_functions_unified import (
-        UnifiedSimilarityAnalyzer,
-        SimilarityBootstrapResult,
-        SimilarityConfig,
-        get_unified_similarity_analyzer
-    )
-    UNIFIED_MODULE_AVAILABLE = True
-except ImportError:
-    warnings.warn("Unified similarity functions module not available. Using legacy implementation.")
-    UNIFIED_MODULE_AVAILABLE = False
+# Importar el módulo unificado - SOLUCIONADO: Evitar importación circular
+# En lugar de importar directamente, usaremos importación lazy
+# Variables globales para lazy loading
+UNIFIED_MODULE_AVAILABLE = False
+_unified_analyzer = None
+_statistical_analysis = None
+
+def _get_unified_module():
+    """Importación lazy del módulo unificado para evitar importación circular"""
+    global UNIFIED_MODULE_AVAILABLE, _unified_analyzer
     
-    # Fallback imports para compatibilidad
-    from common.statistical_core import UnifiedStatisticalAnalysis, BootstrapResult
-    statistical_analysis = UnifiedStatisticalAnalysis()
+    if _unified_analyzer is not None:
+        return _unified_analyzer
+        
+    try:
+        from common.similarity_functions_unified import (
+            UnifiedSimilarityAnalyzer,
+            SimilarityBootstrapResult as UnifiedSimilarityBootstrapResult,
+            SimilarityConfig,
+            get_unified_similarity_analyzer
+        )
+        _unified_analyzer = get_unified_similarity_analyzer()
+        UNIFIED_MODULE_AVAILABLE = True
+        return _unified_analyzer
+    except ImportError as e:
+        warnings.warn("Unified similarity functions module not available. Using legacy implementation.")
+        UNIFIED_MODULE_AVAILABLE = False
+        return None
+    except Exception as e:
+        UNIFIED_MODULE_AVAILABLE = False
+        return None
+
+def _get_statistical_analysis():
+    """Importación lazy del análisis estadístico para evitar importación circular"""
+    global _statistical_analysis
     
-    @dataclass
-    class SimilarityBootstrapResult:
-        """Resultado del análisis bootstrap para métricas de similitud"""
-        similarity_score: float
-        confidence_interval: Tuple[float, float]
+    if _statistical_analysis is not None:
+        return _statistical_analysis
+        
+    try:
+        from common.statistical_core import UnifiedStatisticalAnalysis
+        _statistical_analysis = UnifiedStatisticalAnalysis()
+        return _statistical_analysis
+    except ImportError as e:
+        warnings.warn("Statistical core not available. Some features may be limited.")
+        return None
+
+# Definir SimilarityBootstrapResult siempre (fuera del bloque de importación)
+@dataclass
+class SimilarityBootstrapResult:
+    """Resultado del análisis bootstrap para métricas de similitud"""
+    similarity_score: float
+    confidence_interval: Tuple[float, float]
     confidence_level: float
     bootstrap_scores: np.ndarray
     bias: float
@@ -79,13 +110,16 @@ class BootstrapSimilarityAnalyzer:
         self.config = config or MatchingBootstrapConfig()
         self.logger = logging.getLogger(__name__)
         
-        # Usar instancia global del análisis estadístico unificado
-        self.statistical_analysis = statistical_analysis
+        # Usar lazy loading para evitar importaciones circulares
+        self.statistical_analysis = _get_statistical_analysis()
         
-        if not UNIFIED_CORE_AVAILABLE:
-            self.logger.warning("Unified statistical core not available. Some features may be limited.")
+        # Intentar cargar el módulo unificado
+        self.unified_analyzer = _get_unified_module()
+        
+        if not UNIFIED_MODULE_AVAILABLE:
+            self.logger.warning("Unified similarity module not available. Using legacy implementation.")
         else:
-            self.logger.info("Bootstrap similarity analyzer initialized with unified statistical core")
+            self.logger.info("Bootstrap similarity analyzer initialized with unified similarity module")
     
     def bootstrap_similarity_confidence(
         self,
@@ -524,7 +558,6 @@ def create_similarity_bootstrap_function(
         
         return similarity_function
 
-# Función de utilidad para integración fácil
 def calculate_bootstrap_confidence_interval(
     matches_data: List[Dict[str, Any]],
     similarity_score: float,
@@ -534,52 +567,65 @@ def calculate_bootstrap_confidence_interval(
 ) -> Tuple[float, float]:
     """
     Función de compatibilidad para calcular intervalo de confianza bootstrap
-    REDIRIGE AL MÓDULO UNIFICADO
+    REDIRIGE AL MÓDULO UNIFICADO si está disponible, sino usa implementación local
     """
-    if UNIFIED_MODULE_AVAILABLE:
-        analyzer = get_unified_similarity_analyzer()
-        
-        # Configurar parámetros temporalmente
-        original_n_bootstrap = analyzer.config.n_bootstrap
-        original_confidence_level = analyzer.config.confidence_level
-        
-        analyzer.config.n_bootstrap = n_bootstrap
-        analyzer.config.confidence_level = confidence_level
-        
+    # Intentar usar el módulo unificado
+    unified_analyzer = _get_unified_module()
+    
+    if unified_analyzer is not None:
         try:
-            ci_lower, ci_upper, _ = analyzer.analyze_bootstrap_confidence_interval(
-                matches_data, similarity_score, algorithm, confidence_level, n_bootstrap
-            )
-            return ci_lower, ci_upper
-        finally:
-            # Restaurar configuración original
-            analyzer.config.n_bootstrap = original_n_bootstrap
-            analyzer.config.confidence_level = original_confidence_level
-    else:
-        # Implementación legacy simplificada
-        if len(matches_data) < 5:
-            margin = similarity_score * 0.1
-            return (max(0, similarity_score - margin), min(100, similarity_score + margin))
-        
-        # Bootstrap básico
-        bootstrap_scores = []
-        for _ in range(min(n_bootstrap, 100)):  # Limitar para rendimiento
-            resampled = np.random.choice(len(matches_data), len(matches_data), replace=True)
-            resampled_matches = [matches_data[i] for i in resampled]
+            # Configurar parámetros temporalmente
+            original_n_bootstrap = unified_analyzer.config.n_bootstrap
+            original_confidence_level = unified_analyzer.config.confidence_level
             
-            # Calcular score para muestra
-            score = similarity_score * (len(resampled_matches) / len(matches_data))
-            bootstrap_scores.append(score)
-        
-        # Calcular percentiles
-        alpha = 1 - confidence_level
-        lower_percentile = (alpha / 2) * 100
-        upper_percentile = (1 - alpha / 2) * 100
-        
-        ci_lower = np.percentile(bootstrap_scores, lower_percentile)
-        ci_upper = np.percentile(bootstrap_scores, upper_percentile)
-        
-        return ci_lower, ci_upper
+            unified_analyzer.config.n_bootstrap = n_bootstrap
+            unified_analyzer.config.confidence_level = confidence_level
+            
+            try:
+                ci_lower, ci_upper, _ = unified_analyzer.analyze_bootstrap_confidence_interval(
+                    matches_data, similarity_score, algorithm, confidence_level, n_bootstrap
+                )
+                return ci_lower, ci_upper
+            finally:
+                # Restaurar configuración original
+                unified_analyzer.config.n_bootstrap = original_n_bootstrap
+                unified_analyzer.config.confidence_level = original_confidence_level
+        except Exception as e:
+            warnings.warn(f"Error using unified analyzer, falling back to local implementation: {e}")
+    
+    # Fallback a implementación local
+    config = MatchingBootstrapConfig(
+        n_bootstrap=n_bootstrap,
+        confidence_level=confidence_level
+    )
+    analyzer = BootstrapSimilarityAnalyzer(config)
+    
+    # Crear función de similitud simple
+    similarity_func = create_similarity_bootstrap_function(
+        good_matches=len(matches_data),
+        kp1_count=100,  # Valor por defecto
+        kp2_count=100,  # Valor por defecto
+        algorithm=algorithm
+    )
+    
+    result = analyzer.bootstrap_similarity_confidence(matches_data, similarity_func)
+    return result.confidence_interval
+
+
+# Función de utilidad para crear función de similitud simple
+def _create_simple_similarity_function(matches_data: List[Dict[str, Any]], base_score: float) -> Callable:
+    """Crear función de similitud simple para fallback"""
+    def simple_similarity(data: List[Dict[str, Any]]) -> float:
+        if not data:
+            return 0.0
+        # Calcular similitud basada en distancias
+        distances = [match.get('distance', 1.0) for match in data]
+        avg_distance = sum(distances) / len(distances)
+        # Convertir distancia a similitud (menor distancia = mayor similitud)
+        similarity = max(0, min(100, base_score * (1 - avg_distance)))
+        return similarity
+    return simple_similarity
+
 
 if __name__ == "__main__":
     # Test básico del módulo

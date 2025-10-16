@@ -50,16 +50,17 @@ from .ballistic_dl_models import (
     ResNetClassifier,
     BallisticAutoencoder,
     
-    # Dataset y entrenamiento
+    # Clases de entrenamiento y evaluación
     BallisticDataset,
     BallisticDLTrainer,
     
-    # Funciones principales
+    # Funciones de utilidad
     evaluate_dl_models,
-    create_data_transforms,
-    load_ballistic_dataset,
-    generate_dl_evaluation_report
+    load_ballistic_dataset
 )
+
+# Importar el adaptador para IPipelineProcessor
+from .dl_pipeline_adapter import DeepLearningPipelineAdapter
 
 __all__ = [
     'ModelType',
@@ -73,10 +74,6 @@ __all__ = [
     'BallisticDataset',
     'BallisticDLTrainer',
     'evaluate_dl_models',
-    'create_data_transforms',
     'load_ballistic_dataset',
-    'generate_dl_evaluation_report'
+    'DeepLearningPipelineAdapter'
 ]
-
-__version__ = "1.0.0"
-__author__ = "Sistema Balístico Forense MVP"

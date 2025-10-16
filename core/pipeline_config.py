@@ -20,6 +20,20 @@ from image_processing.unified_preprocessor import PreprocessingLevel
 from image_processing.unified_roi_detector import DetectionLevel
 from matching.unified_matcher import AlgorithmType
 
+# Importar tipos de deep learning
+try:
+    from deep_learning.ballistic_dl_models import ModelType
+    DEEP_LEARNING_AVAILABLE = True
+except ImportError:
+    DEEP_LEARNING_AVAILABLE = False
+    # Fallback enum para cuando deep learning no esté disponible
+    class ModelType(Enum):
+        CNN_FEATURE_EXTRACTOR = "cnn_feature_extractor"
+        SIAMESE_NETWORK = "siamese_network"
+        UNET_SEGMENTATION = "unet_segmentation"
+        RESNET_CLASSIFIER = "resnet_classifier"
+        AUTOENCODER = "autoencoder"
+
 
 class PipelineLevel(Enum):
     """Niveles de análisis del pipeline"""
@@ -27,6 +41,77 @@ class PipelineLevel(Enum):
     STANDARD = "standard"
     ADVANCED = "advanced"
     FORENSIC = "forensic"
+
+
+@dataclass
+class DeepLearningConfig:
+    """Configuración para modelos de deep learning"""
+    enabled: bool = False
+    device: str = "auto"  # "cpu", "cuda", "auto"
+    
+    # Configuración de modelos
+    feature_extraction_model: ModelType = ModelType.CNN_FEATURE_EXTRACTOR
+    matching_model: ModelType = ModelType.SIAMESE_NETWORK
+    segmentation_model: ModelType = ModelType.UNET_SEGMENTATION
+    classification_model: ModelType = ModelType.RESNET_CLASSIFIER
+    
+    # Configuración de entrenamiento/inferencia
+    batch_size: int = 16
+    confidence_threshold: float = 0.85
+    feature_dim: int = 512
+    
+    # Rutas de modelos
+    models_path: str = "deep_learning/models"
+    checkpoints_path: str = "deep_learning/checkpoints"
+    
+    # Configuración específica por modelo
+    cnn_config: Dict[str, Any] = field(default_factory=lambda: {
+        "input_size": (3, 224, 224),
+        "hidden_layers": [512, 256, 128],
+        "dropout_rate": 0.5
+    })
+    
+    siamese_config: Dict[str, Any] = field(default_factory=lambda: {
+        "embedding_dim": 128,
+        "margin": 1.0,
+        "distance_metric": "euclidean"
+    })
+    
+    unet_config: Dict[str, Any] = field(default_factory=lambda: {
+        "num_classes": 4,  # background, firing_pin, breech_face, other
+        "use_attention": False
+    })
+    
+    # Configuración por nivel de pipeline
+    level_configs: Dict[str, Dict[str, Any]] = field(default_factory=lambda: {
+        "basic": {
+            "enabled": False,
+            "confidence_threshold": 0.7,
+            "batch_size": 8,
+            "feature_dim": 256
+        },
+        "standard": {
+            "enabled": False,  # Por defecto deshabilitado hasta que esté completamente integrado
+            "confidence_threshold": 0.85,
+            "batch_size": 16,
+            "feature_dim": 512
+        },
+        "advanced": {
+            "enabled": True,
+            "confidence_threshold": 0.9,
+            "batch_size": 32,
+            "feature_dim": 1024,
+            "use_ensemble": True
+        },
+        "forensic": {
+            "enabled": True,
+            "confidence_threshold": 0.95,
+            "batch_size": 64,
+            "feature_dim": 2048,
+            "use_ensemble": True,
+            "enable_uncertainty_estimation": True
+        }
+    })
 
 
 @dataclass
@@ -322,6 +407,7 @@ class PipelineConfiguration:
     matching: MatchingConfig = field(default_factory=MatchingConfig)
     cmc_analysis: CMCAnalysisConfig = field(default_factory=CMCAnalysisConfig)
     afte_conclusion: AFTEConclusionConfig = field(default_factory=AFTEConclusionConfig)
+    deep_learning: DeepLearningConfig = field(default_factory=DeepLearningConfig)
     
     # Configuraciones generales
     enable_parallel_processing: bool = True
@@ -382,6 +468,12 @@ class PipelineConfiguration:
             config = self.afte_conclusion.level_configs[level]
             for key, value in config.items():
                 setattr(self.afte_conclusion, key, value)
+        
+        # Aplicar configuración de deep learning
+        if level in self.deep_learning.level_configs:
+            config = self.deep_learning.level_configs[level]
+            for key, value in config.items():
+                setattr(self.deep_learning, key, value)
     
     def to_dict(self) -> Dict[str, Any]:
         """Convierte la configuración a diccionario"""

@@ -32,6 +32,32 @@ from enum import Enum
 from datetime import datetime
 import shutil
 
+# Importar sistema de validación y manejo de errores
+try:
+    from core.data_validator import get_data_validator, ValidationResult
+    from core.error_handler import get_error_manager, with_error_handling, ErrorSeverity
+    DATA_VALIDATION_AVAILABLE = True
+except ImportError:
+    DATA_VALIDATION_AVAILABLE = False
+    # Fallbacks para compatibilidad
+    class ValidationResult:
+        def __init__(self, is_valid=True, sanitized_data=None, errors=None):
+            self.is_valid = is_valid
+            self.sanitized_data = sanitized_data or {}
+            self.errors = errors or []
+    
+    def get_data_validator():
+        return None
+    
+    def with_error_handling(func):
+        return func
+    
+    class ErrorSeverity:
+        LOW = "low"
+        MEDIUM = "medium"
+        HIGH = "high"
+        CRITICAL = "critical"
+
 # Importar MatchingLevel y AlgorithmType desde unified_matcher
 try:
     from matching.unified_matcher import MatchingLevel, AlgorithmType
@@ -578,8 +604,9 @@ class UnifiedConfig:
             logger.error(f"Error al cargar configuración: {e}")
             logger.info("Usando configuración por defecto")
     
+    @with_error_handling
     def load_config(self) -> None:
-        """Carga la configuración desde el archivo"""
+        """Carga la configuración desde el archivo con validación robusta"""
         if not self.config_path.exists():
             logger.info(f"Archivo de configuración no encontrado: {self.config_path}")
             self.save_config()  # Crear configuración por defecto
@@ -593,25 +620,69 @@ class UnifiedConfig:
                 logger.warning("Archivo de configuración vacío, usando valores por defecto")
                 return
             
+            # Validar estructura de configuración si está disponible
+            if DATA_VALIDATION_AVAILABLE:
+                validator = get_data_validator()
+                if validator:
+                    validation_result = validator.validate_data(config_data, "config_structure")
+                    if not validation_result.is_valid:
+                        logger.warning(f"Estructura de configuración inválida: {validation_result.errors}")
+                        # Usar datos sanitizados si están disponibles
+                        config_data = validation_result.sanitized_data or config_data
+            
             # Cargar configuraciones con validación
             if 'database' in config_data:
-                self.database = DatabaseConfig(**config_data['database'])
+                try:
+                    self.database = DatabaseConfig(**config_data['database'])
+                    # Validar configuración de base de datos
+                    db_errors = self.database.validate()
+                    if db_errors:
+                        logger.warning(f"Errores en configuración de base de datos: {db_errors}")
+                except Exception as e:
+                    logger.error(f"Error al cargar configuración de base de datos: {e}")
+                    self.database = DatabaseConfig()  # Usar valores por defecto
             
             if 'image_processing' in config_data:
-                self.image_processing = ImageProcessingConfig(**config_data['image_processing'])
+                try:
+                    self.image_processing = ImageProcessingConfig(**config_data['image_processing'])
+                    # Validar configuración de procesamiento de imágenes
+                    img_errors = self.image_processing.validate()
+                    if img_errors:
+                        logger.warning(f"Errores en configuración de procesamiento: {img_errors}")
+                except Exception as e:
+                    logger.error(f"Error al cargar configuración de procesamiento: {e}")
+                    self.image_processing = ImageProcessingConfig()  # Usar valores por defecto
             
             if 'matching' in config_data:
-                matching_data = config_data['matching'].copy()
-                # Convertir strings de vuelta a enums
-                if 'algorithm' in matching_data:
-                    from matching.unified_matcher import AlgorithmType
-                    if isinstance(matching_data['algorithm'], str):
-                        matching_data['algorithm'] = AlgorithmType(matching_data['algorithm'])
-                
-                if 'level' in matching_data:
-                    from matching.unified_matcher import MatchingLevel
-                    if isinstance(matching_data['level'], str):
-                        matching_data['level'] = MatchingLevel(matching_data['level'])
+                try:
+                    matching_data = config_data['matching'].copy()
+                    # Convertir strings de vuelta a enums con validación
+                    if 'algorithm' in matching_data:
+                        from matching.unified_matcher import AlgorithmType
+                        if isinstance(matching_data['algorithm'], str):
+                            try:
+                                matching_data['algorithm'] = AlgorithmType(matching_data['algorithm'])
+                            except ValueError:
+                                logger.warning(f"Algoritmo inválido: {matching_data['algorithm']}, usando ORB")
+                                matching_data['algorithm'] = AlgorithmType.ORB
+                    
+                    if 'level' in matching_data:
+                        from matching.unified_matcher import MatchingLevel
+                        if isinstance(matching_data['level'], str):
+                            try:
+                                matching_data['level'] = MatchingLevel(matching_data['level'])
+                            except ValueError:
+                                logger.warning(f"Nivel de matching inválido: {matching_data['level']}, usando STANDARD")
+                                matching_data['level'] = MatchingLevel.STANDARD
+                    
+                    self.matching = MatchingConfig(**matching_data)
+                    # Validar configuración de matching
+                    match_errors = self.matching.validate()
+                    if match_errors:
+                        logger.warning(f"Errores en configuración de matching: {match_errors}")
+                except Exception as e:
+                    logger.error(f"Error al cargar configuración de matching: {e}")
+                    self.matching = MatchingConfig()  # Usar valores por defecto
                 
                 self.matching = MatchingConfig(**matching_data)
             

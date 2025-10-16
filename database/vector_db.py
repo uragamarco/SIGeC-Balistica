@@ -22,6 +22,43 @@ from contextlib import contextmanager
 from utils.logger import LoggerMixin
 from config.unified_config import get_unified_config, UnifiedConfig
 
+# Importar sistema de monitoreo de rendimiento
+try:
+    from core.performance_monitor import monitor_performance, monitor_database_operation, OperationType
+except ImportError:
+    # Fallback si el módulo no está disponible
+    def monitor_performance(operation_type):
+        def decorator(func):
+            return func
+        return decorator
+    
+    def monitor_database_operation(func):
+        return func
+    
+    class OperationType:
+        DATABASE_OPERATION = "database_operation"
+
+# Importar sistemas de validación y manejo de errores
+try:
+    from core.data_validator import get_data_validator, ValidationResult
+    from core.error_handler import get_error_manager, with_error_handling, ErrorSeverity
+except ImportError:
+    # Fallback si los módulos no están disponibles
+    def get_data_validator():
+        return None
+    
+    def get_error_manager():
+        return None
+    
+    def with_error_handling(component, operation=None):
+        def decorator(func):
+            return func
+        return decorator
+    
+    class ErrorSeverity:
+        HIGH = "high"
+        MEDIUM = "medium"
+
 @dataclass
 class BallisticCase:
     """Estructura de datos para un caso balístico"""
@@ -389,6 +426,7 @@ class VectorDatabase(LoggerMixin):
         
         return batch_results
     
+    @monitor_performance(OperationType.DATABASE_OPERATION)
     @lru_cache(maxsize=128)
     def get_case_by_id(self, case_id: int) -> Optional[BallisticCase]:
         """Obtiene un caso por ID con cache"""
@@ -402,11 +440,23 @@ class VectorDatabase(LoggerMixin):
         return None
 
     @lru_cache(maxsize=128)
+    @with_error_handling("database", "get_case_by_number")
     def get_case_by_number(self, case_number: str) -> Optional[BallisticCase]:
-        """Obtiene un caso por número de caso con cache"""
+        """Obtiene un caso por número de caso con cache y validación"""
+        # Validar entrada
+        if not case_number or not case_number.strip():
+            raise ValueError("case_number no puede estar vacío")
+        
+        # Sanitizar entrada
+        validator = get_data_validator()
+        if validator:
+            sanitized_number = validator.sanitize_string(case_number.strip())
+        else:
+            sanitized_number = case_number.strip()
+        
         with self._get_connection() as conn:
             cursor = conn.cursor()
-            cursor.execute("SELECT * FROM ballistic_cases WHERE case_number = ? AND status = 'active'", (case_number,))
+            cursor.execute("SELECT * FROM ballistic_cases WHERE case_number = ? AND status = 'active'", (sanitized_number,))
             row = cursor.fetchone()
             
             if row:
@@ -492,9 +542,39 @@ class VectorDatabase(LoggerMixin):
             
             return [BallisticImage(**dict(row)) for row in rows]
     
+    @monitor_database_operation
+    @with_error_handling("database", "add_case")
     def add_case(self, case: BallisticCase) -> int:
-        """Agrega un nuevo caso balístico"""
+        """Agrega un nuevo caso balístico con validación robusta"""
         try:
+            # Validar datos de entrada usando el sistema de validación
+            validator = get_data_validator()
+            if validator:
+                case_data = {
+                    "case_number": case.case_number,
+                    "investigator": case.investigator,
+                    "weapon_type": case.weapon_type,
+                    "weapon_model": case.weapon_model,
+                    "caliber": case.caliber,
+                    "description": case.description,
+                    "date_created": case.date_created or datetime.now().isoformat()
+                }
+                
+                validation_result = validator.validate_data(case_data, "ballistic_case")
+                
+                if not validation_result.is_valid:
+                    error_messages = [error.error_message for error in validation_result.errors]
+                    raise ValueError(f"Validation failed: {'; '.join(error_messages)}")
+                
+                # Usar datos sanitizados
+                case.case_number = validation_result.sanitized_data.get("case_number", case.case_number)
+                case.investigator = validation_result.sanitized_data.get("investigator", case.investigator)
+                case.weapon_type = validation_result.sanitized_data.get("weapon_type", case.weapon_type)
+                case.weapon_model = validation_result.sanitized_data.get("weapon_model", case.weapon_model)
+                case.caliber = validation_result.sanitized_data.get("caliber", case.caliber)
+                case.description = validation_result.sanitized_data.get("description", case.description)
+                case.date_created = validation_result.sanitized_data.get("date_created", case.date_created)
+            
             with self._get_connection() as conn:
                 cursor = conn.cursor()
                 
@@ -504,12 +584,18 @@ class VectorDatabase(LoggerMixin):
                     case.created_at = now
                 case.updated_at = now
                 
-                # Validar campos requeridos
-                if not case.case_number:
+                # Verificar que el número de caso no exista
+                cursor.execute("SELECT id FROM ballistic_cases WHERE case_number = ?", (case.case_number,))
+                if cursor.fetchone():
+                    raise ValueError(f"Case number '{case.case_number}' already exists")
+                
+                # Validar campos requeridos (validación adicional)
+                if not case.case_number or not case.case_number.strip():
                     raise ValueError("case_number es requerido")
-                if not case.investigator:
+                if not case.investigator or not case.investigator.strip():
                     raise ValueError("investigator es requerido")
                 if not case.date_created:
+                    case.date_created = now
                     case.date_created = now
                 
                 # Verificar si el case_number ya existe
@@ -550,9 +636,36 @@ class VectorDatabase(LoggerMixin):
             self.logger.error(f"Error al agregar caso: {e}")
             raise
     
+    @with_error_handling("database", "add_image")
     def add_image(self, image: BallisticImage) -> int:
-        """Agrega una nueva imagen balística"""
+        """Agrega una nueva imagen balística con validación robusta"""
         try:
+            # Validar datos de entrada usando el sistema de validación
+            validator = get_data_validator()
+            if validator:
+                image_data = {
+                    "filename": image.filename,
+                    "file_path": image.file_path,
+                    "evidence_type": image.evidence_type,
+                    "width": image.width,
+                    "height": image.height,
+                    "file_size": image.file_size
+                }
+                
+                validation_result = validator.validate_data(image_data, "ballistic_image")
+                
+                if not validation_result.is_valid:
+                    error_messages = [error.error_message for error in validation_result.errors]
+                    raise ValueError(f"Image validation failed: {'; '.join(error_messages)}")
+                
+                # Usar datos sanitizados
+                image.filename = validation_result.sanitized_data.get("filename", image.filename)
+                image.file_path = validation_result.sanitized_data.get("file_path", image.file_path)
+                image.evidence_type = validation_result.sanitized_data.get("evidence_type", image.evidence_type)
+                image.width = validation_result.sanitized_data.get("width", image.width)
+                image.height = validation_result.sanitized_data.get("height", image.height)
+                image.file_size = validation_result.sanitized_data.get("file_size", image.file_size)
+            
             with self._get_connection() as conn:
                 cursor = conn.cursor()
                 
@@ -563,14 +676,14 @@ class VectorDatabase(LoggerMixin):
                 if not image.date_added:
                     image.date_added = now
                 
-                # Validar campos requeridos
+                # Validar campos requeridos (validación adicional)
                 if not image.case_id:
                     raise ValueError("case_id es requerido")
-                if not image.filename:
+                if not image.filename or not image.filename.strip():
                     raise ValueError("filename es requerido")
-                if not image.file_path:
+                if not image.file_path or not image.file_path.strip():
                     raise ValueError("file_path es requerido")
-                if not image.evidence_type:
+                if not image.evidence_type or not image.evidence_type.strip():
                     raise ValueError("evidence_type es requerido")
                 
                 # Verificar que el caso existe
@@ -611,6 +724,7 @@ class VectorDatabase(LoggerMixin):
             self.logger.error(f"Error al agregar imagen: {e}")
             raise
 
+    @monitor_performance(OperationType.DATABASE_OPERATION)
     def add_cases_batch(self, cases: List[BallisticCase]) -> List[int]:
         """Agrega múltiples casos en una transacción"""
         if not cases:

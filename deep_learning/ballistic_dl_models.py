@@ -20,6 +20,8 @@ Basado en literatura científica:
 - Chu et al. (2020) - Siamese networks para matching
 - Ronneberger et al. (2015) - U-Net para segmentación
 - He et al. (2016) - ResNet para clasificación profunda
+
+Incluye adaptador para integración con IPipelineProcessor.
 """
 
 import torch
@@ -39,10 +41,19 @@ from pathlib import Path
 from enum import Enum
 import json
 import time
+import os
 from sklearn.metrics import accuracy_score, precision_recall_fscore_support
 from sklearn.model_selection import train_test_split
 import matplotlib.pyplot as plt
 import seaborn as sns
+
+# Importar la interfaz IPipelineProcessor
+import sys
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from interfaces.pipeline_interfaces import IPipelineProcessor, ProcessingResult
+
+# Importar la interfaz IPipelineProcessor
+from interfaces.pipeline_interfaces import IPipelineProcessor, ProcessingResult
 
 logger = logging.getLogger(__name__)
 

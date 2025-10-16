@@ -336,31 +336,47 @@ class BallisticFeatureExtractor:
     def _check_system_resources(self):
         """Verifica recursos del sistema y ajusta configuración automáticamente"""
         try:
-            # Verificar memoria disponible
-            memory_info = psutil.virtual_memory()
-            memory_gb = memory_info.available / (1024**3)
-            total_memory_gb = memory_info.total / (1024**3)
-            
-            self.logger.info(f"Memoria total: {total_memory_gb:.1f}GB, disponible: {memory_gb:.1f}GB")
-            
-            # Ajustar configuración según memoria disponible
-            if memory_gb < 1.0:  # Crítico: menos de 1GB disponible
-                self.logger.warning(f"Memoria crítica ({memory_gb:.1f}GB). Optimizando para uso mínimo.")
-                self.parallel_config.memory_limit_gb = min(0.3, memory_gb * 0.5)
-                self.parallel_config.max_workers_process = 1
-                self.parallel_config.max_workers_thread = 1
-                self.parallel_config.enable_gabor_parallel = False
-                self.parallel_config.enable_roi_parallel = False
-                self.parallel_config.chunk_size = 1
+            # Usar configuración unificada
+            try:
+                from config.unified_config import get_image_processing_config
                 
-            elif memory_gb < 2.0:  # Limitado: entre 1-2GB disponible
-                self.logger.info(f"Memoria limitada ({memory_gb:.1f}GB). Usando configuración conservadora.")
-                self.parallel_config.memory_limit_gb = min(0.6, memory_gb * 0.7)
-                self.parallel_config.max_workers_process = min(2, self.parallel_config.max_workers_process)
-                self.parallel_config.max_workers_thread = min(2, self.parallel_config.max_workers_thread)
+                # Aplicar configuración unificada
+                img_config = get_image_processing_config()
+                self.parallel_config.max_workers_process = img_config.max_workers
+                self.parallel_config.max_workers_thread = img_config.max_workers
+                self.parallel_config.memory_limit_gb = img_config.memory_limit_mb / 1024.0
+                self.parallel_config.chunk_size = optimized_config['chunk_size']
                 
-            else:  # Suficiente: más de 2GB disponible
-                self.logger.info(f"Memoria suficiente ({memory_gb:.1f}GB). Usando configuración estándar.")
+                self.logger.info("Configuración optimizada aplicada desde config/parallel_config_optimized.py")
+                
+            except ImportError:
+                self.logger.warning("No se pudo cargar configuración optimizada, usando detección automática")
+                
+                # Verificar memoria disponible (método original)
+                memory_info = psutil.virtual_memory()
+                memory_gb = memory_info.available / (1024**3)
+                total_memory_gb = memory_info.total / (1024**3)
+                
+                self.logger.info(f"Memoria total: {total_memory_gb:.1f}GB, disponible: {memory_gb:.1f}GB")
+                
+                # Ajustar configuración según memoria disponible
+                if memory_gb < 1.0:  # Crítico: menos de 1GB disponible
+                    self.logger.warning(f"Memoria crítica ({memory_gb:.1f}GB). Optimizando para uso mínimo.")
+                    self.parallel_config.memory_limit_gb = min(0.3, memory_gb * 0.5)
+                    self.parallel_config.max_workers_process = 1
+                    self.parallel_config.max_workers_thread = 1
+                    self.parallel_config.enable_gabor_parallel = False
+                    self.parallel_config.enable_roi_parallel = False
+                    self.parallel_config.chunk_size = 1
+                    
+                elif memory_gb < 2.0:  # Limitado: entre 1-2GB disponible
+                    self.logger.info(f"Memoria limitada ({memory_gb:.1f}GB). Usando configuración conservadora.")
+                    self.parallel_config.memory_limit_gb = min(0.6, memory_gb * 0.7)
+                    self.parallel_config.max_workers_process = min(2, self.parallel_config.max_workers_process)
+                    self.parallel_config.max_workers_thread = min(2, self.parallel_config.max_workers_thread)
+                    
+                else:  # Suficiente: más de 2GB disponible
+                    self.logger.info(f"Memoria suficiente ({memory_gb:.1f}GB). Usando configuración estándar.")
             
             # Verificar número de cores
             cpu_count = mp.cpu_count()

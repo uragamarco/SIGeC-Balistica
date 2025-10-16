@@ -231,6 +231,8 @@ test_results.log
 
 # Configuration backups
 config/backups/
+backup_consolidacion/
+
 
 # Database files and indexes
 database/ballistics.db*
@@ -244,3 +246,8 @@ test_user_*.py
 
 # GitHub setup instructions (generated file)
 INSTRUCCIONES_GITHUB.md
+tools/preview_analysis_tab.py
+tools/preview_comparison_tab.py
+tools/preview_main_window.py
+tools/preview_nist_metadata.py
+tools/preview_tri_tab_gui.py

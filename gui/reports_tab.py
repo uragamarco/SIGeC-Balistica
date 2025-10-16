@@ -49,7 +49,14 @@ from .interactive_report_generator import InteractiveHTMLGenerator, InteractiveR
 from .history_integration import HistoryImportDialog, HistoryIntegrationWidget, HistoryDataConverter
 from .enhanced_webview import InteractiveReportViewer
 
-# Importaciones NIST opcionales
+# Importar el gestor de estado
+try:
+    from .app_state_manager import AppStateManager
+    APP_STATE_AVAILABLE = True
+except ImportError:
+    APP_STATE_AVAILABLE = False
+
+# Importaciones opcionales para funcionalidades NIST
 try:
     from image_processing.nist_compliance_validator import NISTComplianceValidator, NISTProcessingReport
     from nist_standards.quality_metrics import NISTQualityMetrics, NISTQualityReport
@@ -129,15 +136,40 @@ class ReportGenerationWorker(QThread):
         """Recopila datos de análisis desde diferentes fuentes"""
         data = {}
         
-        # Datos de análisis individual
-        if self.report_config.get('include_individual_analysis'):
-            data['individual_analyses'] = self._get_individual_analyses()
+        # Si tenemos gestor de estado, obtener datos desde ahí
+        if self.state_manager:
+            # Obtener datos del estado actual
+            current_case = self.state_manager.get_current_case()
+            current_images = self.state_manager.get_current_images()
+            comparison_results = self.state_manager.get_comparison_results()
+            analysis_results = self.state_manager.get_analysis_results()
+            
+            # Datos de análisis individual
+            if self.report_config.get('include_individual_analysis') and analysis_results:
+                data['individual_analyses'] = self._format_state_analysis_data(analysis_results)
+            
+            # Datos de comparaciones
+            if self.report_config.get('include_comparisons') and comparison_results:
+                data['comparisons'] = self._format_state_comparison_data(comparison_results)
+            
+            # Datos del caso actual
+            if current_case:
+                data['case_info'] = current_case
+            
+            # Información de imágenes
+            if current_images:
+                data['images_info'] = current_images
+        else:
+            # Fallback a métodos originales
+            # Datos de análisis individual
+            if self.report_config.get('include_individual_analysis'):
+                data['individual_analyses'] = self._get_individual_analyses()
+            
+            # Datos de comparaciones
+            if self.report_config.get('include_comparisons'):
+                data['comparisons'] = self._get_comparison_results()
         
-        # Datos de comparaciones
-        if self.report_config.get('include_comparisons'):
-            data['comparisons'] = self._get_comparison_results()
-        
-        # Datos de base de datos
+        # Datos de base de datos (siempre desde backend)
         if self.report_config.get('include_database_searches'):
             data['database_searches'] = self._get_database_searches()
         
@@ -692,6 +724,12 @@ class ReportsTab(QWidget):
         # Backend integration
         self.backend = get_backend_integration()
         
+        # Integración con el gestor de estado
+        if APP_STATE_AVAILABLE:
+            self.state_manager = AppStateManager()
+        else:
+            self.state_manager = None
+        
         # Estado de la pestaña
         self.current_report_config = {}
         self.report_worker = None
@@ -707,10 +745,17 @@ class ReportsTab(QWidget):
         self._setup_ui()
         self._connect_signals()
         
+        # Aplicar tooltips informativos
+        self._apply_tooltips()
+        
+        # Conectar señales del gestor de estado
+        if self.state_manager:
+            self._connect_state_manager_signals()
+        
         # Cargar datos disponibles
         self._load_available_analyses()
         
-        logger.info("ReportsTab inicializada con componentes mejorados")
+        logger.info("ReportsTab inicializada con componentes mejorados y gestor de estado")
     
     def _setup_ui(self):
         """Configura la interfaz de usuario"""
@@ -1737,6 +1782,197 @@ class ReportsTab(QWidget):
             except Exception as e:
                 QMessageBox.warning(self, "Error de Exportación", 
                                    f"Error al exportar vista previa:\n{str(e)}")
+
+    # ==================== MÉTODOS DE INTEGRACIÓN CON GESTOR DE ESTADO ====================
+    
+    def _connect_state_manager_signals(self):
+        """Conecta las señales del gestor de estado"""
+        try:
+            if self.state_manager:
+                # Conectar señales de actualización de datos
+                # Nota: case_updated e images_updated no están definidas en AppStateManager
+                # Se comentan hasta que se implementen o se determine la señal correcta
+                # self.state_manager.case_updated.connect(self._on_case_updated)
+                self.state_manager.image_analysis_updated.connect(self._on_analysis_updated)
+                self.state_manager.comparison_updated.connect(self._on_comparison_updated)
+                # self.state_manager.images_updated.connect(self._on_images_updated)
+                
+                # Notificar que la pestaña de reportes está activa
+                self.state_manager.set_active_tab('reports')
+                
+                logger.info("Señales del gestor de estado conectadas en ReportsTab")
+        except Exception as e:
+            logger.error(f"Error conectando señales del gestor de estado: {e}")
+    
+    def _on_case_updated(self, case_data):
+        """Maneja actualizaciones del caso actual"""
+        try:
+            if case_data:
+                # Actualizar información del caso en la configuración
+                self.current_report_config['case_info'] = case_data
+                self._update_case_info_display(case_data)
+                logger.debug("Información del caso actualizada en ReportsTab")
+        except Exception as e:
+            logger.error(f"Error actualizando caso en ReportsTab: {e}")
+    
+    def _on_analysis_updated(self, analysis_results):
+        """Maneja actualizaciones de resultados de análisis"""
+        try:
+            if analysis_results:
+                # Actualizar lista de análisis disponibles
+                self._update_available_analyses(analysis_results)
+                logger.debug("Resultados de análisis actualizados en ReportsTab")
+        except Exception as e:
+            logger.error(f"Error actualizando análisis en ReportsTab: {e}")
+    
+    def _on_comparison_updated(self, comparison_results):
+        """Maneja actualizaciones de resultados de comparación"""
+        try:
+            if comparison_results:
+                # Actualizar datos de comparación disponibles
+                self._update_comparison_data(comparison_results)
+                logger.debug("Resultados de comparación actualizados en ReportsTab")
+        except Exception as e:
+            logger.error(f"Error actualizando comparaciones en ReportsTab: {e}")
+    
+    def _on_images_updated(self, images_data):
+        """Maneja actualizaciones de imágenes"""
+        try:
+            if images_data:
+                # Actualizar información de imágenes disponibles
+                self._update_images_info(images_data)
+                logger.debug("Información de imágenes actualizada en ReportsTab")
+        except Exception as e:
+            logger.error(f"Error actualizando imágenes en ReportsTab: {e}")
+    
+    def _format_state_analysis_data(self, analysis_results) -> List[Dict[str, Any]]:
+        """Formatea datos de análisis del gestor de estado para reportes"""
+        try:
+            formatted_data = []
+            
+            for analysis_id, analysis_data in analysis_results.items():
+                formatted_analysis = {
+                    'id': analysis_id,
+                    'timestamp': analysis_data.get('timestamp', datetime.now().isoformat()),
+                    'image_path': analysis_data.get('image_path', ''),
+                    'algorithm': analysis_data.get('algorithm', 'Unknown'),
+                    'parameters': analysis_data.get('parameters', {}),
+                    'results': analysis_data.get('results', {}),
+                    'quality_metrics': analysis_data.get('quality_metrics', {}),
+                    'processing_time': analysis_data.get('processing_time', 0),
+                    'status': analysis_data.get('status', 'completed')
+                }
+                formatted_data.append(formatted_analysis)
+            
+            return formatted_data
+        except Exception as e:
+            logger.error(f"Error formateando datos de análisis: {e}")
+            return []
+    
+    def _format_state_comparison_data(self, comparison_results) -> List[Dict[str, Any]]:
+        """Formatea datos de comparación del gestor de estado para reportes"""
+        try:
+            formatted_data = []
+            
+            for comparison_id, comparison_data in comparison_results.items():
+                formatted_comparison = {
+                    'id': comparison_id,
+                    'timestamp': comparison_data.get('timestamp', datetime.now().isoformat()),
+                    'evidence_image': comparison_data.get('evidence_image', ''),
+                    'test_image': comparison_data.get('test_image', ''),
+                    'algorithm': comparison_data.get('algorithm', 'Unknown'),
+                    'similarity_score': comparison_data.get('similarity_score', 0.0),
+                    'correlation_coefficient': comparison_data.get('correlation_coefficient', 0.0),
+                    'confidence_level': comparison_data.get('confidence_level', 0.0),
+                    'afte_conclusion': comparison_data.get('afte_conclusion', 'Inconclusive'),
+                    'processing_time': comparison_data.get('processing_time', 0),
+                    'alignment_data': comparison_data.get('alignment_data', {}),
+                    'statistical_metrics': comparison_data.get('statistical_metrics', {}),
+                    'status': comparison_data.get('status', 'completed')
+                }
+                formatted_data.append(formatted_comparison)
+            
+            return formatted_data
+        except Exception as e:
+            logger.error(f"Error formateando datos de comparación: {e}")
+            return []
+    
+    def _update_case_info_display(self, case_data):
+        """Actualiza la visualización de información del caso"""
+        try:
+            # Actualizar campos de metadatos si existen
+            if hasattr(self, 'case_number_edit') and case_data.get('case_number'):
+                self.case_number_edit.setText(case_data['case_number'])
+            
+            if hasattr(self, 'investigator_edit') and case_data.get('investigator'):
+                self.investigator_edit.setText(case_data['investigator'])
+            
+            if hasattr(self, 'agency_edit') and case_data.get('agency'):
+                self.agency_edit.setText(case_data['agency'])
+                
+        except Exception as e:
+            logger.error(f"Error actualizando visualización del caso: {e}")
+    
+    def _update_available_analyses(self, analysis_results):
+        """Actualiza la lista de análisis disponibles"""
+        try:
+            self.available_analyses = list(analysis_results.keys())
+            
+            # Actualizar UI si existe el widget de selección de análisis
+            if hasattr(self, 'analysis_list_widget'):
+                self.analysis_list_widget.clear()
+                for analysis_id in self.available_analyses:
+                    analysis_data = analysis_results[analysis_id]
+                    item_text = f"{analysis_id} - {analysis_data.get('algorithm', 'Unknown')}"
+                    item = QListWidgetItem(item_text)
+                    item.setData(Qt.UserRole, analysis_id)
+                    self.analysis_list_widget.addItem(item)
+                    
+        except Exception as e:
+            logger.error(f"Error actualizando análisis disponibles: {e}")
+    
+    def _update_comparison_data(self, comparison_results):
+        """Actualiza los datos de comparación disponibles"""
+        try:
+            # Actualizar configuración interna
+            self.current_report_config['comparison_results'] = comparison_results
+            
+            # Actualizar UI si existe el widget de selección de comparaciones
+            if hasattr(self, 'comparison_list_widget'):
+                self.comparison_list_widget.clear()
+                for comparison_id, comparison_data in comparison_results.items():
+                    item_text = f"{comparison_id} - Score: {comparison_data.get('similarity_score', 0.0):.3f}"
+                    item = QListWidgetItem(item_text)
+                    item.setData(Qt.UserRole, comparison_id)
+                    self.comparison_list_widget.addItem(item)
+                    
+        except Exception as e:
+            logger.error(f"Error actualizando datos de comparación: {e}")
+    
+    def _update_images_info(self, images_data):
+        """Actualiza la información de imágenes disponibles"""
+        try:
+            # Actualizar configuración interna
+            self.current_report_config['images_info'] = images_data
+            
+            # Actualizar contadores o listas si existen
+            if hasattr(self, 'images_count_label'):
+                count = len(images_data) if images_data else 0
+                self.images_count_label.setText(f"Imágenes disponibles: {count}")
+                
+        except Exception as e:
+            logger.error(f"Error actualizando información de imágenes: {e}")
+
+    def _apply_tooltips(self):
+        """Aplica tooltips informativos a los elementos de la interfaz"""
+        try:
+            from .tooltip_manager import apply_tooltips_to_reports_tab
+            apply_tooltips_to_reports_tab(self)
+        except ImportError:
+            logger.warning("Tooltip manager no disponible para ReportsTab")
+        except Exception as e:
+            logger.error(f"Error aplicando tooltips en ReportsTab: {e}")
+
 
 if __name__ == "__main__":
     # Prueba básica de la pestaña

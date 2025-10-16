@@ -351,3 +351,6 @@ def notify_success(title: str, message: str, component: str, **kwargs) -> str:
     return get_notification_manager().send_notification(
         NotificationType.SUCCESS, title, message, component, **kwargs
     )
+
+# Alias para compatibilidad
+NotificationSystem = NotificationManager

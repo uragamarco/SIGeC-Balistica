@@ -149,12 +149,21 @@ class DependencyManager:
             DependencyInfo con el estado actualizado
         """
         if package_name not in self.dependencies:
-            return DependencyInfo(
-                name=package_name,
-                import_name=package_name,
-                status=DependencyStatus.MISSING,
-                error_message="Dependencia no registrada"
-            )
+            # Intentar importar módulos internos/desconocidos directamente
+            try:
+                module = importlib.import_module(package_name)
+                return DependencyInfo(
+                    name=package_name,
+                    import_name=package_name,
+                    status=DependencyStatus.AVAILABLE
+                )
+            except ImportError as e:
+                return DependencyInfo(
+                    name=package_name,
+                    import_name=package_name,
+                    status=DependencyStatus.IMPORT_ERROR,
+                    error_message=str(e)
+                )
         
         dep_info = self.dependencies[package_name]
         
@@ -387,57 +396,24 @@ class DependencyManager:
     
     # Implementaciones de fallback
     def _torch_fallback(self):
-        """Fallback para PyTorch"""
-        class TorchFallback:
-            def __init__(self):
-                self.available = False
-                logger.warning("PyTorch no disponible - usando fallback con funcionalidad limitada")
-            
-            def tensor(self, data):
-                import numpy as np
-                return np.array(data)
-            
-            def load(self, path):
-                raise NotImplementedError("PyTorch no disponible - no se pueden cargar modelos")
-        
-        return TorchFallback()
+        """Fallback para PyTorch - ahora usa el fallback centralizado"""
+        from utils.fallback_implementations import get_fallback
+        return get_fallback('torch')
     
     def _tensorflow_fallback(self):
-        """Fallback para TensorFlow"""
-        class TensorFlowFallback:
-            def __init__(self):
-                self.available = False
-                logger.warning("TensorFlow no disponible - usando fallback con funcionalidad limitada")
-            
-            def constant(self, data):
-                import numpy as np
-                return np.array(data)
-        
-        return TensorFlowFallback()
+        """Fallback para TensorFlow - ahora usa el fallback centralizado"""
+        from utils.fallback_implementations import get_fallback
+        return get_fallback('tensorflow')
     
     def _flask_fallback(self):
-        """Fallback para Flask"""
-        class FlaskFallback:
-            def __init__(self):
-                self.available = False
-                logger.warning("Flask no disponible - funcionalidad web deshabilitada")
-            
-            def Flask(self, name):
-                raise NotImplementedError("Flask no disponible - funcionalidad web deshabilitada")
-        
-        return FlaskFallback()
+        """Fallback para Flask - ahora usa el fallback centralizado"""
+        from utils.fallback_implementations import get_fallback
+        return get_fallback('flask')
     
     def _rawpy_fallback(self):
-        """Fallback para rawpy"""
-        class RawpyFallback:
-            def __init__(self):
-                self.available = False
-                logger.warning("rawpy no disponible - soporte RAW limitado")
-            
-            def imread(self, path):
-                raise NotImplementedError("rawpy no disponible - use formatos de imagen estándar")
-        
-        return RawpyFallback()
+        """Fallback para RawPy - ahora usa el fallback centralizado"""
+        from utils.fallback_implementations import get_fallback
+        return get_fallback('rawpy')
 
 
 # Instancia global del gestor de dependencias

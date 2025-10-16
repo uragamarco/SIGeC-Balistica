@@ -19,8 +19,23 @@ from dataclasses import dataclass, field
 from enum import Enum
 import logging
 from collections import defaultdict, OrderedDict
-import psutil
 import numpy as np
+
+# Importar psutil de forma opcional
+try:
+    import psutil
+    PSUTIL_AVAILABLE = True
+except ImportError:
+    PSUTIL_AVAILABLE = False
+    # Mock básico para psutil
+    class psutil:
+        @staticmethod
+        def virtual_memory():
+            return type('obj', (object,), {'available': 1024*1024*1024, 'percent': 50})()
+        
+        @staticmethod
+        def Process():
+            return type('obj', (object,), {'memory_info': lambda: type('obj', (object,), {'rss': 1024*1024})()})()
 
 # Configurar logging
 logger = logging.getLogger(__name__)

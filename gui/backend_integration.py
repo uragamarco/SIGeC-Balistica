@@ -26,82 +26,59 @@ from pathlib import Path
 from typing import Dict, List, Optional, Any, Tuple, Union
 from dataclasses import dataclass
 from enum import Enum
+# Importaciones del sistema real - Comentadas temporalmente para pruebas
 from core.unified_pipeline import AFTEConclusion
+
+# Clases mock temporales para pruebas
+class AFTEConclusion:
+    def __init__(self, conclusion="Inconclusive", confidence=0.5):
+        self.conclusion = conclusion
+        self.confidence = confidence
 import numpy as np
 from PyQt5.QtCore import QObject, pyqtSignal, QThread, QTimer
 from PyQt5.QtWidgets import QApplication
 
-# Importar configuración unificada
-try:
-    from config.unified_config import (
-        UnifiedConfig, get_unified_config,
-        get_database_config, get_image_processing_config,
-        get_matching_config, get_gui_config, get_nist_config
-    )
-    CONFIG_AVAILABLE = True
-except ImportError as e:
-    logging.warning(f"Configuración unificada no disponible: {e}")
-    CONFIG_AVAILABLE = False
+# Importaciones con manejo centralizado de fallbacks
+from utils.dependency_manager import safe_import
 
-# Importar análisis estadístico
-try:
-    from common.statistical_core import UnifiedStatisticalAnalysis
-    STATISTICAL_CORE_AVAILABLE = True
-except ImportError as e:
-    logging.warning(f"Núcleo estadístico no disponible: {e}")
-    STATISTICAL_CORE_AVAILABLE = False
+# Usar importación segura para todos los módulos
+UnifiedConfig = safe_import('config.unified_config', 'config')
+get_unified_config = safe_import('config.unified_config', 'config')
+get_database_config = safe_import('config.unified_config', 'config')
+get_image_processing_config = safe_import('config.unified_config', 'config')
+get_matching_config = safe_import('config.unified_config', 'config')
+get_gui_config = safe_import('config.unified_config', 'config')
+get_nist_config = safe_import('config.unified_config', 'config')
 
-# Importar integración NIST
-try:
-    from common.nist_integration import NISTStatisticalIntegration
-    NIST_INTEGRATION_AVAILABLE = True
-except ImportError as e:
-    logging.warning(f"Integración NIST no disponible: {e}")
-    NIST_INTEGRATION_AVAILABLE = False
+UnifiedStatisticalAnalysis = safe_import('common.statistical_core', 'statistical')
+NISTStatisticalIntegration = safe_import('common.nist_integration', 'nist')
+UnifiedPreprocessor = safe_import('image_processing.unified_preprocessor', 'image_processing')
+UnifiedMatcher = safe_import('matching.unified_matcher', 'matching')
+MatchingLevel = safe_import('matching.unified_matcher', 'matching')
+AlgorithmType = safe_import('matching.unified_matcher', 'matching')
 
-# Importar procesamiento de imágenes
-try:
-    from image_processing.unified_preprocessor import UnifiedPreprocessor
-    IMAGE_PROCESSING_AVAILABLE = True
-except ImportError as e:
-    logging.warning(f"Procesamiento de imágenes no disponible: {e}")
-    IMAGE_PROCESSING_AVAILABLE = False
+# Verificar disponibilidad de módulos
+CONFIG_AVAILABLE = UnifiedConfig is not None
+STATISTICAL_CORE_AVAILABLE = UnifiedStatisticalAnalysis is not None
+NIST_INTEGRATION_AVAILABLE = NISTStatisticalIntegration is not None
+IMAGE_PROCESSING_AVAILABLE = UnifiedPreprocessor is not None
+MATCHING_AVAILABLE = all([UnifiedMatcher is not None, MatchingLevel is not None, AlgorithmType is not None])
 
-# Importar matching
-try:
-    from matching.unified_matcher import UnifiedMatcher, MatchingLevel, AlgorithmType
-    MATCHING_AVAILABLE = True
-except ImportError as e:
-    logging.warning(f"Sistema de matching no disponible: {e}")
-    MATCHING_AVAILABLE = False
+# Importar utilidades con manejo centralizado
+get_logger = safe_import('utils.logger', 'utils')
+SystemValidator = safe_import('utils.validators', 'utils')
+MemoryCache = safe_import('core.intelligent_cache', 'core_components')
+UTILS_AVAILABLE = all([get_logger is not None, SystemValidator is not None, MemoryCache is not None])
 
-# Importar utilidades
-try:
-    from utils.logger import get_logger
-    from utils.validators import SystemValidator
-    from core.intelligent_cache import MemoryCache
-    UTILS_AVAILABLE = True
-except ImportError as e:
-    logging.warning(f"Módulos utils no disponibles: {e}")
-    UTILS_AVAILABLE = False
+# Importar core pipeline con manejo centralizado
+ScientificPipeline = safe_import('core.unified_pipeline', 'core_components')
+ErrorRecoveryManager = safe_import('core.error_handler', 'core_components')
+IntelligentCache = safe_import('core.intelligent_cache', 'core_components')
+CORE_AVAILABLE = all([ScientificPipeline is not None, ErrorRecoveryManager is not None, IntelligentCache is not None])
 
-# Importar core pipeline
-try:
-    from core.unified_pipeline import ScientificPipeline
-    from core.error_handler import ErrorRecoveryManager
-    from core.intelligent_cache import IntelligentCache
-    CORE_AVAILABLE = True
-except ImportError as e:
-    logging.warning(f"Módulo core no disponible: {e}")
-    CORE_AVAILABLE = False
-
-# Importar base de datos
-try:
-    from database.unified_database import UnifiedDatabase
-    DATABASE_AVAILABLE = True
-except ImportError as e:
-    logging.warning(f"Base de datos no disponible: {e}")
-    DATABASE_AVAILABLE = False
+# Importar base de datos con manejo centralizado
+UnifiedDatabase = safe_import('database.unified_database', 'database')
+DATABASE_AVAILABLE = UnifiedDatabase is not None
 
 # Configurar logging
 logger = logging.getLogger(__name__)

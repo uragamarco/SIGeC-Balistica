@@ -9,9 +9,10 @@ from typing import Optional, Callable, List, Any
 from PyQt5.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton, 
     QFrame, QScrollArea, QProgressBar, QFileDialog, QApplication,
-    QSizePolicy, QSpacerItem, QGridLayout, QTextEdit
+    QSizePolicy, QSpacerItem, QGridLayout, QTextEdit, QCheckBox,
+    QComboBox, QDoubleSpinBox, QSpinBox, QSlider, QTabWidget
 )
-from PyQt5.QtCore import Qt, pyqtSignal, QPropertyAnimation, QEasingCurve, QRect, QTimer
+from PyQt5.QtCore import Qt, pyqtSignal, QPropertyAnimation, QEasingCurve, QRect, QTimer, QFileInfo
 from PyQt5.QtGui import QPixmap, QFont, QIcon, QPainter, QColor, QDragEnterEvent, QDropEvent
 from PIL import Image
 import numpy as np
@@ -897,3 +898,846 @@ class InteractiveImageLabel(QLabel):
 class ImageViewer(InteractiveImageViewer):
     """Alias para mantener compatibilidad"""
     pass
+
+
+class ImageSelector(QWidget):
+    """Widget selector de imágenes con preview y validación"""
+    
+    imageSelected = pyqtSignal(str)  # Señal cuando se selecciona una imagen
+    imageChanged = pyqtSignal(str)   # Señal cuando cambia la imagen
+    imagesChanged = pyqtSignal(list)  # Señal cuando cambian las imágenes seleccionadas
+    
+    def __init__(self, title="Seleccionar Imagen", parent=None):
+        super().__init__(parent)
+        self.title = title
+        self.current_image_path = None
+        self.selected_images = []
+        self._selection_mode = 'single'  # 'single' or 'multiple'
+        self._minimum_images = 1
+        self.setup_ui()
+        
+    def setup_ui(self):
+        """Configura la interfaz del selector"""
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(10, 10, 10, 10)
+        layout.setSpacing(10)
+        
+        # Título
+        title_label = QLabel(self.title)
+        title_label.setFont(QFont("Arial", 12, QFont.Bold))
+        title_label.setAlignment(Qt.AlignCenter)
+        layout.addWidget(title_label)
+        
+        # Drop zone para imágenes
+        self.drop_zone = ImageDropZone(
+            title="Arrastrar imagen aquí",
+            subtitle="o hacer clic para seleccionar"
+        )
+        self.drop_zone.imageLoaded.connect(self.on_image_loaded)
+        layout.addWidget(self.drop_zone)
+        
+        # Información de la imagen
+        self.info_frame = QFrame()
+        self.info_frame.setFrameStyle(QFrame.StyledPanel)
+        self.info_frame.hide()
+        
+        info_layout = QVBoxLayout(self.info_frame)
+        
+        self.filename_label = QLabel()
+        self.filename_label.setFont(QFont("Arial", 10, QFont.Bold))
+        self.filename_label.setStyleSheet("color: #2196f3;")
+        
+        self.size_label = QLabel()
+        self.size_label.setFont(QFont("Arial", 9))
+        self.size_label.setStyleSheet("color: #666;")
+        
+        self.dimensions_label = QLabel()
+        self.dimensions_label.setFont(QFont("Arial", 9))
+        self.dimensions_label.setStyleSheet("color: #666;")
+        
+        info_layout.addWidget(self.filename_label)
+        info_layout.addWidget(self.size_label)
+        info_layout.addWidget(self.dimensions_label)
+        
+        layout.addWidget(self.info_frame)
+        
+        # Botones de acción
+        buttons_layout = QHBoxLayout()
+        
+        self.change_btn = QPushButton("Cambiar Imagen")
+        self.change_btn.clicked.connect(self.change_image)
+        self.change_btn.hide()
+        
+        self.clear_btn = QPushButton("Limpiar")
+        self.clear_btn.clicked.connect(self.clear_selection)
+        self.clear_btn.hide()
+        
+        buttons_layout.addWidget(self.change_btn)
+        buttons_layout.addWidget(self.clear_btn)
+        buttons_layout.addStretch()
+        
+        layout.addLayout(buttons_layout)
+        
+    def on_image_loaded(self, image_path):
+        """Maneja cuando se carga una imagen"""
+        self.current_image_path = image_path
+        self.update_image_info()
+        self.show_image_info()
+        self.imageSelected.emit(image_path)
+        self.imageChanged.emit(image_path)
+        
+    def update_image_info(self):
+        """Actualiza la información de la imagen"""
+        if not self.current_image_path:
+            return
+            
+        try:
+            # Verificar que el archivo existe
+            if not os.path.exists(self.current_image_path):
+                raise FileNotFoundError(f"El archivo no existe: {self.current_image_path}")
+            
+            # Información del archivo
+            file_info = QFileInfo(self.current_image_path)
+            filename = file_info.fileName()
+            file_size = file_info.size()
+            
+            # Verificar que el archivo es válido
+            if file_size == 0:
+                raise ValueError("El archivo está vacío")
+            
+            # Dimensiones de la imagen
+            pixmap = QPixmap(self.current_image_path)
+            if pixmap.isNull():
+                raise ValueError("No se pudo cargar la imagen como QPixmap")
+                
+            width = pixmap.width()
+            height = pixmap.height()
+            
+            # Actualizar labels
+            self.filename_label.setText(f"📁 {filename}")
+            
+            # Formatear tamaño del archivo
+            if file_size < 1024:
+                size_str = f"{file_size} bytes"
+            elif file_size < 1024 * 1024:
+                size_str = f"{file_size / 1024:.1f} KB"
+            else:
+                size_str = f"{file_size / (1024 * 1024):.1f} MB"
+                
+            self.size_label.setText(f"📏 Tamaño: {size_str}")
+            self.dimensions_label.setText(f"🖼️ Dimensiones: {width} × {height} px")
+            
+        except Exception as e:
+            print(f"Error al actualizar información de imagen: {e}")
+            self.filename_label.setText("❌ Error al cargar información")
+            self.size_label.setText("")
+            self.dimensions_label.setText("")
+            
+    def show_image_info(self):
+        """Muestra la información de la imagen"""
+        self.info_frame.show()
+        self.change_btn.show()
+        self.clear_btn.show()
+        
+    def hide_image_info(self):
+        """Oculta la información de la imagen"""
+        self.info_frame.hide()
+        self.change_btn.hide()
+        self.clear_btn.hide()
+        
+    def change_image(self):
+        """Permite cambiar la imagen actual"""
+        self.drop_zone.select_file()
+        
+    def clear_selection(self):
+        """Limpia la selección actual"""
+        self.current_image_path = None
+        self.drop_zone.clear()
+        self.hide_image_info()
+        self.imageChanged.emit("")
+        
+    def get_selected_image(self):
+        """Retorna la ruta de la imagen seleccionada"""
+        return self.current_image_path
+        
+    def set_image(self, image_path):
+        """Establece una imagen programáticamente"""
+        if image_path and os.path.exists(image_path):
+            self.drop_zone.load_image(image_path)
+        else:
+            self.clear_selection()
+
+    def set_images(self, images):
+        """Establece múltiples imágenes y emite actualización.
+        - Si la lista está vacía, limpia la selección.
+        - Si hay imágenes válidas, muestra la primera y emite `imagesChanged`.
+        """
+        try:
+            valid = [p for p in (images or []) if isinstance(p, str) and os.path.exists(p)]
+        except Exception:
+            valid = []
+
+        self.selected_images = valid
+
+        if not valid:
+            self.clear_selection()
+            self.imagesChanged.emit([])
+            return
+
+        # Mostrar la primera imagen y actualizar info
+        first = valid[0]
+        # Cargar en drop_zone (esto disparará imageSelected/imageChanged)
+        self.drop_zone.load_image(first)
+        self.current_image_path = first
+        # Emitir señal de múltiples imágenes
+        self.imagesChanged.emit(valid)
+
+    # --- Métodos de compatibilidad usados por ComparisonTab ---
+    def set_selection_mode(self, mode: str):
+        """Establece el modo de selección: 'single' o 'multiple'."""
+        if mode not in ('single', 'multiple'):
+            mode = 'single'
+        self._selection_mode = mode
+
+    def set_minimum_images(self, count: int):
+        """Establece el mínimo de imágenes requeridas para la selección."""
+        try:
+            self._minimum_images = max(1, int(count))
+        except Exception:
+            self._minimum_images = 1
+
+    def add_image(self, image_path: str):
+        """Agrega una imagen a la selección cuando el modo es múltiple."""
+        if not image_path or not os.path.exists(image_path):
+            return
+        if self._selection_mode == 'single':
+            # En modo single, reemplazar selección
+            self.set_images([image_path])
+            return
+        # Modo multiple: agregar si no existe
+        if image_path not in self.selected_images:
+            self.selected_images.append(image_path)
+            # Mantener preview en la primera imagen seleccionada
+            if not self.current_image_path:
+                self.current_image_path = image_path
+                self.drop_zone.load_image(image_path)
+            # Emitir lista actualizada
+            self.imagesChanged.emit(self.selected_images[:])
+
+
+# Alias para compatibilidad
+ImageDropWidget = ImageDropZone
+
+
+# ============================================================================
+# ANALYSIS WIDGETS - Widgets especializados para análisis balístico
+# ============================================================================
+
+class NISTStandardsWidget(QWidget):
+    """Widget para configuración de estándares NIST"""
+    
+    configuration_changed = pyqtSignal(dict)
+    
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.config = {
+            'enabled': True,
+            'quality_validation': True,
+            'metadata_compliance': True,
+            'generate_report': True,
+            'validation_level': 'standard',
+            'image_quality_threshold': 0.7,
+            'spatial_resolution_min': 300,  # DPI mínimo
+            'bit_depth_min': 8
+        }
+        self.setup_ui()
+        
+    def setup_ui(self):
+        """Configura la interfaz del widget NIST"""
+        layout = QVBoxLayout(self)
+        
+        # Título
+        title = QLabel("Configuración NIST")
+        title.setProperty("class", "section-title")
+        layout.addWidget(title)
+        
+        # Habilitar NIST
+        self.enabled_checkbox = QCheckBox("Habilitar validación NIST")
+        self.enabled_checkbox.setChecked(self.config['enabled'])
+        self.enabled_checkbox.toggled.connect(self._on_config_changed)
+        layout.addWidget(self.enabled_checkbox)
+        
+        # Configuraciones principales
+        config_frame = QFrame()
+        config_layout = QGridLayout(config_frame)
+        
+        # Validación de calidad
+        self.quality_checkbox = QCheckBox("Validación de calidad de imagen")
+        self.quality_checkbox.setChecked(self.config['quality_validation'])
+        self.quality_checkbox.toggled.connect(self._on_config_changed)
+        config_layout.addWidget(self.quality_checkbox, 0, 0, 1, 2)
+        
+        # Cumplimiento de metadatos
+        self.metadata_checkbox = QCheckBox("Cumplimiento de metadatos")
+        self.metadata_checkbox.setChecked(self.config['metadata_compliance'])
+        self.metadata_checkbox.toggled.connect(self._on_config_changed)
+        config_layout.addWidget(self.metadata_checkbox, 1, 0, 1, 2)
+        
+        # Generar reporte
+        self.report_checkbox = QCheckBox("Generar reporte de cumplimiento")
+        self.report_checkbox.setChecked(self.config['generate_report'])
+        self.report_checkbox.toggled.connect(self._on_config_changed)
+        config_layout.addWidget(self.report_checkbox, 2, 0, 1, 2)
+        
+        # Nivel de validación
+        config_layout.addWidget(QLabel("Nivel de validación:"), 3, 0)
+        self.validation_combo = QComboBox()
+        self.validation_combo.addItems(['basic', 'standard', 'strict'])
+        self.validation_combo.setCurrentText(self.config['validation_level'])
+        self.validation_combo.currentTextChanged.connect(self._on_config_changed)
+        config_layout.addWidget(self.validation_combo, 3, 1)
+        
+        # Umbral de calidad
+        config_layout.addWidget(QLabel("Umbral de calidad:"), 4, 0)
+        self.quality_spinbox = QDoubleSpinBox()
+        self.quality_spinbox.setRange(0.1, 1.0)
+        self.quality_spinbox.setSingleStep(0.1)
+        self.quality_spinbox.setValue(self.config['image_quality_threshold'])
+        self.quality_spinbox.valueChanged.connect(self._on_config_changed)
+        config_layout.addWidget(self.quality_spinbox, 4, 1)
+        
+        # Resolución espacial mínima
+        config_layout.addWidget(QLabel("Resolución mínima (DPI):"), 5, 0)
+        self.resolution_spinbox = QSpinBox()
+        self.resolution_spinbox.setRange(72, 1200)
+        self.resolution_spinbox.setValue(self.config['spatial_resolution_min'])
+        self.resolution_spinbox.valueChanged.connect(self._on_config_changed)
+        config_layout.addWidget(self.resolution_spinbox, 5, 1)
+        
+        layout.addWidget(config_frame)
+        
+        # Información adicional
+        info_text = QTextEdit()
+        info_text.setMaximumHeight(80)
+        info_text.setPlainText("Los estándares NIST garantizan la calidad y trazabilidad de los análisis balísticos forenses.")
+        info_text.setReadOnly(True)
+        layout.addWidget(info_text)
+        
+    def _on_config_changed(self):
+        """Maneja cambios en la configuración"""
+        self.config.update({
+            'enabled': self.enabled_checkbox.isChecked(),
+            'quality_validation': self.quality_checkbox.isChecked(),
+            'metadata_compliance': self.metadata_checkbox.isChecked(),
+            'generate_report': self.report_checkbox.isChecked(),
+            'validation_level': self.validation_combo.currentText(),
+            'image_quality_threshold': self.quality_spinbox.value(),
+            'spatial_resolution_min': self.resolution_spinbox.value()
+        })
+        self.configuration_changed.emit(self.config.copy())
+        
+    def get_configuration(self) -> dict:
+        """Obtiene la configuración actual"""
+        return self.config.copy()
+        
+    def set_configuration(self, config: dict):
+        """Establece la configuración"""
+        self.config.update(config)
+        self._update_ui_from_config()
+        
+    def _update_ui_from_config(self):
+        """Actualiza la UI desde la configuración"""
+        self.enabled_checkbox.setChecked(self.config['enabled'])
+        self.quality_checkbox.setChecked(self.config['quality_validation'])
+        self.metadata_checkbox.setChecked(self.config['metadata_compliance'])
+        self.report_checkbox.setChecked(self.config['generate_report'])
+        self.validation_combo.setCurrentText(self.config['validation_level'])
+        self.quality_spinbox.setValue(self.config['image_quality_threshold'])
+        self.resolution_spinbox.setValue(self.config['spatial_resolution_min'])
+
+
+class AFTEAnalysisWidget(QWidget):
+    """Widget para configuración de análisis AFTE"""
+    
+    configuration_changed = pyqtSignal(dict)
+    
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.config = {
+            'enabled': True,
+            'generate_conclusions': True,
+            'confidence_threshold': 0.8,
+            'feature_analysis': True,
+            'statistical_analysis': True,
+            'conclusion_categories': ['identification', 'elimination', 'inconclusive'],
+            'minimum_features': 6,
+            'quality_assessment': True
+        }
+        self.setup_ui()
+        
+    def setup_ui(self):
+        """Configura la interfaz del widget AFTE"""
+        layout = QVBoxLayout(self)
+        
+        # Título
+        title = QLabel("Configuración AFTE")
+        title.setProperty("class", "section-title")
+        layout.addWidget(title)
+        
+        # Habilitar AFTE
+        self.enabled_checkbox = QCheckBox("Habilitar análisis AFTE")
+        self.enabled_checkbox.setChecked(self.config['enabled'])
+        self.enabled_checkbox.toggled.connect(self._on_config_changed)
+        layout.addWidget(self.enabled_checkbox)
+        
+        # Configuraciones principales
+        config_frame = QFrame()
+        config_layout = QGridLayout(config_frame)
+        
+        # Generar conclusiones
+        self.conclusions_checkbox = QCheckBox("Generar conclusiones automáticas")
+        self.conclusions_checkbox.setChecked(self.config['generate_conclusions'])
+        self.conclusions_checkbox.toggled.connect(self._on_config_changed)
+        config_layout.addWidget(self.conclusions_checkbox, 0, 0, 1, 2)
+        
+        # Análisis de características
+        self.features_checkbox = QCheckBox("Análisis de características")
+        self.features_checkbox.setChecked(self.config['feature_analysis'])
+        self.features_checkbox.toggled.connect(self._on_config_changed)
+        config_layout.addWidget(self.features_checkbox, 1, 0, 1, 2)
+        
+        # Análisis estadístico
+        self.stats_checkbox = QCheckBox("Análisis estadístico")
+        self.stats_checkbox.setChecked(self.config['statistical_analysis'])
+        self.stats_checkbox.toggled.connect(self._on_config_changed)
+        config_layout.addWidget(self.stats_checkbox, 2, 0, 1, 2)
+        
+        # Evaluación de calidad
+        self.quality_checkbox = QCheckBox("Evaluación de calidad")
+        self.quality_checkbox.setChecked(self.config['quality_assessment'])
+        self.quality_checkbox.toggled.connect(self._on_config_changed)
+        config_layout.addWidget(self.quality_checkbox, 3, 0, 1, 2)
+        
+        # Umbral de confianza
+        config_layout.addWidget(QLabel("Umbral de confianza:"), 4, 0)
+        self.confidence_spinbox = QDoubleSpinBox()
+        self.confidence_spinbox.setRange(0.1, 1.0)
+        self.confidence_spinbox.setSingleStep(0.1)
+        self.confidence_spinbox.setValue(self.config['confidence_threshold'])
+        self.confidence_spinbox.valueChanged.connect(self._on_config_changed)
+        config_layout.addWidget(self.confidence_spinbox, 4, 1)
+        
+        # Características mínimas
+        config_layout.addWidget(QLabel("Características mínimas:"), 5, 0)
+        self.features_spinbox = QSpinBox()
+        self.features_spinbox.setRange(1, 20)
+        self.features_spinbox.setValue(self.config['minimum_features'])
+        self.features_spinbox.valueChanged.connect(self._on_config_changed)
+        config_layout.addWidget(self.features_spinbox, 5, 1)
+        
+        layout.addWidget(config_frame)
+        
+        # Información adicional
+        info_text = QTextEdit()
+        info_text.setMaximumHeight(80)
+        info_text.setPlainText("AFTE (Association of Firearm and Tool Mark Examiners) proporciona estándares para conclusiones forenses.")
+        info_text.setReadOnly(True)
+        layout.addWidget(info_text)
+        
+    def _on_config_changed(self):
+        """Maneja cambios en la configuración"""
+        self.config.update({
+            'enabled': self.enabled_checkbox.isChecked(),
+            'generate_conclusions': self.conclusions_checkbox.isChecked(),
+            'feature_analysis': self.features_checkbox.isChecked(),
+            'statistical_analysis': self.stats_checkbox.isChecked(),
+            'quality_assessment': self.quality_checkbox.isChecked(),
+            'confidence_threshold': self.confidence_spinbox.value(),
+            'minimum_features': self.features_spinbox.value()
+        })
+        self.configuration_changed.emit(self.config.copy())
+        
+    def get_configuration(self) -> dict:
+        """Obtiene la configuración actual"""
+        return self.config.copy()
+        
+    def set_configuration(self, config: dict):
+        """Establece la configuración"""
+        self.config.update(config)
+        self._update_ui_from_config()
+        
+    def _update_ui_from_config(self):
+        """Actualiza la UI desde la configuración"""
+        self.enabled_checkbox.setChecked(self.config['enabled'])
+        self.conclusions_checkbox.setChecked(self.config['generate_conclusions'])
+        self.features_checkbox.setChecked(self.config['feature_analysis'])
+        self.stats_checkbox.setChecked(self.config['statistical_analysis'])
+        self.quality_checkbox.setChecked(self.config['quality_assessment'])
+        self.confidence_spinbox.setValue(self.config['confidence_threshold'])
+        self.features_spinbox.setValue(self.config['minimum_features'])
+
+
+class DeepLearningWidget(QWidget):
+    """Widget para configuración de Deep Learning"""
+    
+    configuration_changed = pyqtSignal(dict)
+    
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.config = {
+            'enabled': False,  # Deshabilitado por defecto según contexto
+            'model_type': 'CNN',
+            'use_pretrained': True,
+            'confidence_threshold': 0.75,
+            'batch_size': 16,
+            'feature_extraction': True,
+            'similarity_matching': True,
+            'gpu_acceleration': True,
+            'model_path': '',
+            'preprocessing_enabled': True
+        }
+        self.setup_ui()
+        
+    def setup_ui(self):
+        """Configura la interfaz del widget Deep Learning"""
+        layout = QVBoxLayout(self)
+        
+        # Título
+        title = QLabel("Configuración Deep Learning")
+        title.setProperty("class", "section-title")
+        layout.addWidget(title)
+        
+        # Advertencia de disponibilidad
+        warning_frame = QFrame()
+        warning_frame.setProperty("class", "warning-frame")
+        warning_layout = QHBoxLayout(warning_frame)
+        warning_label = QLabel("⚠️ Funcionalidad en desarrollo - Disponibilidad limitada")
+        warning_label.setProperty("class", "warning-text")
+        warning_layout.addWidget(warning_label)
+        layout.addWidget(warning_frame)
+        
+        # Habilitar Deep Learning
+        self.enabled_checkbox = QCheckBox("Habilitar Deep Learning")
+        self.enabled_checkbox.setChecked(self.config['enabled'])
+        self.enabled_checkbox.toggled.connect(self._on_config_changed)
+        layout.addWidget(self.enabled_checkbox)
+        
+        # Configuraciones principales
+        config_frame = QFrame()
+        config_layout = QGridLayout(config_frame)
+        
+        # Tipo de modelo
+        config_layout.addWidget(QLabel("Tipo de modelo:"), 0, 0)
+        self.model_combo = QComboBox()
+        self.model_combo.addItems(['CNN', 'ResNet', 'EfficientNet', 'Siamese'])
+        self.model_combo.setCurrentText(self.config['model_type'])
+        self.model_combo.currentTextChanged.connect(self._on_config_changed)
+        config_layout.addWidget(self.model_combo, 0, 1)
+        
+        # Usar modelo preentrenado
+        self.pretrained_checkbox = QCheckBox("Usar modelo preentrenado")
+        self.pretrained_checkbox.setChecked(self.config['use_pretrained'])
+        self.pretrained_checkbox.toggled.connect(self._on_config_changed)
+        config_layout.addWidget(self.pretrained_checkbox, 1, 0, 1, 2)
+        
+        # Extracción de características
+        self.features_checkbox = QCheckBox("Extracción de características")
+        self.features_checkbox.setChecked(self.config['feature_extraction'])
+        self.features_checkbox.toggled.connect(self._on_config_changed)
+        config_layout.addWidget(self.features_checkbox, 2, 0, 1, 2)
+        
+        # Matching de similitud
+        self.matching_checkbox = QCheckBox("Matching de similitud")
+        self.matching_checkbox.setChecked(self.config['similarity_matching'])
+        self.matching_checkbox.toggled.connect(self._on_config_changed)
+        config_layout.addWidget(self.matching_checkbox, 3, 0, 1, 2)
+        
+        # Aceleración GPU
+        self.gpu_checkbox = QCheckBox("Aceleración GPU")
+        self.gpu_checkbox.setChecked(self.config['gpu_acceleration'])
+        self.gpu_checkbox.toggled.connect(self._on_config_changed)
+        config_layout.addWidget(self.gpu_checkbox, 4, 0, 1, 2)
+        
+        # Umbral de confianza
+        config_layout.addWidget(QLabel("Umbral de confianza:"), 5, 0)
+        self.confidence_spinbox = QDoubleSpinBox()
+        self.confidence_spinbox.setRange(0.1, 1.0)
+        self.confidence_spinbox.setSingleStep(0.05)
+        self.confidence_spinbox.setValue(self.config['confidence_threshold'])
+        self.confidence_spinbox.valueChanged.connect(self._on_config_changed)
+        config_layout.addWidget(self.confidence_spinbox, 5, 1)
+        
+        # Tamaño de lote
+        config_layout.addWidget(QLabel("Tamaño de lote:"), 6, 0)
+        self.batch_spinbox = QSpinBox()
+        self.batch_spinbox.setRange(1, 64)
+        self.batch_spinbox.setValue(self.config['batch_size'])
+        self.batch_spinbox.valueChanged.connect(self._on_config_changed)
+        config_layout.addWidget(self.batch_spinbox, 6, 1)
+        
+        layout.addWidget(config_frame)
+        
+        # Información adicional
+        info_text = QTextEdit()
+        info_text.setMaximumHeight(80)
+        info_text.setPlainText("Deep Learning proporciona análisis avanzado mediante redes neuronales especializadas en balística.")
+        info_text.setReadOnly(True)
+        layout.addWidget(info_text)
+        
+    def _on_config_changed(self):
+        """Maneja cambios en la configuración"""
+        self.config.update({
+            'enabled': self.enabled_checkbox.isChecked(),
+            'model_type': self.model_combo.currentText(),
+            'use_pretrained': self.pretrained_checkbox.isChecked(),
+            'feature_extraction': self.features_checkbox.isChecked(),
+            'similarity_matching': self.matching_checkbox.isChecked(),
+            'gpu_acceleration': self.gpu_checkbox.isChecked(),
+            'confidence_threshold': self.confidence_spinbox.value(),
+            'batch_size': self.batch_spinbox.value()
+        })
+        self.configuration_changed.emit(self.config.copy())
+        
+    def get_configuration(self) -> dict:
+        """Obtiene la configuración actual"""
+        return self.config.copy()
+        
+    def set_configuration(self, config: dict):
+        """Establece la configuración"""
+        self.config.update(config)
+        self._update_ui_from_config()
+        
+    def _update_ui_from_config(self):
+        """Actualiza la UI desde la configuración"""
+        self.enabled_checkbox.setChecked(self.config['enabled'])
+        self.model_combo.setCurrentText(self.config['model_type'])
+        self.pretrained_checkbox.setChecked(self.config['use_pretrained'])
+        self.features_checkbox.setChecked(self.config['feature_extraction'])
+        self.matching_checkbox.setChecked(self.config['similarity_matching'])
+        self.gpu_checkbox.setChecked(self.config['gpu_acceleration'])
+        self.confidence_spinbox.setValue(self.config['confidence_threshold'])
+        self.batch_spinbox.setValue(self.config['batch_size'])
+
+
+class ImageProcessingWidget(QWidget):
+    """Widget para configuración de procesamiento de imágenes"""
+    
+    configuration_changed = pyqtSignal(dict)
+    
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.config = {
+            'enabled': True,
+            'enhance_contrast': True,
+            'denoise': True,
+            'edge_enhancement': True,
+            'illumination_correction': True,
+            'orientation_normalization': True,
+            'roi_detection': True,
+            'spatial_calibration': True,
+            'contrast_method': 'adaptive',
+            'denoise_method': 'bilateral',
+            'edge_method': 'unsharp_mask',
+            'roi_method': 'automatic'
+        }
+        self.setup_ui()
+        
+    def setup_ui(self):
+        """Configura la interfaz del widget de procesamiento"""
+        layout = QVBoxLayout(self)
+        
+        # Título
+        title = QLabel("Configuración Procesamiento de Imágenes")
+        title.setProperty("class", "section-title")
+        layout.addWidget(title)
+        
+        # Habilitar procesamiento
+        self.enabled_checkbox = QCheckBox("Habilitar procesamiento de imágenes")
+        self.enabled_checkbox.setChecked(self.config['enabled'])
+        self.enabled_checkbox.toggled.connect(self._on_config_changed)
+        layout.addWidget(self.enabled_checkbox)
+        
+        # Configuraciones principales
+        config_frame = QFrame()
+        config_layout = QGridLayout(config_frame)
+        
+        # Mejora de contraste
+        self.contrast_checkbox = QCheckBox("Mejora de contraste")
+        self.contrast_checkbox.setChecked(self.config['enhance_contrast'])
+        self.contrast_checkbox.toggled.connect(self._on_config_changed)
+        config_layout.addWidget(self.contrast_checkbox, 0, 0)
+        
+        self.contrast_combo = QComboBox()
+        self.contrast_combo.addItems(['adaptive', 'histogram', 'clahe'])
+        self.contrast_combo.setCurrentText(self.config['contrast_method'])
+        self.contrast_combo.currentTextChanged.connect(self._on_config_changed)
+        config_layout.addWidget(self.contrast_combo, 0, 1)
+        
+        # Reducción de ruido
+        self.denoise_checkbox = QCheckBox("Reducción de ruido")
+        self.denoise_checkbox.setChecked(self.config['denoise'])
+        self.denoise_checkbox.toggled.connect(self._on_config_changed)
+        config_layout.addWidget(self.denoise_checkbox, 1, 0)
+        
+        self.denoise_combo = QComboBox()
+        self.denoise_combo.addItems(['bilateral', 'gaussian', 'median', 'nlm'])
+        self.denoise_combo.setCurrentText(self.config['denoise_method'])
+        self.denoise_combo.currentTextChanged.connect(self._on_config_changed)
+        config_layout.addWidget(self.denoise_combo, 1, 1)
+        
+        # Mejora de bordes
+        self.edge_checkbox = QCheckBox("Mejora de bordes")
+        self.edge_checkbox.setChecked(self.config['edge_enhancement'])
+        self.edge_checkbox.toggled.connect(self._on_config_changed)
+        config_layout.addWidget(self.edge_checkbox, 2, 0)
+        
+        self.edge_combo = QComboBox()
+        self.edge_combo.addItems(['unsharp_mask', 'laplacian', 'sobel'])
+        self.edge_combo.setCurrentText(self.config['edge_method'])
+        self.edge_combo.currentTextChanged.connect(self._on_config_changed)
+        config_layout.addWidget(self.edge_combo, 2, 1)
+        
+        # Corrección de iluminación
+        self.illumination_checkbox = QCheckBox("Corrección de iluminación")
+        self.illumination_checkbox.setChecked(self.config['illumination_correction'])
+        self.illumination_checkbox.toggled.connect(self._on_config_changed)
+        config_layout.addWidget(self.illumination_checkbox, 3, 0, 1, 2)
+        
+        # Normalización de orientación
+        self.orientation_checkbox = QCheckBox("Normalización de orientación")
+        self.orientation_checkbox.setChecked(self.config['orientation_normalization'])
+        self.orientation_checkbox.toggled.connect(self._on_config_changed)
+        config_layout.addWidget(self.orientation_checkbox, 4, 0, 1, 2)
+        
+        # Detección de ROI
+        self.roi_checkbox = QCheckBox("Detección de ROI")
+        self.roi_checkbox.setChecked(self.config['roi_detection'])
+        self.roi_checkbox.toggled.connect(self._on_config_changed)
+        config_layout.addWidget(self.roi_checkbox, 5, 0)
+        
+        self.roi_combo = QComboBox()
+        self.roi_combo.addItems(['automatic', 'manual', 'template'])
+        self.roi_combo.setCurrentText(self.config['roi_method'])
+        self.roi_combo.currentTextChanged.connect(self._on_config_changed)
+        config_layout.addWidget(self.roi_combo, 5, 1)
+        
+        # Calibración espacial
+        self.calibration_checkbox = QCheckBox("Calibración espacial")
+        self.calibration_checkbox.setChecked(self.config['spatial_calibration'])
+        self.calibration_checkbox.toggled.connect(self._on_config_changed)
+        config_layout.addWidget(self.calibration_checkbox, 6, 0, 1, 2)
+        
+        layout.addWidget(config_frame)
+        
+        # Información adicional
+        info_text = QTextEdit()
+        info_text.setMaximumHeight(80)
+        info_text.setPlainText("Procesamiento de imágenes optimizado para análisis balístico forense con técnicas avanzadas.")
+        info_text.setReadOnly(True)
+        layout.addWidget(info_text)
+        
+    def _on_config_changed(self):
+        """Maneja cambios en la configuración"""
+        self.config.update({
+            'enabled': self.enabled_checkbox.isChecked(),
+            'enhance_contrast': self.contrast_checkbox.isChecked(),
+            'denoise': self.denoise_checkbox.isChecked(),
+            'edge_enhancement': self.edge_checkbox.isChecked(),
+            'illumination_correction': self.illumination_checkbox.isChecked(),
+            'orientation_normalization': self.orientation_checkbox.isChecked(),
+            'roi_detection': self.roi_checkbox.isChecked(),
+            'spatial_calibration': self.calibration_checkbox.isChecked(),
+            'contrast_method': self.contrast_combo.currentText(),
+            'denoise_method': self.denoise_combo.currentText(),
+            'edge_method': self.edge_combo.currentText(),
+            'roi_method': self.roi_combo.currentText()
+        })
+        self.configuration_changed.emit(self.config.copy())
+        
+    def get_configuration(self) -> dict:
+        """Obtiene la configuración actual"""
+        return self.config.copy()
+        
+    def set_configuration(self, config: dict):
+        """Establece la configuración"""
+        self.config.update(config)
+        self._update_ui_from_config()
+        
+    def _update_ui_from_config(self):
+        """Actualiza la UI desde la configuración"""
+        self.enabled_checkbox.setChecked(self.config['enabled'])
+        self.contrast_checkbox.setChecked(self.config['enhance_contrast'])
+        self.denoise_checkbox.setChecked(self.config['denoise'])
+        self.edge_checkbox.setChecked(self.config['edge_enhancement'])
+        self.illumination_checkbox.setChecked(self.config['illumination_correction'])
+        self.orientation_checkbox.setChecked(self.config['orientation_normalization'])
+        self.roi_checkbox.setChecked(self.config['roi_detection'])
+        self.calibration_checkbox.setChecked(self.config['spatial_calibration'])
+        self.contrast_combo.setCurrentText(self.config['contrast_method'])
+        self.denoise_combo.setCurrentText(self.config['denoise_method'])
+        self.edge_combo.setCurrentText(self.config['edge_method'])
+        self.roi_combo.setCurrentText(self.config['roi_method'])
+
+
+# ============================================================================
+# VISUALIZATION WIDGETS - Widgets para visualización y paneles
+# ============================================================================
+
+class VisualizationPanel(QWidget):
+    """Panel de visualización para resultados de análisis"""
+    
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setup_ui()
+        
+    def setup_ui(self):
+        """Configura la interfaz del panel de visualización"""
+        layout = QVBoxLayout(self)
+        
+        # Título
+        title = QLabel("Panel de Visualización")
+        title.setProperty("class", "section-title")
+        layout.addWidget(title)
+        
+        # Área de contenido
+        content_frame = QFrame()
+        content_frame.setProperty("class", "content-frame")
+        content_layout = QVBoxLayout(content_frame)
+        
+        # Placeholder para visualizaciones
+        placeholder = QLabel("Visualizaciones aparecerán aquí")
+        placeholder.setAlignment(Qt.AlignCenter)
+        placeholder.setProperty("class", "placeholder-text")
+        content_layout.addWidget(placeholder)
+        
+        layout.addWidget(content_frame)
+
+
+class ResultsPanel(QWidget):
+    """Panel de resultados para mostrar análisis completados"""
+    
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setup_ui()
+        
+    def setup_ui(self):
+        """Configura la interfaz del panel de resultados"""
+        layout = QVBoxLayout(self)
+        
+        # Título
+        title = QLabel("Panel de Resultados")
+        title.setProperty("class", "section-title")
+        layout.addWidget(title)
+        
+        # Área de contenido
+        content_frame = QFrame()
+        content_frame.setProperty("class", "content-frame")
+        content_layout = QVBoxLayout(content_frame)
+        
+        # Placeholder para resultados
+        placeholder = QLabel("Los resultados aparecerán aquí")
+        placeholder.setAlignment(Qt.AlignCenter)
+        placeholder.setProperty("class", "placeholder-text")
+        content_layout.addWidget(placeholder)
+        
+        layout.addWidget(content_frame)

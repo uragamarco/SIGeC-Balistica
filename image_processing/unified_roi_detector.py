@@ -123,6 +123,25 @@ except ImportError:
             self.logger.warning(message)
 
 # Importar el nuevo módulo de Watershed mejorado
+# Importar sistema de monitoreo de rendimiento
+try:
+    from core.performance_monitor import (
+        monitor_performance, 
+        monitor_image_analysis, 
+        OperationType
+    )
+    PERFORMANCE_MONITORING_AVAILABLE = True
+except ImportError:
+    PERFORMANCE_MONITORING_AVAILABLE = False
+    # Crear decoradores dummy para mantener compatibilidad
+    def monitor_performance(operation_type=None):
+        def decorator(func):
+            return func
+        return decorator
+    
+    def monitor_image_analysis(func):
+        return func
+
 try:
     from enhanced_watershed_roi import (
         EnhancedWatershedROI, 
@@ -425,6 +444,7 @@ class UnifiedROIDetector(LoggerMixin):
         """
         return self.detect_roi(image, specimen_type, level)
     
+    @monitor_image_analysis
     def detect_roi(self, image: Union[str, np.ndarray], 
                    specimen_type: str = 'cartridge_case',
                    level: Optional[str] = None) -> List[ROIRegion]:

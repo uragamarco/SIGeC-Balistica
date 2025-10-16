@@ -98,7 +98,11 @@ from matching.bootstrap_similarity import (
     calculate_bootstrap_confidence_interval as original_calculate_bootstrap_confidence_interval
 )
 
-from image_processing.statistical_analyzer import StatisticalAnalyzer
+# Importación diferida para evitar dependencia circular
+def _get_statistical_analyzer():
+    """Importación diferida de StatisticalAnalyzer para evitar dependencias circulares"""
+    from image_processing.statistical_analyzer import StatisticalAnalyzer
+    return StatisticalAnalyzer
 
 # Importación del nuevo módulo centralizado (Fase 2)
 from common.statistical_core import UnifiedStatisticalAnalysis

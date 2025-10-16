@@ -819,3 +819,32 @@ class NISTQualityMetrics:
         except Exception as e:
             print(f"Error exportando reporte: {e}")
             return False
+
+    def get_thresholds(self) -> Dict[str, Dict[str, float]]:
+        """Retorna los umbrales configurados para cada métrica (por nivel)."""
+        def enum_dict_to_plain(d: Dict[QualityLevel, float]) -> Dict[str, float]:
+            return {level.value: float(threshold) for level, threshold in d.items()}
+        return {
+            'snr': enum_dict_to_plain(self.snr_thresholds),
+            'contrast': enum_dict_to_plain(self.contrast_thresholds),
+            'uniformity': enum_dict_to_plain(self.uniformity_thresholds),
+            'sharpness': enum_dict_to_plain(self.sharpness_thresholds)
+        }
+
+    def get_quality_score(self, report: Any) -> float:
+        """Extrae puntaje de calidad global desde un reporte NIST o dict."""
+        try:
+            if hasattr(report, 'quality_score'):
+                return float(getattr(report, 'quality_score'))
+            if isinstance(report, dict) and 'quality_score' in report:
+                return float(report.get('quality_score', 0.0))
+        except Exception:
+            pass
+        return 0.0
+
+    def meets_minimum_quality(self, report: Any, min_score: float) -> bool:
+        """Verifica si el reporte cumple el puntaje mínimo de calidad."""
+        try:
+            return self.get_quality_score(report) >= float(min_score)
+        except Exception:
+            return False

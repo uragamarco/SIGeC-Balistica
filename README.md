@@ -6,33 +6,35 @@ Sistema integrado para el análisis forense automatizado de cartuchos y balas ut
 
 SIGeC-Balisticar es una herramienta avanzada de análisis balístico forense que permite:
 
-- ✅ Extracción automática de características de cartuchos y balas
-- ✅ Comparación y matching de evidencia balística con algoritmos CMC
-- ✅ Análisis estadístico de patrones de marcas conforme a NIST
-- ✅ Interfaz gráfica intuitiva para análisis forense
-- ✅ Integración con bases de datos balísticas vectoriales
-- ✅ Pipeline científico unificado para análisis completo
-- ✅ Conclusiones AFTE automatizadas
+- Extracción automática de características de cartuchos y balas
+- Comparación y matching de evidencia balística con algoritmos CMC
+- Análisis estadístico de patrones de marcas conforme a NIST
+- Interfaz gráfica PyQt5 para análisis forense
+- Integración con bases de datos balísticas vectoriales
+- Pipeline científico unificado para análisis completo
 
 ## Arquitectura del Sistema
 
 ```
 SIGeC-Balisticar/
-├── 📁 assets/                  # Recursos e imágenes de prueba
+├── 📁 assets/                  # Imágenes y recursos de prueba
 ├── 📁 common/                  # Núcleo estadístico y adaptadores NIST
-├── 📁 config/                  # Configuraciones unificadas
+├── 📁 config/                  # Configuración unificada (YAML/gestor)
 ├── 📁 core/                    # Pipeline científico y sistemas centrales
 ├── 📁 database/                # Base de datos unificada y vectorial
-├── 📁 deep_learning/           # Modelos CNN y Siameses
+├── 📁 deep_learning/           # Estructura para modelos y utilidades
 ├── 📁 gui/                     # Interfaz gráfica PyQt5
-├── 📁 image_processing/        # Procesamiento avanzado de imágenes
+├── 📁 image_processing/        # Lazy loading y cache LBP
 ├── 📁 matching/                # Algoritmos de matching y CMC
-├── 📁 nist_standards/          # Estándares NIST y validación
-├── 📁 performance/             # Monitoreo y optimización
-├── 📁 tests/                   # Suite de pruebas completa
+├── 📁 nist_standards/          # Esquemas y validación NIST
+├── 📁 performance/             # Monitoreo y métricas
+├── 📁 tests/                   # Suite de pruebas consolidada
 ├── 📁 utils/                   # Utilidades y validadores
-├── 📄 config.yaml              # Configuración principal
-├── 📄 main.py                  # Punto de entrada
+├── 📁 DOCS/                    # Documentación del proyecto
+├── 📄 main.py                  # Punto de entrada CLI/GUI
+├── 📄 launch_gui.py            # Lanzador GUI
+├── 📄 production_deployment.py # Utilidades de despliegue
+├── 📄 pytest.ini               # Configuración de pytest
 └── 📄 requirements.txt         # Dependencias
 ```
 
@@ -46,13 +48,13 @@ SIGeC-Balisticar/
 
 ### Pasos de Instalación
 
-1. **Clonar el repositorio:**
+1. Clonar el repositorio
 ```bash
 git clone <repository-url>
 cd SIGeC-Balisticar
 ```
 
-2. **Crear entorno virtual:**
+2. Crear entorno virtual
 ```bash
 python -m venv venv
 source venv/bin/activate  # Linux/Mac
@@ -60,43 +62,51 @@ source venv/bin/activate  # Linux/Mac
 venv\Scripts\activate     # Windows
 ```
 
-3. **Instalar dependencias:**
+3. Instalar dependencias
 ```bash
 pip install -r requirements.txt
 ```
 
-4. **Ejecutar la aplicación:**
+4. Ejecutar la aplicación GUI
 ```bash
-python main.py
+python launch_gui.py
 ```
 
 ## Configuración
 
-El sistema utiliza configuración unificada en `config.yaml`:
+El sistema usa una configuración unificada basada en YAML con helpers Python.
 
-```yaml
-database:
-  type: "unified"
-  path: "data/ballistic_db.db"
+- Archivos: `config/unified_config.yaml` (+ variantes por entorno)
+- Módulo: `config/unified_config.py`
 
-gui:
-  theme: "modern"
-  enable_gpu: true
+### Uso de la Configuración
 
-image_processing:
-  roi_detection: "watershed"
-  feature_extraction: "orb_sift_hybrid"
+```python
+from config.unified_config import get_unified_config
 
-matching:
-  algorithm: "unified_matcher"
-  cmc_threshold: 8
+# Cargar configuración por entorno
+base = get_unified_config(env="base")
+testing = get_unified_config(env="testing")
+production = get_unified_config(env="production")
+
+# Acceso a valores
+db_host = base.get("database.host", default="localhost")
+gui_theme = base.get("gui.theme", default="modern")
+```
+
+### Variables de Entorno (ejemplos)
+
+```bash
+export SIGEC_DATABASE_HOST="custom-db-server"
+export SIGEC_GUI_THEME="dark"
+export SIGEC_ENVIRONMENT="production"
 ```
 
 ## Uso del Sistema
 
 ### Interfaz Gráfica
 ```bash
-python main.py
+python launch_gui.py
 ```
 
 ### Pipeline Científico (CLI)
@@ -109,64 +119,38 @@ python -m core.unified_pipeline imagen1.jpg imagen2.jpg --level forensic
 python scripts/batch_analysis.py --input_dir /path/to/images --output_dir /path/to/results
 ```
 
-## Características Principales
-
-### 🔬 Pipeline Científico
-- **Preprocesamiento NIST**: Normalización y mejora de calidad
-- **Detección ROI**: Algoritmo Watershed optimizado
-- **Extracción de Características**: ORB/SIFT híbrido
-- **Matching Avanzado**: Algoritmo CMC con ponderación de calidad
-- **Conclusiones AFTE**: Automatizadas y validadas
-
-### Interfaz Gráfica
-- **Visualización Interactiva**: Mapas de calor y correlaciones
-- **Análisis en Tiempo Real**: Procesamiento asíncrono
-- **Reportes Automáticos**: Exportación PDF/HTML
-- **Base de Datos Integrada**: Gestión de casos y evidencia
-
-### Rendimiento
-- **Aceleración GPU**: CUDA y OpenCL
-- **Procesamiento Paralelo**: Multi-threading optimizado
-- **Cache Inteligente**: LBP y características pre-calculadas
-- **Memoria Optimizada**: Gestión eficiente de recursos
-
 ## Testing
 
-### Ejecutar todas las pruebas:
+### Ejecutar todas las pruebas
 ```bash
 pytest tests/ -v
 ```
 
-### Pruebas específicas:
+### Consejos útiles
+- Si aparece `ImportError` en tests, exportar `PYTHONPATH=.` o añadir `pythonpath = .` en `pytest.ini`.
+- Para pruebas de GUI en CI/headless: `QT_QPA_PLATFORM=offscreen`.
+
+### Pruebas específicas
 ```bash
-# Pruebas de integración
+# Integración básica
 pytest tests/test_basic_integration.py -v
 
-# Pruebas de GUI (headless)
-pytest tests/integration/test_gui_headless.py -v
+# GUI headless consolidada
+QT_QPA_PLATFORM=offscreen pytest tests/integration/test_frontend_integration_consolidated.py -q
 
-# Benchmarks de rendimiento
-pytest tests/test_performance_benchmarks.py -v
+# Rendimiento de caché
+pytest tests/test_cache_performance.py -v
 ```
 
 ## Estado del Proyecto
 
-**Estado Actual**: 
+### Módulos Principales
+- Core, Matching, Image Processing, GUI, Database y Utils operativos
+- Configuración unificada activa y en proceso de consolidación de usos legacy
+- Suite de tests consolidada bajo `tests/` (unitarios, integración, GUI)
 
-### Módulos Completados:
-- ✅ **GUI**: Interfaz completa con todas las funcionalidades
-- ✅ **Core**: Pipeline científico unificado
-- ✅ **Image Processing**: Procesamiento avanzado y extracción de características
-- ✅ **Matching**: Algoritmos CMC y matching unificado
-- ✅ **Database**: Sistema de base de datos vectorial
-- ✅ **NIST Standards**: Cumplimiento de estándares forenses
-- ✅ **Testing**: Suite completa de pruebas
-
-### Métricas de Calidad:
-- **Cobertura de Código**: >85%
-- **Pruebas Unitarias**: 45+ tests
-- **Pruebas de Integración**: 15+ tests
-- **Documentación**: Completa y actualizada
+### Métricas de Calidad
+- Cobertura y conteo de tests se están recalculando tras la consolidación
 
 ## Contribución
 
@@ -178,19 +162,17 @@ pytest tests/test_performance_benchmarks.py -v
 
 ## Licencia
 
-Este proyecto está bajo la Licencia MIT. Ver el archivo `LICENSE` para más detalles.
+Proyecto bajo Licencia MIT. Ver `LICENSE`.
 
 ## Soporte
 
-Para soporte técnico o reportar bugs:
 - Crear un issue en GitHub
-- Consultar la documentación en `/DOCS/`
-- Revisar los logs del sistema en `/logs/`
+- Consultar documentación en `/DOCS/`
+- Revisar logs del sistema en `/logs/`
 
 ## Referencias
-
-- *Pendiente
+- Pendiente
 
 ---
 
-**SIGeC-Balistica v0.1.3** - Sistema Integral de Gestion Criminalístico Argentino - Extensión: Análisis Balístico 
+SIGeC-Balisticar v0.1.3 — Sistema Integral de Gestión Criminalística Argentino (Extensión: Análisis Balístico)

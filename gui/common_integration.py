@@ -187,7 +187,7 @@ class CommonIntegration(QObject):
         Returns:
             Resultado del bootstrap o None si hay error
         """
-        if not COMMON_AVAILABLE or not self.statistical_core:
+        if not COMMON_AVAILABLE or not self.unified_statistical_analysis:
             return self._fallback_bootstrap_analysis(data, config)
         
         try:
@@ -195,7 +195,14 @@ class CommonIntegration(QObject):
             if config is None:
                 config = MatchingBootstrapConfig()
             
-            result = self.statistical_core.bootstrap_analysis(data, config)
+            # Usar bootstrap_sampling del UnifiedStatisticalAnalysis
+            import numpy as np
+            result = self.unified_statistical_analysis.bootstrap_sampling(
+                data=data,
+                statistic_func=np.mean,
+                n_bootstrap=config.n_bootstrap if hasattr(config, 'n_bootstrap') else 1000,
+                confidence_level=config.confidence_level if hasattr(config, 'confidence_level') else 0.95
+            )
             return result
             
         except Exception as e:
@@ -301,8 +308,18 @@ class CommonIntegration(QObject):
             return self._fallback_nist_compliance(analysis_results)
         
         try:
-            report = self.nist_integration.generate_compliance_report(analysis_results)
-            return report
+            # Usar analyze_nist_compliance en lugar de generate_compliance_report
+            # Crear un mock quality_report si no está disponible
+            mock_quality_report = {
+                'overall_quality': analysis_results.get('quality_score', 0.8),
+                'metrics': analysis_results
+            }
+            
+            nist_report = self.nist_integration.analyze_nist_compliance(mock_quality_report)
+            
+            # Convertir a diccionario usando export_compliance_report
+            report_dict = self.nist_integration.export_compliance_report(nist_report)
+            return report_dict
             
         except Exception as e:
             logging.error(f"Error generando reporte NIST: {e}")

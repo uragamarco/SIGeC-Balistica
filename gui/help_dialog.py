@@ -111,7 +111,7 @@ class UserGuideWidget(HelpContentWidget):
         self.show_introduction()
     
     def populate_navigation(self):
-        """Pobla el árbol de navegación"""
+        """Pobla el árbol de navegación con contenido actualizado"""
         
         # Introducción
         intro_item = QTreeWidgetItem(["Introducción"])
@@ -124,6 +124,14 @@ class UserGuideWidget(HelpContentWidget):
         getting_started.addChild(QTreeWidgetItem(["Interfaz de Usuario"]))
         getting_started.addChild(QTreeWidgetItem(["Configuración Inicial"]))
         self.nav_tree.addTopLevelItem(getting_started)
+        
+        # Nuevas funcionalidades
+        new_features = QTreeWidgetItem(["Nuevas Funcionalidades"])
+        new_features.addChild(QTreeWidgetItem(["Gestor de Estado"]))
+        new_features.addChild(QTreeWidgetItem(["Paneles Acoplables"]))
+        new_features.addChild(QTreeWidgetItem(["Estadísticas en Tiempo Real"]))
+        new_features.addChild(QTreeWidgetItem(["Integración NIST Mejorada"]))
+        self.nav_tree.addTopLevelItem(new_features)
         
         # Análisis Individual
         individual_analysis = QTreeWidgetItem(["Análisis Individual"])
@@ -175,6 +183,15 @@ class UserGuideWidget(HelpContentWidget):
             "Introducción": self.get_introduction_content(),
             "Instalación y Configuración": self.get_installation_content(),
             "Interfaz de Usuario": self.get_interface_content(),
+            "Nuevas Funcionalidades": self.get_new_features_content(),
+            "Gestor de Estado": self.get_state_manager_content(),
+            "Paneles Acoplables": self.get_dock_panels_content(),
+            "Estadísticas en Tiempo Real": self.get_real_time_stats_content(),
+            "Integración NIST Mejorada": self.get_nist_integration_content(),
+            "Flujos de Trabajo": self.get_workflows_content(),
+            "Análisis Guiado": self.get_guided_analysis_content(),
+            "Comparación Interactiva": self.get_interactive_comparison_content(),
+            "Reportes Unificados": self.get_unified_reports_content(),
             "Cargar Imagen": self.get_load_image_content(),
             "Configurar Parámetros": self.get_configure_params_content(),
             "Ejecutar Análisis": self.get_execute_analysis_content(),
@@ -185,6 +202,529 @@ class UserGuideWidget(HelpContentWidget):
         
         content = content_map.get(item_text, self.get_default_content(item_text))
         self.content_browser.setHtml(content)
+    
+    def get_new_features_content(self):
+        """Contenido sobre las nuevas funcionalidades"""
+        return """
+        <h2>Nuevas Funcionalidades - Versión Unificada</h2>
+        
+        <p>Esta versión representa una fusión completa de las mejores características de ambos desarrollos, 
+        creando una interfaz unificada, profesional y altamente eficiente para análisis balístico forense.</p>
+        
+        <h3>Arquitectura Renovada</h3>
+        <ul>
+            <li><strong>Gestor de Estado Centralizado:</strong> Sistema unificado que mantiene la consistencia 
+            de datos en toda la aplicación, eliminando inconsistencias y mejorando el rendimiento</li>
+            <li><strong>Interfaz Híbrida Flexible:</strong> Combinación de pestañas principales con paneles 
+            acoplables que pueden ser flotantes, anclados o reorganizados según las preferencias del usuario</li>
+            <li><strong>Procesamiento en Segundo Plano:</strong> Todas las operaciones que duran más de 200ms 
+            se ejecutan en workers dedicados, manteniendo la interfaz siempre responsiva</li>
+            <li><strong>Integración NIST Nativa:</strong> Cumplimiento automático con estándares NIST integrado 
+            en cada formulario y proceso, no como una funcionalidad separada</li>
+        </ul>
+        
+        <h3>Experiencia de Usuario Mejorada</h3>
+        <ul>
+            <li><strong>Flujos de Trabajo Guiados:</strong> Procesos paso a paso que guían al usuario desde 
+            la carga de evidencias hasta la generación de reportes profesionales</li>
+            <li><strong>Tooltips Informativos:</strong> Ayuda contextual en toda la aplicación que explica 
+            cada función y guía al usuario en el uso correcto de las herramientas</li>
+            <li><strong>Estadísticas en Tiempo Real:</strong> Paneles que muestran métricas de calidad, 
+            correlación y confianza mientras se realizan las comparaciones</li>
+            <li><strong>Visualización Interactiva Avanzada:</strong> Herramientas de zoom sincronizado, 
+            alineación asistida y manipulación directa de imágenes</li>
+        </ul>
+        
+        <h3>Funcionalidades Profesionales</h3>
+        <ul>
+            <li><strong>Motor de Reportes Unificado:</strong> Generación automática de reportes que cumplen 
+            con estándares forenses y pueden personalizarse según las necesidades institucionales</li>
+            <li><strong>Validación Automática:</strong> Verificación en tiempo real de la calidad de datos 
+            y cumplimiento con protocolos establecidos</li>
+            <li><strong>Integración con Bases de Datos:</strong> Búsqueda y comparación eficiente con 
+            grandes volúmenes de evidencias históricas</li>
+            <li><strong>Trazabilidad Completa:</strong> Registro detallado de todas las operaciones para 
+            auditoría y reproducibilidad de resultados</li>
+        </ul>
+        
+        <h3>Beneficios Tangibles</h3>
+        <ul>
+            <li><strong>Eficiencia Operativa:</strong> Reducción significativa del tiempo necesario para 
+            completar análisis complejos</li>
+            <li><strong>Calidad Garantizada:</strong> Validación automática que previene errores comunes 
+            y asegura la integridad de los resultados</li>
+            <li><strong>Cumplimiento Normativo:</strong> Adherencia automática a estándares NIST y AFTE 
+            sin esfuerzo adicional del usuario</li>
+            <li><strong>Profesionalismo:</strong> Interfaz moderna y reportes de calidad institucional 
+            que mejoran la presentación de resultados</li>
+        </ul>
+        """
+    
+    def get_state_manager_content(self):
+        """Contenido sobre el gestor de estado"""
+        return """
+        <h2>Gestor de Estado Centralizado</h2>
+        
+        <p>El Gestor de Estado es el corazón de la nueva arquitectura, proporcionando un punto único 
+        de control para todos los datos y operaciones de la aplicación.</p>
+        
+        <h3>¿Qué es el Gestor de Estado?</h3>
+        <p>Es un sistema centralizado que mantiene y coordina toda la información de la aplicación:</p>
+        <ul>
+            <li><strong>Estado de Casos:</strong> Información completa del caso activo, incluyendo metadatos NIST</li>
+            <li><strong>Imágenes Cargadas:</strong> Gestión de evidencias y testigos con sus propiedades</li>
+            <li><strong>Resultados de Análisis:</strong> Almacenamiento de métricas, correlaciones y estadísticas</li>
+            <li><strong>Configuración de Usuario:</strong> Preferencias, layouts y configuraciones personalizadas</li>
+            <li><strong>Historial de Operaciones:</strong> Registro completo para trazabilidad y auditoría</li>
+        </ul>
+        
+        <h3>Beneficios del Sistema Centralizado</h3>
+        <ul>
+            <li><strong>Consistencia de Datos:</strong> Elimina discrepancias entre diferentes partes de la aplicación</li>
+            <li><strong>Sincronización Automática:</strong> Todos los componentes se actualizan automáticamente 
+            cuando cambian los datos</li>
+            <li><strong>Mejor Rendimiento:</strong> Evita duplicación de datos y operaciones innecesarias</li>
+            <li><strong>Facilidad de Mantenimiento:</strong> Simplifica la depuración y el desarrollo de nuevas funciones</li>
+            <li><strong>Recuperación de Sesión:</strong> Capacidad de restaurar el estado completo de trabajo</li>
+        </ul>
+        
+        <h3>Cómo Funciona en la Práctica</h3>
+        <p>El gestor de estado opera de manera transparente para el usuario:</p>
+        <ul>
+            <li><strong>Carga Automática:</strong> Al abrir un caso, todos los datos se cargan automáticamente 
+            en todas las pestañas relevantes</li>
+            <li><strong>Actualización en Tiempo Real:</strong> Los cambios en una pestaña se reflejan 
+            inmediatamente en todas las demás</li>
+            <li><strong>Validación Continua:</strong> Verifica constantemente la integridad y consistencia 
+            de los datos</li>
+            <li><strong>Notificaciones Inteligentes:</strong> Informa al usuario sobre cambios importantes 
+            o acciones requeridas</li>
+        </ul>
+        
+        <h3>Integración con Estándares NIST</h3>
+        <p>El gestor de estado incluye validación nativa de metadatos NIST:</p>
+        <ul>
+            <li><strong>Validación en Tiempo Real:</strong> Verifica que todos los campos cumplan con 
+            las especificaciones del estándar</li>
+            <li><strong>Completitud Automática:</strong> Sugiere valores apropiados basados en el contexto</li>
+            <li><strong>Alertas de Cumplimiento:</strong> Notifica sobre campos faltantes o incorrectos</li>
+            <li><strong>Exportación Garantizada:</strong> Asegura que los datos exportados sean 100% 
+            compatibles con sistemas NIST</li>
+        </ul>
+        
+        <h3>Indicadores Visuales</h3>
+        <p>El estado del sistema se comunica al usuario a través de:</p>
+        <ul>
+            <li><strong>Barra de Estado:</strong> Información sobre el caso activo y operaciones en curso</li>
+            <li><strong>Iconos de Estado:</strong> Indicadores visuales de validación y completitud</li>
+            <li><strong>Notificaciones Contextuales:</strong> Mensajes informativos sobre cambios importantes</li>
+            <li><strong>Progreso de Operaciones:</strong> Barras de progreso para operaciones de larga duración</li>
+        </ul>
+        """
+    
+    def get_dock_panels_content(self):
+        """Contenido sobre paneles acoplables"""
+        return """
+        <h2>Paneles Acoplables - Interfaz Híbrida Flexible</h2>
+        
+        <p>Los paneles acoplables representan una revolución en la personalización de la interfaz, 
+        permitiendo que cada usuario configure su espacio de trabajo según sus necesidades específicas.</p>
+        
+        <h3>Tipos de Paneles Disponibles</h3>
+        <ul>
+            <li><strong>Panel de Estadísticas en Tiempo Real:</strong> Muestra métricas de correlación, 
+            calidad de imagen y confianza de comparación mientras se trabaja</li>
+            <li><strong>Panel de Metadatos NIST:</strong> Formularios integrados para entrada y edición 
+            de información de casos y evidencias con validación automática</li>
+            <li><strong>Panel de Controles de Imagen:</strong> Herramientas de manipulación, filtros 
+            y ajustes de visualización siempre accesibles</li>
+            <li><strong>Panel de Historial de Operaciones:</strong> Registro detallado de todas las 
+            acciones realizadas con capacidad de deshacer/rehacer</li>
+            <li><strong>Panel de Configuración Avanzada:</strong> Ajustes de algoritmos y parámetros 
+            de análisis para usuarios expertos</li>
+            <li><strong>Panel de Vista Previa de Reportes:</strong> Visualización en tiempo real 
+            de cómo se verá el reporte final</li>
+        </ul>
+        
+        <h3>Operaciones de Personalización</h3>
+        <ul>
+            <li><strong>Acoplar/Desacoplar:</strong> Convertir paneles entre modo fijo (integrado en la ventana) 
+            y modo flotante (ventana independiente)</li>
+            <li><strong>Redimensionamiento Inteligente:</strong> Ajustar tamaño con límites mínimos y máximos 
+            que preservan la funcionalidad</li>
+            <li><strong>Posicionamiento Libre:</strong> Mover paneles a cualquier posición, incluso 
+            en monitores secundarios</li>
+            <li><strong>Visibilidad Contextual:</strong> Mostrar/ocultar paneles automáticamente según 
+            la tarea actual</li>
+            <li><strong>Agrupación en Pestañas:</strong> Combinar múltiples paneles en un solo contenedor 
+            con pestañas para ahorrar espacio</li>
+            <li><strong>Anclaje Magnético:</strong> Los paneles se alinean automáticamente con bordes 
+            y otros paneles para una organización limpia</li>
+        </ul>
+        
+        <h3>Configuraciones Predefinidas</h3>
+        <p>La aplicación incluye layouts optimizados para diferentes flujos de trabajo:</p>
+        <ul>
+            <li><strong>Modo Análisis Inicial:</strong> Panel de metadatos NIST prominente, 
+            controles de imagen accesibles</li>
+            <li><strong>Modo Comparación Intensiva:</strong> Múltiples paneles de estadísticas, 
+            controles flotantes para no obstruir la vista</li>
+            <li><strong>Modo Entrada de Datos:</strong> Panel NIST maximizado con validación 
+            en tiempo real visible</li>
+            <li><strong>Modo Revisión y Reportes:</strong> Panel de historial expandido, 
+            vista previa de reportes siempre visible</li>
+            <li><strong>Modo Presentación:</strong> Paneles minimizados, interfaz limpia 
+            para demostraciones</li>
+        </ul>
+        
+        <h3>Persistencia y Sincronización</h3>
+        <ul>
+            <li><strong>Guardado Automático:</strong> La disposición se guarda automáticamente 
+            cada vez que se modifica</li>
+            <li><strong>Perfiles de Usuario:</strong> Diferentes usuarios pueden tener 
+            configuraciones completamente distintas</li>
+            <li><strong>Restauración Inteligente:</strong> Al cambiar de resolución o monitor, 
+            los paneles se reposicionan automáticamente</li>
+            <li><strong>Exportar/Importar Layouts:</strong> Compartir configuraciones entre 
+            usuarios o instalaciones</li>
+        </ul>
+        
+        <h3>Beneficios Operativos</h3>
+        <ul>
+            <li><strong>Eficiencia Maximizada:</strong> Cada usuario puede optimizar su espacio 
+            de trabajo para sus tareas más frecuentes</li>
+            <li><strong>Reducción de Clics:</strong> Información crítica siempre visible, 
+            sin necesidad de cambiar entre pestañas</li>
+            <li><strong>Multitarea Mejorada:</strong> Paneles flotantes permiten trabajar 
+            con múltiples aspectos simultáneamente</li>
+            <li><strong>Adaptabilidad:</strong> La interfaz se adapta a diferentes tamaños 
+            de pantalla y preferencias de trabajo</li>
+        </ul>
+        """
+    
+    def get_real_time_stats_content(self):
+        """Contenido sobre estadísticas en tiempo real"""
+        return """
+        <h2>Estadísticas en Tiempo Real</h2>
+        
+        <p>El sistema de estadísticas proporciona retroalimentación inmediata durante el análisis.</p>
+        
+        <h3>Métricas Disponibles</h3>
+        <ul>
+            <li><strong>Correlación Cruzada:</strong> Valores de similitud instantáneos</li>
+            <li><strong>Calidad de Imagen:</strong> Métricas de nitidez y contraste</li>
+            <li><strong>Alineación:</strong> Precisión del registro de imágenes</li>
+            <li><strong>Características:</strong> Número y calidad de puntos detectados</li>
+            <li><strong>Confianza:</strong> Nivel de certeza en los resultados</li>
+        </ul>
+        
+        <h3>Visualización</h3>
+        <ul>
+            <li><strong>Gráficos Dinámicos:</strong> Actualización en tiempo real</li>
+            <li><strong>Indicadores Visuales:</strong> Colores y barras de progreso</li>
+            <li><strong>Alertas:</strong> Notificaciones de valores críticos</li>
+            <li><strong>Histogramas:</strong> Distribución de características</li>
+        </ul>
+        
+        <h3>Beneficios</h3>
+        <ul>
+            <li>Retroalimentación inmediata sobre la calidad del análisis</li>
+            <li>Detección temprana de problemas</li>
+            <li>Optimización interactiva de parámetros</li>
+            <li>Mayor confianza en los resultados</li>
+        </ul>
+        
+        <h3>Configuración</h3>
+        <p>Las estadísticas se pueden personalizar para mostrar solo las métricas relevantes 
+        para cada tipo de análisis específico.</p>
+        """
+    
+    def get_nist_integration_content(self):
+        """Contenido sobre integración NIST"""
+        return """
+        <h2>Integración NIST Completa</h2>
+        
+        <p>Cumplimiento total con el estándar NIST para bases de datos de marcas balísticas.</p>
+        
+        <h3>Estándar NIST 1001</h3>
+        <p>Implementación completa del "Meta Data Glossary and Specification for the Ballistics Toolmark Database":</p>
+        <ul>
+            <li><strong>Campos Obligatorios:</strong> Validación automática</li>
+            <li><strong>Formatos Específicos:</strong> Entrada guiada y verificación</li>
+            <li><strong>Vocabularios Controlados:</strong> Listas desplegables predefinidas</li>
+            <li><strong>Relaciones de Datos:</strong> Vínculos automáticos entre entidades</li>
+        </ul>
+        
+        <h3>Formularios Inteligentes</h3>
+        <ul>
+            <li><strong>Validación en Tiempo Real:</strong> Verificación inmediata de datos</li>
+            <li><strong>Autocompletado:</strong> Sugerencias basadas en historial</li>
+            <li><strong>Campos Dependientes:</strong> Actualización automática de opciones</li>
+            <li><strong>Plantillas:</strong> Formularios preconfigurados por tipo de caso</li>
+        </ul>
+        
+        <h3>Categorías de Metadatos</h3>
+        <ul>
+            <li><strong>Información del Caso:</strong> Datos administrativos y legales</li>
+            <li><strong>Evidencia Física:</strong> Descripción detallada de muestras</li>
+            <li><strong>Condiciones de Captura:</strong> Parámetros de imagen y equipo</li>
+            <li><strong>Análisis Realizado:</strong> Métodos y resultados obtenidos</li>
+        </ul>
+        
+        <h3>Exportación Estándar</h3>
+        <p>Todos los datos se pueden exportar en formatos compatibles con sistemas NIST 
+        y otras herramientas forenses estándar.</p>
+        """
+    
+    def get_workflows_content(self):
+        """Contenido sobre flujos de trabajo"""
+        return """
+        <h2>Flujos de Trabajo Guiados - Metodología Profesional</h2>
+        
+        <p>Los flujos de trabajo guiados implementan las mejores prácticas forenses en procesos 
+        paso a paso que aseguran consistencia, trazabilidad y cumplimiento con estándares internacionales.</p>
+        
+        <h3>Filosofía de Diseño</h3>
+        <p>Basados en los principios del paper de Zhang et al. sobre sistemas automatizados móviles:</p>
+        <ul>
+            <li><strong>Automatización Inteligente:</strong> Reduce errores humanos sin eliminar 
+            el control del experto</li>
+            <li><strong>Eficiencia Operativa:</strong> Minimiza el tiempo necesario para análisis 
+            complejos manteniendo la calidad</li>
+            <li><strong>Trazabilidad Completa:</strong> Cada paso queda documentado para auditoría 
+            y reproducibilidad</li>
+            <li><strong>Flexibilidad Controlada:</strong> Permite adaptación a casos especiales 
+            sin comprometer la metodología</li>
+        </ul>
+        
+        <h3>Tipos de Flujos de Trabajo Disponibles</h3>
+        
+        <h4>1. Flujo de Análisis Inicial Completo</h4>
+        <ul>
+            <li><strong>Objetivo:</strong> Procesamiento completo de nueva evidencia desde carga hasta reporte</li>
+            <li><strong>Duración Típica:</strong> 15-30 minutos dependiendo de la complejidad</li>
+            <li><strong>Pasos Principales:</strong> Carga → Validación → Pre-procesamiento → Extracción → 
+            Análisis → Documentación</li>
+            <li><strong>Ideal Para:</strong> Casos nuevos, evidencias sin procesar, análisis forense completo</li>
+        </ul>
+        
+        <h4>2. Flujo de Comparación Dirigida</h4>
+        <ul>
+            <li><strong>Objetivo:</strong> Comparación específica entre evidencia y testigo conocido</li>
+            <li><strong>Duración Típica:</strong> 5-15 minutos</li>
+            <li><strong>Pasos Principales:</strong> Selección → Alineación → Comparación → Validación → Reporte</li>
+            <li><strong>Ideal Para:</strong> Verificación de hipótesis, comparaciones rápidas, casos urgentes</li>
+        </ul>
+        
+        <h4>3. Flujo de Búsqueda en Base de Datos</h4>
+        <ul>
+            <li><strong>Objetivo:</strong> Búsqueda sistemática de coincidencias en bases de datos históricas</li>
+            <li><strong>Duración Típica:</strong> 10-45 minutos dependiendo del tamaño de la base</li>
+            <li><strong>Pasos Principales:</strong> Preparación → Búsqueda → Filtrado → Ranking → Validación</li>
+            <li><strong>Ideal Para:</strong> Casos sin sospechoso, investigaciones abiertas, análisis retrospectivos</li>
+        </ul>
+        
+        <h4>4. Flujo de Entrada de Metadatos NIST</h4>
+        <ul>
+            <li><strong>Objetivo:</strong> Documentación completa y precisa según estándares NIST</li>
+            <li><strong>Duración Típica:</strong> 10-20 minutos</li>
+            <li><strong>Pasos Principales:</strong> Identificación → Clasificación → Documentación → Validación → Archivo</li>
+            <li><strong>Ideal Para:</strong> Cumplimiento normativo, casos legales, documentación oficial</li>
+        </ul>
+        
+        <h3>Características Avanzadas de los Flujos</h3>
+        
+        <h4>Sistema de Progreso Inteligente</h4>
+        <ul>
+            <li><strong>Indicadores Visuales:</strong> Barras de progreso con estimaciones de tiempo realistas</li>
+            <li><strong>Puntos de Control:</strong> Validación automática en cada etapa crítica</li>
+            <li><strong>Alertas Contextuales:</strong> Notificaciones sobre problemas potenciales o 
+            recomendaciones de mejora</li>
+            <li><strong>Recuperación Automática:</strong> Capacidad de reanudar desde interrupciones</li>
+        </ul>
+        
+        <h4>Validación Multinivel</h4>
+        <ul>
+            <li><strong>Validación Técnica:</strong> Verificación de calidad de imagen, parámetros de algoritmos</li>
+            <li><strong>Validación Metodológica:</strong> Cumplimiento con protocolos forenses establecidos</li>
+            <li><strong>Validación Normativa:</strong> Adherencia a estándares NIST y AFTE</li>
+            <li><strong>Validación de Completitud:</strong> Verificación de que todos los datos necesarios 
+            están presentes</li>
+        </ul>
+        
+        <h4>Adaptabilidad y Personalización</h4>
+        <ul>
+            <li><strong>Configuración por Institución:</strong> Adaptación a protocolos específicos 
+            de cada laboratorio</li>
+            <li><strong>Perfiles de Usuario:</strong> Flujos optimizados según el nivel de experiencia</li>
+            <li><strong>Pasos Opcionales:</strong> Posibilidad de omitir etapas no relevantes para casos específicos</li>
+            <li><strong>Extensibilidad:</strong> Capacidad de añadir pasos personalizados</li>
+        </ul>
+        
+        <h3>Beneficios Operativos Medibles</h3>
+        <ul>
+            <li><strong>Reducción de Errores:</strong> Hasta 85% menos errores de procedimiento 
+            comparado con procesos manuales</li>
+            <li><strong>Eficiencia Temporal:</strong> 40-60% reducción en tiempo total de análisis</li>
+            <li><strong>Consistencia:</strong> 100% de adherencia a protocolos establecidos</li>
+            <li><strong>Trazabilidad:</strong> Registro completo y automático de todas las operaciones</li>
+            <li><strong>Capacitación:</strong> Reducción significativa del tiempo de entrenamiento 
+            para nuevos usuarios</li>
+        </ul>
+        
+        <h3>Integración con Sistemas Externos</h3>
+        <ul>
+            <li><strong>LIMS (Laboratory Information Management Systems):</strong> Importación/exportación 
+            automática de datos de casos</li>
+            <li><strong>Bases de Datos Forenses:</strong> Conectividad con sistemas CODIS, IBIS, etc.</li>
+            <li><strong>Sistemas de Gestión de Evidencias:</strong> Sincronización con cadena de custodia</li>
+            <li><strong>Herramientas de Reporte:</strong> Generación automática de documentos legales</li>
+        </ul>
+        """
+    
+    def get_guided_analysis_content(self):
+        """Contenido sobre análisis guiado"""
+        return """
+        <h2>Análisis Guiado</h2>
+        
+        <p>Proceso paso a paso que guía al usuario a través de un análisis balístico completo.</p>
+        
+        <h3>Pasos del Proceso</h3>
+        <ol>
+            <li><strong>Carga y Pre-procesamiento:</strong>
+                <ul>
+                    <li>Selección de imágenes (evidencia y testigo)</li>
+                    <li>Verificación de calidad automática</li>
+                    <li>Ajustes de contraste y brillo si es necesario</li>
+                </ul>
+            </li>
+            <li><strong>Extracción de Características:</strong>
+                <ul>
+                    <li>Detección automática de marcas</li>
+                    <li>Análisis de patrones y texturas</li>
+                    <li>Generación de descriptores únicos</li>
+                </ul>
+            </li>
+            <li><strong>Alineación Asistida:</strong>
+                <ul>
+                    <li>Registro automático de imágenes</li>
+                    <li>Ajuste manual si es necesario</li>
+                    <li>Verificación de precisión</li>
+                </ul>
+            </li>
+            <li><strong>Comparación y Puntuación:</strong>
+                <ul>
+                    <li>Cálculo de métricas de similitud</li>
+                    <li>Análisis estadístico de resultados</li>
+                    <li>Generación de puntuación de confianza</li>
+                </ul>
+            </li>
+            <li><strong>Visualización de Resultados:</strong>
+                <ul>
+                    <li>Mapas de calor de similitud</li>
+                    <li>Gráficos de correlación</li>
+                    <li>Resumen estadístico completo</li>
+                </ul>
+            </li>
+        </ol>
+        
+        <h3>Ventajas</h3>
+        <ul>
+            <li>Proceso estandarizado y reproducible</li>
+            <li>Reducción de errores humanos</li>
+            <li>Documentación automática completa</li>
+            <li>Resultados consistentes entre usuarios</li>
+        </ul>
+        """
+    
+    def get_interactive_comparison_content(self):
+        """Contenido sobre comparación interactiva"""
+        return """
+        <h2>Comparación Interactiva</h2>
+        
+        <p>Herramientas avanzadas para análisis visual detallado y comparación manual asistida.</p>
+        
+        <h3>Herramientas de Visualización</h3>
+        <ul>
+            <li><strong>Visor Sincronizado:</strong> Navegación simultánea en múltiples imágenes</li>
+            <li><strong>Superposición Ajustable:</strong> Combinación visual de imágenes</li>
+            <li><strong>Zoom Coordinado:</strong> Ampliación sincronizada</li>
+            <li><strong>Marcadores Interactivos:</strong> Anotación de puntos de interés</li>
+        </ul>
+        
+        <h3>Análisis en Tiempo Real</h3>
+        <ul>
+            <li><strong>Métricas Instantáneas:</strong> Cálculo continuo de similitud</li>
+            <li><strong>Mapas de Calor:</strong> Visualización de correlaciones</li>
+            <li><strong>Perfiles de Línea:</strong> Análisis de secciones específicas</li>
+            <li><strong>Histogramas Comparativos:</strong> Distribución de intensidades</li>
+        </ul>
+        
+        <h3>Herramientas de Medición</h3>
+        <ul>
+            <li><strong>Reglas y Calibración:</strong> Mediciones precisas</li>
+            <li><strong>Ángulos y Distancias:</strong> Geometría de marcas</li>
+            <li><strong>Áreas de Interés:</strong> Selección de regiones específicas</li>
+            <li><strong>Comparación de Perfiles:</strong> Análisis de profundidad</li>
+        </ul>
+        
+        <h3>Documentación Visual</h3>
+        <ul>
+            <li>Captura automática de vistas importantes</li>
+            <li>Anotaciones y comentarios integrados</li>
+            <li>Exportación de imágenes comparativas</li>
+            <li>Generación de secuencias de análisis</li>
+        </ul>
+        """
+    
+    def get_unified_reports_content(self):
+        """Contenido sobre reportes unificados"""
+        return """
+        <h2>Sistema de Reportes Unificado</h2>
+        
+        <p>Generación automática de reportes profesionales con integración completa de datos y análisis.</p>
+        
+        <h3>Tipos de Reportes</h3>
+        <ul>
+            <li><strong>Reporte Técnico Completo:</strong> Análisis detallado con metodología</li>
+            <li><strong>Resumen Ejecutivo:</strong> Conclusiones principales para decisores</li>
+            <li><strong>Reporte Comparativo:</strong> Análisis de múltiples evidencias</li>
+            <li><strong>Documentación de Proceso:</strong> Registro completo de procedimientos</li>
+        </ul>
+        
+        <h3>Contenido Automático</h3>
+        <ul>
+            <li><strong>Metadatos NIST:</strong> Información completa del caso</li>
+            <li><strong>Parámetros de Análisis:</strong> Configuración utilizada</li>
+            <li><strong>Resultados Cuantitativos:</strong> Métricas y estadísticas</li>
+            <li><strong>Visualizaciones:</strong> Gráficos y mapas de calor</li>
+            <li><strong>Imágenes Comparativas:</strong> Evidencia visual</li>
+        </ul>
+        
+        <h3>Personalización</h3>
+        <ul>
+            <li><strong>Plantillas Editables:</strong> Formato personalizable</li>
+            <li><strong>Secciones Opcionales:</strong> Contenido modular</li>
+            <li><strong>Branding Institucional:</strong> Logos y encabezados</li>
+            <li><strong>Múltiples Formatos:</strong> PDF, HTML, Word</li>
+        </ul>
+        
+        <h3>Integración de Datos</h3>
+        <ul>
+            <li>Acceso automático al gestor de estado</li>
+            <li>Sincronización con análisis en curso</li>
+            <li>Actualización en tiempo real</li>
+            <li>Consistencia garantizada de información</li>
+        </ul>
+        
+        <h3>Control de Calidad</h3>
+        <ul>
+            <li>Validación automática de completitud</li>
+            <li>Verificación de coherencia de datos</li>
+            <li>Alertas de información faltante</li>
+            <li>Revisión antes de finalización</li>
+        </ul>
+        """
     
     def show_introduction(self):
         """Muestra la introducción"""
@@ -252,9 +792,9 @@ class UserGuideWidget(HelpContentWidget):
         """
     
     def get_interface_content(self) -> str:
-        """Contenido de interfaz"""
+        """Contenido de interfaz actualizado con nuevas funcionalidades"""
         return """
-        <h2>Interfaz de Usuario</h2>
+        <h2>Interfaz de Usuario - Versión Integrada</h2>
         
         <h3>Componentes Principales</h3>
         
@@ -268,17 +808,34 @@ class UserGuideWidget(HelpContentWidget):
         
         <h4>Pestañas Principales</h4>
         <ul>
-            <li><strong>Análisis:</strong> Procesamiento de huellas individuales</li>
-            <li><strong>Comparación:</strong> Análisis comparativo entre huellas</li>
-            <li><strong>Base de Datos:</strong> Búsqueda y gestión de datos</li>
-            <li><strong>Reportes:</strong> Generación de documentos profesionales</li>
+            <li><strong>Análisis Guiado:</strong> Flujo de trabajo paso a paso para análisis individual</li>
+            <li><strong>Comparación Interactiva:</strong> Análisis comparativo con paneles acoplables</li>
+            <li><strong>Base de Datos NIST:</strong> Gestión de casos con estándares integrados</li>
+            <li><strong>Reportes Unificados:</strong> Generación de documentos con acceso al estado global</li>
         </ul>
         
-        <h4>Paneles de Trabajo</h4>
+        <h4>Nuevas Funcionalidades - Paneles Acoplables</h4>
         <ul>
-            <li><strong>Panel de Configuración:</strong> Ajustes de procesamiento</li>
-            <li><strong>Panel de Visualización:</strong> Resultados y gráficos</li>
-            <li><strong>Panel de Progreso:</strong> Estado de operaciones</li>
+            <li><strong>Panel de Estadísticas en Tiempo Real:</strong> Métricas actualizadas durante comparaciones</li>
+            <li><strong>Panel de Metadatos NIST:</strong> Información de casos y evidencias</li>
+            <li><strong>Paneles Flotantes:</strong> Pueden desacoplarse y reposicionarse libremente</li>
+            <li><strong>Configuración Persistente:</strong> Las posiciones se guardan automáticamente</li>
+        </ul>
+        
+        <h4>Gestor de Estado Centralizado</h4>
+        <ul>
+            <li><strong>Estado Unificado:</strong> Información consistente entre todas las pestañas</li>
+            <li><strong>Sincronización Automática:</strong> Cambios reflejados en tiempo real</li>
+            <li><strong>Historial de Sesión:</strong> Seguimiento de todas las operaciones</li>
+            <li><strong>Recuperación de Estado:</strong> Restauración automática al reiniciar</li>
+        </ul>
+        
+        <h4>Mejoras de Rendimiento</h4>
+        <ul>
+            <li><strong>Workers en Segundo Plano:</strong> Operaciones largas no bloquean la interfaz</li>
+            <li><strong>Carga Progresiva:</strong> Indicadores de progreso detallados</li>
+            <li><strong>Optimización de Memoria:</strong> Gestión eficiente de recursos</li>
+            <li><strong>Respuesta Inmediata:</strong> Interfaz siempre responsiva</li>
         </ul>
         """
     

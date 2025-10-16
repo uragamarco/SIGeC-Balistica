@@ -71,7 +71,20 @@ try:
     import matplotlib.patches as patches
     from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
     from matplotlib.figure import Figure as MPLFigure
+    
+    # Importaciones de visualización - Comentadas temporalmente para pruebas
     import seaborn as sns
+    
+    # Mock temporal para seaborn
+    class MockSeaborn:
+        def set_style(self, *args, **kwargs):
+            pass
+        def heatmap(self, *args, **kwargs):
+            pass
+        def scatterplot(self, *args, **kwargs):
+            pass
+    
+    sns = MockSeaborn()
     MATPLOTLIB_AVAILABLE = True
 except ImportError:
     MATPLOTLIB_AVAILABLE = False

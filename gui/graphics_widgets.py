@@ -6,7 +6,20 @@ import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.figure import Figure
-import seaborn as sns
+# Importaciones de visualización - Comentadas temporalmente para pruebas
+try:
+    import seaborn as sns
+except Exception:
+    # Mock temporal para seaborn cuando no está disponible
+    class MockSeaborn:
+        def set_style(self, *args, **kwargs):
+            pass
+        def heatmap(self, *args, **kwargs):
+            pass
+        def scatterplot(self, *args, **kwargs):
+            pass
+
+    sns = MockSeaborn()
 from PyQt5.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel, 
                              QPushButton, QFrame, QComboBox, QCheckBox,
                              QGroupBox, QTabWidget, QScrollArea, QSizePolicy)
@@ -140,6 +153,12 @@ class HeatmapWidget(QFrame):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setProperty("class", "card")
+        # Datos externos opcionales para renderizar matrices reales
+        self.external_matrix = None
+        self.external_title = None
+        self.external_colormap = None
+        # Indicador de estado (fuente de datos)
+        self.status_label = None
         self.setup_ui()
         
     def setup_ui(self):
@@ -185,49 +204,102 @@ class HeatmapWidget(QFrame):
         self.canvas = FigureCanvas(self.figure)
         self.canvas.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
         layout.addWidget(self.canvas)
+
+        # Indicador en el borde inferior para fuente de datos
+        self.status_label = QLabel("Fuente: Simulada")
+        self.status_label.setStyleSheet(
+            "color: #666; font-size: 11px; padding: 4px 8px;"
+            "border-top: 1px solid #ddd;"
+        )
+        layout.addWidget(self.status_label)
         
+    def set_heatmap_data(self, matrix, title: str = None, colormap: str = None):
+        """Establece datos externos para el mapa de calor.
+        Args:
+            matrix: Matriz 2D (lista de listas o np.ndarray).
+            title: Título opcional.
+            colormap: Nombre del colormap opcional.
+        """
+        try:
+            import numpy as _np
+            self.external_matrix = _np.array(matrix) if matrix is not None else None
+        except Exception:
+            self.external_matrix = None
+        self.external_title = title
+        self.external_colormap = colormap
+        self.update_heatmap()
+
+    def clear_external_data(self):
+        """Limpia los datos externos inyectados."""
+        self.external_matrix = None
+        self.external_title = None
+        self.external_colormap = None
+        self.update_heatmap()
+
     def update_heatmap(self):
-        """Actualiza el mapa de calor con datos simulados"""
+        """Actualiza el mapa de calor con datos externos o simulados"""
         self.figure.clear()
         ax = self.figure.add_subplot(111)
         
-        # Generar datos simulados según el tipo de mapa
-        map_type = self.map_type_combo.currentText()
-        colormap = self.colormap_combo.currentText()
-        
-        if "Calidad" in map_type:
-            # Simular mapa de calidad con zonas de alta y baja calidad
-            data = np.random.random((50, 50))
-            # Agregar algunas zonas de alta calidad
-            data[20:30, 20:30] += 0.5
-            data[10:15, 35:40] += 0.3
-            title = "Mapa de Calidad de Imagen"
+        if self.external_matrix is not None:
+            # Usar matriz externa
+            data = self.external_matrix
+            if getattr(data, 'ndim', 2) != 2:
+                data = np.atleast_2d(data)
+            colormap = self.external_colormap or self.colormap_combo.currentText()
+            title = self.external_title or "Mapa de Calor"
+            # Actualizar indicador de estado
+            if self.status_label is not None:
+                self.status_label.setText("Fuente: Externa (matriz real)")
+                self.status_label.setStyleSheet(
+                    "color: #2E7D32; font-size: 11px; padding: 4px 8px;"
+                    "border-top: 1px solid #ddd;"
+                )
+        else:
+            # Generar datos simulados según el tipo de mapa
+            map_type = self.map_type_combo.currentText()
+            colormap = self.colormap_combo.currentText()
             
-        elif "Densidad" in map_type:
-            # Simular densidad de características
-            x, y = np.meshgrid(np.linspace(0, 10, 50), np.linspace(0, 10, 50))
-            data = np.sin(x) * np.cos(y) + np.random.normal(0, 0.1, (50, 50))
-            title = "Densidad de Características"
-            
-        elif "Correlación" in map_type:
-            # Simular correlación espacial
-            data = np.random.multivariate_normal([0, 0], [[1, 0.5], [0.5, 1]], (50, 50))[:, :, 0]
-            title = "Correlación Espacial"
-            
-        elif "Confianza" in map_type:
-            # Simular mapa de confianza
-            center_x, center_y = 25, 25
-            x, y = np.meshgrid(np.arange(50), np.arange(50))
-            data = np.exp(-((x - center_x)**2 + (y - center_y)**2) / 200)
-            title = "Mapa de Confianza"
-            
-        else:  # Estrías
-            # Simular distribución de estrías
-            data = np.random.exponential(1, (50, 50))
-            # Agregar patrones lineales para simular estrías
-            for i in range(0, 50, 5):
-                data[i:i+2, :] *= 1.5
-            title = "Distribución de Estrías"
+            if "Calidad" in map_type:
+                # Simular mapa de calidad con zonas de alta y baja calidad
+                data = np.random.random((50, 50))
+                # Agregar algunas zonas de alta calidad
+                data[20:30, 20:30] += 0.5
+                data[10:15, 35:40] += 0.3
+                title = "Mapa de Calidad de Imagen"
+                
+            elif "Densidad" in map_type:
+                # Simular densidad de características
+                x, y = np.meshgrid(np.linspace(0, 10, 50), np.linspace(0, 10, 50))
+                data = np.sin(x) * np.cos(y) + np.random.normal(0, 0.1, (50, 50))
+                title = "Densidad de Características"
+                
+            elif "Correlación" in map_type:
+                # Simular correlación espacial
+                data = np.random.multivariate_normal([0, 0], [[1, 0.5], [0.5, 1]], (50, 50))[:, :, 0]
+                title = "Correlación Espacial"
+                
+            elif "Confianza" in map_type:
+                # Simular mapa de confianza
+                center_x, center_y = 25, 25
+                x, y = np.meshgrid(np.arange(50), np.arange(50))
+                data = np.exp(-((x - center_x)**2 + (y - center_y)**2) / 200)
+                title = "Mapa de Confianza"
+                
+            else:  # Estrías
+                # Simular distribución de estrías
+                data = np.random.exponential(1, (50, 50))
+                # Agregar patrones lineales para simular estrías
+                for i in range(0, 50, 5):
+                    data[i:i+2, :] *= 1.5
+                title = "Distribución de Estrías"
+            # Actualizar indicador de estado
+            if self.status_label is not None:
+                self.status_label.setText("Fuente: Simulada")
+                self.status_label.setStyleSheet(
+                    "color: #666; font-size: 11px; padding: 4px 8px;"
+                    "border-top: 1px solid #ddd;"
+                )
         
         # Crear mapa de calor
         im = ax.imshow(data, cmap=colormap, aspect='auto', interpolation='bilinear')

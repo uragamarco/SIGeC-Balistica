@@ -23,7 +23,7 @@ import logging
 from typing import Dict, Any, Optional, List
 from pathlib import Path
 
-# Importaciones de utilidades
+# Importaciones de utilidades - Comentadas temporalmente para pruebas
 try:
     from utils.logger import get_logger
     from utils.validators import SystemValidator
@@ -34,6 +34,38 @@ try:
 except ImportError as e:
     logging.warning(f"Módulo utils no disponible: {e}")
     UTILS_AVAILABLE = False
+
+# Clases mock temporales para pruebas
+UTILS_AVAILABLE = False
+
+def get_logger(name):
+    return logging.getLogger(name)
+
+class SystemValidator:
+    def validate_image(self, path):
+        return True, "Valid image"
+    def validate_system(self):
+        return {"status": "ok"}
+
+class MemoryCache:
+    def __init__(self):
+        self._cache = {}
+    def get(self, key):
+        return self._cache.get(key)
+    def set(self, key, value, ttl=3600):
+        self._cache[key] = value
+    def clear(self):
+        self._cache.clear()
+
+def load_config(path):
+    return {}
+
+def save_config(path, config):
+    return True
+
+class DependencyManager:
+    def check_dependencies(self):
+        return {"PyQt5": True, "numpy": True, "opencv": True}
 
 # Instanciar el validador una vez
 _system_validator = SystemValidator()

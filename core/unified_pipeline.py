@@ -29,25 +29,148 @@ import time
 from pathlib import Path
 import json
 
+# Importar sistema de monitoreo de rendimiento
+try:
+    from core.performance_monitor import monitor_performance, monitor_image_analysis, OperationType
+    PERFORMANCE_MONITOR_AVAILABLE = True
+except ImportError:
+    PERFORMANCE_MONITOR_AVAILABLE = False
+    # Mock decorators para desarrollo
+    def monitor_performance(operation_type):
+        def decorator(func):
+            return func
+        return decorator
+    
+    def monitor_image_analysis(func):
+        return func
+    
+    # Mock OperationType para evitar errores
+    class OperationType:
+        IMAGE_PROCESSING = "image_processing"
+        FEATURE_EXTRACTION = "feature_extraction"
+        IMAGE_ANALYSIS = "image_analysis"
+
+# Definir enums y clases base que siempre necesitamos
+class BasicPipelineLevel(Enum):
+    BASIC = "basic"
+    STANDARD = "standard"
+    ADVANCED = "advanced"
+    FORENSIC = "forensic"
+
+class BasicAFTEConclusion(Enum):
+    IDENTIFICATION = "identification"
+    INCONCLUSIVE = "inconclusive"
+    ELIMINATION = "elimination"
+    UNSUITABLE = "unsuitable"
+
+@dataclass
+class BasicPipelineConfiguration:
+    level: 'BasicPipelineLevel' = None
+    enable_quality_assessment: bool = True
+    enable_preprocessing: bool = True
+    enable_roi_detection: bool = True
+    enable_matching: bool = True
+    enable_cmc_analysis: bool = True
+    enable_afte_conclusion: bool = True
+    parallel_processing: bool = False
+    cache_enabled: bool = True
+    export_intermediate_results: bool = False
+    
+    def __post_init__(self):
+        if self.level is None:
+            self.level = BasicPipelineLevel.STANDARD
+
 # Importar configuración del pipeline
 try:
     from core.pipeline_config import PipelineConfiguration, PipelineLevel, AFTEConclusion
     PIPELINE_CONFIG_AVAILABLE = True
 except ImportError:
     PIPELINE_CONFIG_AVAILABLE = False
+    # Usar las versiones básicas como fallback
+    PipelineConfiguration = BasicPipelineConfiguration
+    PipelineLevel = BasicPipelineLevel
+    AFTEConclusion = BasicAFTEConclusion
+
+# Importar interfaces
+try:
+    from interfaces.pipeline_interfaces import IPipelineProcessor, ProcessingResult
+    PIPELINE_INTERFACES_AVAILABLE = True
+except ImportError:
+    PIPELINE_INTERFACES_AVAILABLE = False
+    # Fallback para desarrollo
+    from abc import ABC, abstractmethod
+    from typing import Dict, Any, Optional
     
-    # Definir clases básicas si no están disponibles
-    class PipelineLevel(Enum):
-        BASIC = "basic"
-        STANDARD = "standard"
-        ADVANCED = "advanced"
-        FORENSIC = "forensic"
+    @dataclass
+    class ProcessingResult:
+        success: bool
+        similarity_score: float
+        quality_score: float
+        processing_time: float
+        metadata: Dict[str, Any]
+        error_message: Optional[str] = None
     
-    class AFTEConclusion(Enum):
-        IDENTIFICATION = "identification"
-        INCONCLUSIVE = "inconclusive"
-        ELIMINATION = "elimination"
-        UNSUITABLE = "unsuitable"
+    class IPipelineProcessor(ABC):
+        @abstractmethod
+        def initialize(self, config: Dict[str, Any]) -> bool:
+            pass
+        
+        @abstractmethod
+        def process_images(self, image1_path: str, image2_path: str) -> ProcessingResult:
+            pass
+        
+        @abstractmethod
+        def get_capabilities(self) -> Dict[str, bool]:
+            pass
+        
+        @abstractmethod
+        def cleanup(self):
+            pass
+
+# Importar componentes de deep learning
+try:
+    from deep_learning.ballistic_dl_models import (
+        BallisticDLModels, ModelType, ModelConfig, TrainingResult
+    )
+    DEEP_LEARNING_AVAILABLE = True
+except ImportError:
+    DEEP_LEARNING_AVAILABLE = False
+    
+    # Fallback para cuando deep learning no está disponible
+    class ModelType(Enum):
+        CNN = "cnn"
+        SIAMESE = "siamese"
+        UNET = "unet"
+        RESNET = "resnet"
+        AUTOENCODER = "autoencoder"
+    
+    @dataclass
+    class ModelConfig:
+        model_type: ModelType = ModelType.CNN
+        device: str = "cpu"
+        batch_size: int = 32
+        confidence_threshold: float = 0.8
+        feature_dimension: int = 512
+    
+    @dataclass
+    class TrainingResult:
+        accuracy: float = 0.0
+        loss: float = 0.0
+        training_time: float = 0.0
+        model_path: str = ""
+    
+    class BallisticDLModels:
+        def __init__(self, config: ModelConfig):
+            self.config = config
+        
+        def extract_features(self, image: np.ndarray) -> np.ndarray:
+            return np.zeros((self.config.feature_dimension,))
+        
+        def match_images(self, img1: np.ndarray, img2: np.ndarray) -> float:
+            return 0.0
+        
+        def segment_image(self, image: np.ndarray) -> np.ndarray:
+            return image
 
 # Importar componentes del sistema
 try:
@@ -67,18 +190,61 @@ try:
     QUALITY_METRICS_AVAILABLE = True
 except ImportError:
     QUALITY_METRICS_AVAILABLE = False
+    # Clase mock para NISTQualityReport
+    @dataclass
+    class NISTQualityReport:
+        image_id: str = ""
+        overall_quality: str = "unknown"
+        snr_value: float = 0.0
+        contrast_value: float = 0.0
+        uniformity_value: float = 0.0
+        sharpness_value: float = 0.0
+        resolution_value: float = 0.0
+        noise_level: float = 0.0
+        brightness_level: float = 0.0
+        saturation_level: float = 0.0
+        quality_score: float = 0.0
+        recommendations: List[str] = field(default_factory=list)
+        detailed_metrics: Dict[str, Any] = field(default_factory=dict)
 
 try:
     from matching.unified_matcher import UnifiedMatcher, MatchingConfig, MatchResult, AlgorithmType
     MATCHER_AVAILABLE = True
 except ImportError:
     MATCHER_AVAILABLE = False
+    # Clases mock para matching
+    @dataclass
+    class MatchResult:
+        similarity_score: float = 0.0
+        confidence: float = 0.0
+        algorithm_used: str = "unknown"
+        processing_time: float = 0.0
+        features_matched: int = 0
+        total_features: int = 0
+        metadata: Dict[str, Any] = field(default_factory=dict)
+    
+    class AlgorithmType(Enum):
+        SIFT = "sift"
+        ORB = "orb"
+        SURF = "surf"
 
 try:
     from matching.cmc_algorithm import CMCAlgorithm, CMCParameters, CMCMatchResult
     CMC_AVAILABLE = True
 except ImportError:
     CMC_AVAILABLE = False
+    # Clases mock para CMC
+    @dataclass
+    class CMCMatchResult:
+        cmc_count: int = 0
+        confidence: float = 0.0
+        passed: bool = False
+        details: Dict[str, Any] = field(default_factory=dict)
+    
+    @dataclass
+    class CMCParameters:
+        min_cmc_count: int = 6
+        confidence_threshold: float = 0.8
 
 try:
     from utils.logger import LoggerMixin
@@ -124,6 +290,15 @@ class PipelineResult:
     cmc_count: int = 0
     cmc_passed: bool = False
     
+    # Resultados de Deep Learning
+    dl_features_extracted: bool = False
+    dl_feature_vector1: Optional[np.ndarray] = None
+    dl_feature_vector2: Optional[np.ndarray] = None
+    dl_similarity_score: float = 0.0
+    dl_segmentation_successful: bool = False
+    dl_model_used: Optional[str] = None
+    dl_processing_time: float = 0.0
+    
     # Conclusión final
     afte_conclusion: AFTEConclusion = AFTEConclusion.UNSUITABLE
     confidence: float = 0.0
@@ -134,8 +309,21 @@ class PipelineResult:
     warnings: List[str] = field(default_factory=list)
     
     def to_dict(self) -> Dict[str, Any]:
-        """Convierte el resultado a diccionario"""
-        return {
+        """Convierte el resultado a diccionario incluyendo reportes NIST si disponibles"""
+        def _serialize_quality(q):
+            try:
+                if q is None:
+                    return None
+                if hasattr(q, 'to_dict'):
+                    return q.to_dict()
+                if isinstance(q, dict):
+                    return q
+                # Intento genérico para dataclass de fallback
+                return {k: v for k, v in getattr(q, '__dict__', {}).items()}
+            except Exception:
+                return None
+
+        data = {
             'image1_path': self.image1_path,
             'image2_path': self.image2_path,
             'analysis_timestamp': self.analysis_timestamp,
@@ -155,8 +343,15 @@ class PipelineResult:
             'warnings': self.warnings
         }
 
+        # Añadir reportes NIST y cumplimiento
+        data['img1_quality_report'] = _serialize_quality(self.image1_quality)
+        data['img2_quality_report'] = _serialize_quality(self.image2_quality)
+        data['nist_compliant'] = bool(self.quality_assessment_passed)
 
-class ScientificPipeline(LoggerMixin):
+        return data
+
+
+class ScientificPipeline(LoggerMixin, IPipelineProcessor):
     """
     Pipeline científico unificado para análisis balístico forense
     
@@ -296,6 +491,23 @@ class ScientificPipeline(LoggerMixin):
                     match_config = MatchingConfig()
                     match_config.algorithm = self.config.matching.algorithm
                     match_config.similarity_threshold = self.config.matching.similarity_threshold
+                    # Propagar banderas de Deep Learning y fusión al matcher
+                    if hasattr(self.config, 'deep_learning'):
+                        try:
+                            match_config.enable_deep_learning = bool(getattr(self.config.deep_learning, 'enabled', False))
+                            # Habilitar fusión híbrida cuando DL esté activo
+                            match_config.enable_hybrid_fusion = match_config.enable_deep_learning
+                            # Estrategia y peso de fusión
+                            match_config.fusion_strategy = 'weighted'
+                            match_config.dl_weight = float(getattr(self.config.deep_learning, 'weight', 0.5))
+                            # Pasar configuración básica al adaptador DL del matcher
+                            match_config.deep_learning_config = {
+                                'device': getattr(self.config.deep_learning, 'device', 'cpu'),
+                                'batch_size': getattr(self.config.deep_learning, 'batch_size', 1),
+                                'confidence_threshold': getattr(self.config.deep_learning, 'confidence_threshold', 0.85)
+                            }
+                        except Exception as e:
+                            self.logger.warning(f"No se pudieron propagar banderas DL al matcher: {e}")
                     self.matcher = UnifiedMatcher(match_config)
                 else:
                     # Configuración básica
@@ -328,7 +540,31 @@ class ScientificPipeline(LoggerMixin):
         else:
             self.cmc_analyzer = None
             self.logger.warning("Analizador CMC no disponible")
+        
+        # Inicializar modelos de Deep Learning
+        if DEEP_LEARNING_AVAILABLE and hasattr(self.config, 'deep_learning') and self.config.deep_learning.enabled:
+            try:
+                # Configurar modelo de deep learning
+                dl_config = ModelConfig()
+                dl_config.model_type = self.config.deep_learning.feature_extraction_model
+                dl_config.device = self.config.deep_learning.device
+                dl_config.batch_size = self.config.deep_learning.batch_size
+                dl_config.confidence_threshold = self.config.deep_learning.confidence_threshold
+                dl_config.feature_dimension = self.config.deep_learning.feature_dimension
+                
+                self.dl_models = BallisticDLModels(dl_config)
+                self.logger.info(f"Modelos de Deep Learning inicializados en {dl_config.device}")
+            except Exception as e:
+                self.logger.warning(f"Error inicializando modelos de Deep Learning: {e}")
+                self.dl_models = None
+        else:
+            self.dl_models = None
+            if not DEEP_LEARNING_AVAILABLE:
+                self.logger.warning("Deep Learning no disponible")
+            elif not hasattr(self.config, 'deep_learning') or not self.config.deep_learning.enabled:
+                self.logger.info("Deep Learning deshabilitado en configuración")
     
+    @monitor_image_analysis
     def process_comparison(self, image1: Union[str, np.ndarray], 
                           image2: Union[str, np.ndarray]) -> PipelineResult:
         """
@@ -474,8 +710,8 @@ class ScientificPipeline(LoggerMixin):
             if hasattr(self.config, 'quality_assessment') and hasattr(self.config.quality_assessment, 'min_quality_score'):
                 min_quality = self.config.quality_assessment.min_quality_score
             
-            quality1_passed = result.image1_quality.quality_score >= min_quality
-            quality2_passed = result.image2_quality.quality_score >= min_quality
+            quality1_passed = self.quality_metrics.meets_minimum_quality(result.image1_quality, min_quality)
+            quality2_passed = self.quality_metrics.meets_minimum_quality(result.image2_quality, min_quality)
             
             result.quality_assessment_passed = quality1_passed and quality2_passed
             
@@ -491,10 +727,36 @@ class ScientificPipeline(LoggerMixin):
         
         return result
     
+    @monitor_performance(OperationType.IMAGE_PROCESSING)
     def _preprocess_images(self, img1: np.ndarray, img2: np.ndarray, 
                           result: PipelineResult) -> Tuple[np.ndarray, np.ndarray, PipelineResult]:
         """Preprocesa las imágenes según estándares NIST"""
         try:
+            # Realizar segmentación con deep learning si está habilitado
+            if (self.dl_models is not None and 
+                hasattr(self.config, 'deep_learning') and 
+                self.config.deep_learning.enabled and
+                self.config.deep_learning.segmentation_model != ModelType.CNN):  # Solo si hay modelo de segmentación
+                
+                try:
+                    # Segmentar imagen 1
+                    segmented_img1 = self.dl_models.segment_image(img1)
+                    if segmented_img1 is not None:
+                        img1 = segmented_img1
+                        result.dl_segmentation_successful = True
+                        self.logger.info("Segmentación DL aplicada a imagen 1")
+                    
+                    # Segmentar imagen 2
+                    segmented_img2 = self.dl_models.segment_image(img2)
+                    if segmented_img2 is not None:
+                        img2 = segmented_img2
+                        self.logger.info("Segmentación DL aplicada a imagen 2")
+                        
+                except Exception as e:
+                    self.logger.warning(f"Error en segmentación DL: {e}")
+                    result.warnings.append(f"Error en segmentación DL: {str(e)}")
+            
+            # Preprocesamiento tradicional
             if self.preprocessor is None:
                 result.warnings.append("Preprocesador no disponible")
                 return img1, img2, result
@@ -509,6 +771,8 @@ class ScientificPipeline(LoggerMixin):
             
             # Registrar pasos aplicados
             result.preprocessing_steps = preprocessing_result1.steps_applied
+            if result.dl_segmentation_successful:
+                result.preprocessing_steps.insert(0, "Deep Learning Segmentation")
             result.preprocessing_successful = True
             
             self.logger.info(f"Preprocesamiento completado: {len(result.preprocessing_steps)} pasos")
@@ -546,10 +810,41 @@ class ScientificPipeline(LoggerMixin):
         
         return result
     
+    @monitor_performance(OperationType.FEATURE_EXTRACTION)
     def _perform_matching(self, img1: np.ndarray, img2: np.ndarray, 
                          result: PipelineResult) -> PipelineResult:
         """Realiza el matching de características con ponderación de calidad"""
         try:
+            # Realizar deep learning matching si está habilitado
+            if (self.dl_models is not None and 
+                hasattr(self.config, 'deep_learning') and 
+                self.config.deep_learning.enabled):
+                
+                start_time = time.time()
+                
+                # Extraer características usando deep learning
+                try:
+                    feature_vector1 = self.dl_models.extract_features(img1)
+                    feature_vector2 = self.dl_models.extract_features(img2)
+                    
+                    result.dl_features_extracted = True
+                    result.dl_feature_vector1 = feature_vector1
+                    result.dl_feature_vector2 = feature_vector2
+                    
+                    # Calcular similitud usando deep learning
+                    dl_similarity = self.dl_models.match_images(img1, img2)
+                    result.dl_similarity_score = dl_similarity
+                    result.dl_model_used = str(self.config.deep_learning.feature_extraction_model)
+                    
+                    self.logger.info(f"Deep learning matching completado: score={dl_similarity:.3f}")
+                    
+                except Exception as e:
+                    self.logger.warning(f"Error en deep learning matching: {e}")
+                    result.warnings.append(f"Error en deep learning matching: {str(e)}")
+                
+                result.dl_processing_time = time.time() - start_time
+            
+            # Realizar matching tradicional
             if self.matcher is None:
                 result.warnings.append("Matcher no disponible")
                 return result
@@ -574,9 +869,19 @@ class ScientificPipeline(LoggerMixin):
                 match_result.quality_weighted_similarity = match_result.similarity_score * match_result.combined_quality_score
             
             result.match_result = match_result
+            # El matcher ya puede haber aplicado la fusión DL+tradicional; usamos su score
             result.similarity_score = match_result.similarity_score
             result.quality_weighted_score = getattr(match_result, 'quality_weighted_similarity', match_result.similarity_score)
-            
+
+            # Propagar información DL proveniente del matcher si está disponible
+            try:
+                if hasattr(match_result, 'dl_similarity_score') and match_result.dl_similarity_score > 0:
+                    result.dl_similarity_score = match_result.dl_similarity_score
+                    if getattr(match_result, 'dl_model_used', None):
+                        result.dl_model_used = match_result.dl_model_used
+            except Exception:
+                pass
+
             self.logger.info(f"Matching completado: score={result.similarity_score:.3f}, weighted={result.quality_weighted_score:.3f}")
             
         except Exception as e:
@@ -587,6 +892,7 @@ class ScientificPipeline(LoggerMixin):
         
         return result
     
+    @monitor_performance(OperationType.IMAGE_ANALYSIS)
     def _perform_cmc_analysis(self, img1: np.ndarray, img2: np.ndarray, 
                              result: PipelineResult) -> PipelineResult:
         """Realiza análisis CMC para validación científica"""
@@ -702,7 +1008,7 @@ class ScientificPipeline(LoggerMixin):
         """Exporta un reporte detallado del análisis"""
         try:
             report_data = result.to_dict()
-            
+
             # Agregar información adicional del pipeline usando configuración centralizada
             pipeline_config_data = {
                 'level': self.config.level.value if hasattr(self.config, 'level') else 'standard'
@@ -723,9 +1029,43 @@ class ScientificPipeline(LoggerMixin):
             
             if hasattr(self.config, 'cmc_analysis') and hasattr(self.config.cmc_analysis, 'cmc_threshold'):
                 pipeline_config_data['cmc_threshold'] = self.config.cmc_analysis.cmc_threshold
-            
+
             report_data['pipeline_config'] = pipeline_config_data
-            
+
+            # Sección estandarizada NIST (umbrales y reportes)
+            min_quality = 0.5
+            if hasattr(self.config, 'quality_assessment') and hasattr(self.config.quality_assessment, 'min_quality_score'):
+                min_quality = self.config.quality_assessment.min_quality_score
+
+            def _serialize_quality(q):
+                try:
+                    if q is None:
+                        return None
+                    if hasattr(q, 'to_dict'):
+                        return q.to_dict()
+                    if isinstance(q, dict):
+                        return q
+                    return {k: v for k, v in getattr(q, '__dict__', {}).items()}
+                except Exception:
+                    return None
+
+            nist_section = {
+                'available': self.quality_metrics is not None,
+                'min_quality_score': float(min_quality),
+                'reports': {
+                    'image1': _serialize_quality(result.image1_quality),
+                    'image2': _serialize_quality(result.image2_quality)
+                },
+                'compliant': bool(result.quality_assessment_passed)
+            }
+            if self.quality_metrics is not None:
+                try:
+                    nist_section['thresholds'] = self.quality_metrics.get_thresholds()
+                except Exception:
+                    nist_section['thresholds'] = {}
+
+            report_data['nist_quality'] = nist_section
+
             # Guardar reporte
             with open(output_path, 'w', encoding='utf-8') as f:
                 json.dump(report_data, f, indent=2, ensure_ascii=False)
@@ -736,6 +1076,98 @@ class ScientificPipeline(LoggerMixin):
         except Exception as e:
             self.logger.error(f"Error exportando reporte: {e}")
             return False
+
+    # Implementación de la interfaz IPipelineProcessor
+    def initialize(self, config: Dict[str, Any]) -> bool:
+        """Inicializa el procesador con la configuración dada"""
+        try:
+            # Convertir dict a configuración si es necesario
+            if isinstance(config, dict):
+                # Crear configuración básica desde dict
+                pipeline_config = BasicPipelineConfiguration()
+                for key, value in config.items():
+                    if hasattr(pipeline_config, key):
+                        setattr(pipeline_config, key, value)
+                self.config = pipeline_config
+            else:
+                self.config = config
+            
+            # Reinicializar componentes con nueva configuración
+            self._initialize_components()
+            return True
+        except Exception as e:
+            self.logger.error(f"Error inicializando pipeline: {e}")
+            return False
+    
+    def process_images(self, image1_path: str, image2_path: str) -> ProcessingResult:
+        """Procesa un par de imágenes y retorna resultado simplificado"""
+        try:
+            # Usar el método principal de procesamiento
+            result = self.process_comparison(image1_path, image2_path)
+            
+            # Convertir PipelineResult a ProcessingResult
+            return ProcessingResult(
+                success=len(result.error_messages) == 0,
+                similarity_score=result.similarity_score,
+                quality_score=(result.image1_quality.quality_score + result.image2_quality.quality_score) / 2 
+                              if result.image1_quality and result.image2_quality else 0.0,
+                processing_time=result.processing_time,
+                metadata={
+                    'afte_conclusion': result.afte_conclusion.value,
+                    'confidence': result.confidence,
+                    'cmc_count': result.cmc_count,
+                    'quality_weighted_score': result.quality_weighted_score,
+                    'warnings': result.warnings
+                },
+                error_message='; '.join(result.error_messages) if result.error_messages else None
+            )
+        except Exception as e:
+            return ProcessingResult(
+                success=False,
+                similarity_score=0.0,
+                quality_score=0.0,
+                processing_time=0.0,
+                metadata={},
+                error_message=str(e)
+            )
+    
+    def get_capabilities(self) -> Dict[str, bool]:
+        """Retorna las capacidades del procesador"""
+        return {
+            'quality_assessment': QUALITY_METRICS_AVAILABLE and self.config.enable_quality_assessment,
+            'preprocessing': PREPROCESSOR_AVAILABLE and self.config.enable_preprocessing,
+            'roi_detection': ROI_DETECTOR_AVAILABLE and self.config.enable_roi_detection,
+            'feature_matching': MATCHER_AVAILABLE and self.config.enable_matching,
+            'cmc_analysis': CMC_AVAILABLE and self.config.enable_cmc_analysis,
+            'afte_conclusion': self.config.enable_afte_conclusion,
+            'deep_learning': DEEP_LEARNING_AVAILABLE,
+            'parallel_processing': self.config.parallel_processing,
+            'caching': self.config.cache_enabled,
+            'export_reports': True
+        }
+    
+    def cleanup(self):
+        """Limpia recursos del pipeline"""
+        try:
+            # Limpiar componentes si tienen métodos de limpieza
+            if hasattr(self, 'preprocessor') and hasattr(self.preprocessor, 'cleanup'):
+                self.preprocessor.cleanup()
+            
+            if hasattr(self, 'roi_detector') and hasattr(self.roi_detector, 'cleanup'):
+                self.roi_detector.cleanup()
+            
+            if hasattr(self, 'matcher') and hasattr(self.matcher, 'cleanup'):
+                self.matcher.cleanup()
+            
+            if hasattr(self, 'cmc_algorithm') and hasattr(self.cmc_algorithm, 'cleanup'):
+                self.cmc_algorithm.cleanup()
+            
+            if hasattr(self, 'dl_models') and hasattr(self.dl_models, 'cleanup'):
+                self.dl_models.cleanup()
+            
+            self.logger.info("Pipeline limpiado correctamente")
+        except Exception as e:
+            self.logger.error(f"Error limpiando pipeline: {e}")
 
 
 def create_pipeline_config(level: str = "standard") -> 'PipelineConfiguration':
@@ -872,7 +1304,20 @@ def create_pipeline_config(level: str = "standard") -> 'PipelineConfiguration':
             )
     else:
         # Fallback para cuando no está disponible la configuración centralizada
-        return None
+        # Usar las clases básicas directamente
+        level_enum = BasicPipelineLevel(level.lower()) if level.lower() in ["basic", "standard", "advanced", "forensic"] else BasicPipelineLevel.STANDARD
+        return BasicPipelineConfiguration(
+            level=level_enum,
+            enable_quality_assessment=True,
+            enable_preprocessing=True,
+            enable_roi_detection=True,
+            enable_matching=True,
+            enable_cmc_analysis=True,
+            enable_afte_conclusion=True,
+            parallel_processing=False,
+            cache_enabled=True,
+            export_intermediate_results=False
+        )
 
 
 if __name__ == "__main__":

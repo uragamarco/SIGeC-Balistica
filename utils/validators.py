@@ -15,6 +15,30 @@ from datetime import datetime
 
 from utils.logger import LoggerMixin
 
+# Integración con sistema de validación y manejo de errores
+try:
+    from core.data_validator import get_data_validator, ValidationResult
+    from core.error_manager import get_error_manager, with_error_handling, ErrorSeverity
+except ImportError:
+    # Fallback para casos donde el sistema de validación no esté disponible
+    class ValidationResult:
+        def __init__(self, is_valid=True, sanitized_data=None, errors=None):
+            self.is_valid = is_valid
+            self.sanitized_data = sanitized_data or {}
+            self.errors = errors or []
+    
+    def get_data_validator():
+        return None
+    
+    def with_error_handling(func):
+        return func
+    
+    class ErrorSeverity:
+        LOW = "low"
+        MEDIUM = "medium"
+        HIGH = "high"
+        CRITICAL = "critical"
+
 class SystemValidator(LoggerMixin):
     """Validador del sistema para entradas y archivos"""
     
@@ -38,9 +62,18 @@ class SystemValidator(LoggerMixin):
     def __init__(self):
         pass
     
+    @with_error_handling
     def validate_image_file(self, file_path: str) -> Tuple[bool, str]:
         """Valida si un archivo es una imagen válida"""
         try:
+            # Validar entrada usando el sistema de validación
+            validator = get_data_validator()
+            if validator:
+                validation_result = validator.validate(file_path, "file_path")
+                if not validation_result.is_valid:
+                    return False, f"Validación de entrada falló: {', '.join(validation_result.errors)}"
+                file_path = validation_result.sanitized_data.get("file_path", file_path)
+            
             path = Path(file_path)
             
             # Verificar que el archivo existe
@@ -73,19 +106,38 @@ class SystemValidator(LoggerMixin):
             return True, "Archivo válido"
             
         except Exception as e:
+            error_manager = get_error_manager()
+            if error_manager:
+                error_manager.log_error(f"Error validando archivo: {e}", ErrorSeverity.MEDIUM)
             return False, f"Error validando archivo: {e}"
     
+    @with_error_handling
     def validate_case_number(self, case_number: str) -> Tuple[bool, str]:
         """Valida número de caso"""
-        if not case_number:
-            return False, "Número de caso requerido"
-        
-        case_number = case_number.strip().upper()
-        
-        if not self.CASE_NUMBER_PATTERN.match(case_number):
-            return False, "Número de caso debe tener 3-20 caracteres alfanuméricos, guiones o guiones bajos"
-        
-        return True, "Número de caso válido"
+        try:
+            # Validar entrada usando el sistema de validación
+            validator = get_data_validator()
+            if validator:
+                validation_result = validator.validate(case_number, "case_number")
+                if not validation_result.is_valid:
+                    return False, f"Validación de entrada falló: {', '.join(validation_result.errors)}"
+                case_number = validation_result.sanitized_data.get("case_number", case_number)
+            
+            if not case_number:
+                return False, "Número de caso requerido"
+            
+            case_number = case_number.strip().upper()
+            
+            if not self.CASE_NUMBER_PATTERN.match(case_number):
+                return False, "Número de caso debe tener 3-20 caracteres alfanuméricos, guiones o guiones bajos"
+            
+            return True, "Número de caso válido"
+            
+        except Exception as e:
+            error_manager = get_error_manager()
+            if error_manager:
+                error_manager.log_error(f"Error validando número de caso: {e}", ErrorSeverity.LOW)
+            return False, f"Error validando número de caso: {e}"
     
     def validate_investigator_name(self, name: str) -> Tuple[bool, str]:
         """Valida nombre del investigador"""
@@ -139,25 +191,41 @@ class SystemValidator(LoggerMixin):
         
         return True, "Información de arma válida"
     
+    @with_error_handling
     def sanitize_filename(self, filename: str) -> str:
         """Sanitiza nombre de archivo para evitar problemas de seguridad"""
-        # Remover caracteres peligrosos
-        sanitized = re.sub(r'[<>:"/\\|?*]', '_', filename)
-        
-        # Remover espacios múltiples y caracteres de control
-        sanitized = re.sub(r'\s+', '_', sanitized)
-        sanitized = re.sub(r'[\x00-\x1f\x7f-\x9f]', '', sanitized)
-        
-        # Limitar longitud
-        if len(sanitized) > 100:
-            name, ext = os.path.splitext(sanitized)
-            sanitized = name[:100-len(ext)] + ext
-        
-        # Asegurar que no esté vacío
-        if not sanitized or sanitized == '.':
-            sanitized = f"file_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
-        
-        return sanitized
+        try:
+            # Validar entrada usando el sistema de validación
+            validator = get_data_validator()
+            if validator:
+                validation_result = validator.validate(filename, "filename")
+                if validation_result.is_valid:
+                    filename = validation_result.sanitized_data.get("filename", filename)
+            
+            # Remover caracteres peligrosos
+            sanitized = re.sub(r'[<>:"/\\|?*]', '_', filename)
+            
+            # Remover espacios múltiples y caracteres de control
+            sanitized = re.sub(r'\s+', '_', sanitized)
+            sanitized = re.sub(r'[\x00-\x1f\x7f-\x9f]', '', sanitized)
+            
+            # Limitar longitud
+            if len(sanitized) > 100:
+                name, ext = os.path.splitext(sanitized)
+                sanitized = name[:100-len(ext)] + ext
+            
+            # Asegurar que no esté vacío
+            if not sanitized or sanitized == '.':
+                sanitized = f"file_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
+            
+            return sanitized
+            
+        except Exception as e:
+            error_manager = get_error_manager()
+            if error_manager:
+                error_manager.log_error(f"Error sanitizando nombre de archivo: {e}", ErrorSeverity.LOW)
+            # Fallback seguro
+            return f"file_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
     
     def validate_directory_path(self, dir_path: str, create_if_missing: bool = False) -> Tuple[bool, str]:
         """Valida ruta de directorio"""

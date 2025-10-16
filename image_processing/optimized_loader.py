@@ -103,6 +103,24 @@ class QualityLevel(Enum):
 
 
 @dataclass
+class PersistentCacheConfig:
+    """Configuración para caché persistente"""
+    enabled: bool = True
+    cache_directory: str = "cache/images"
+    max_disk_size_gb: float = 5.0  # Tamaño máximo en disco
+    compression_algorithm: str = "lzma"  # lzma, gzip, none
+    compression_level: int = 6  # Nivel de compresión (1-9)
+    cache_metadata: bool = True
+    cache_thumbnails: bool = True
+    cache_full_images: bool = False  # Solo para imágenes pequeñas
+    max_file_size_mb: float = 50.0  # Máximo tamaño de archivo para cachear
+    cleanup_interval_hours: int = 24  # Intervalo de limpieza automática
+    max_age_days: int = 30  # Edad máxima de archivos de caché
+    enable_integrity_check: bool = True  # Verificación de integridad
+    use_memory_cache: bool = True  # Usar caché en memoria además del persistente
+
+
+@dataclass
 class LoadingConfig:
     """Configuración para el cargador optimizado de imágenes"""
     
@@ -899,22 +917,6 @@ class OptimizedImageLoader(LoggerMixin):
         self.stats['persistent_cache_hits'] = 0
         self.stats['persistent_cache_misses'] = 0
 
-
-class PersistentCacheConfig:
-    """Configuración para caché persistente"""
-    enabled: bool = True
-    cache_directory: str = "cache/images"
-    max_disk_size_gb: float = 5.0  # Tamaño máximo en disco
-    compression_algorithm: str = "lzma"  # lzma, gzip, none
-    compression_level: int = 6  # Nivel de compresión (1-9)
-    cache_metadata: bool = True
-    cache_thumbnails: bool = True
-    cache_full_images: bool = False  # Solo para imágenes pequeñas
-    max_file_size_mb: float = 50.0  # Máximo tamaño de archivo para cachear
-    cleanup_interval_hours: int = 24  # Intervalo de limpieza automática
-    max_age_days: int = 30  # Edad máxima de archivos de caché
-    enable_integrity_check: bool = True  # Verificación de integridad
-    use_memory_cache: bool = True  # Usar caché en memoria además del persistente
 
 class CacheEntry:
     """Entrada de caché con metadatos"""

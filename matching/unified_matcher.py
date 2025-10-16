@@ -31,10 +31,21 @@ from enum import Enum
 import json
 from pathlib import Path
 import os
+import tempfile
 
 from utils.logger import LoggerMixin
 from matching.cmc_algorithm import CMCAlgorithm, CMCParameters, CMCMatchResult
 from image_processing.ballistic_features import BallisticFeatureExtractor
+
+# Import abstract interfaces
+try:
+    from interfaces.matcher_interfaces import IFeatureMatcher
+    INTERFACES_AVAILABLE = True
+except ImportError:
+    INTERFACES_AVAILABLE = False
+    # Create a dummy interface for fallback
+    class IFeatureMatcher:
+        pass
 
 # Importar módulo unificado de funciones de similitud
 try:
@@ -55,6 +66,14 @@ except ImportError:
             self.enabled = False
         def is_gpu_enabled(self):
             return False
+
+# Deep learning adapter (opcional)
+try:
+    from deep_learning import DeepLearningPipelineAdapter
+    DL_ADAPTER_AVAILABLE = True
+except ImportError:
+    DL_ADAPTER_AVAILABLE = False
+    DeepLearningPipelineAdapter = None
 
 class AlgorithmType(Enum):
     """Tipos de algoritmos de detección de características"""
@@ -115,6 +134,13 @@ class MatchResult:
     combined_quality_score: float = 0.0
     quality_weighted_similarity: float = 0.0
 
+    # Deep Learning y fusión (opcionales)
+    dl_similarity_score: float = 0.0
+    dl_model_used: str = ""
+    fusion_strategy: str = ""
+    fusion_weight: float = 0.0
+    fused_similarity_score: float = 0.0
+
 @dataclass
 class KeyPoint:
     """Punto clave para visualización"""
@@ -160,7 +186,14 @@ class MatchingConfig:
     gpu_device_id: int = 0
     gpu_fallback_to_cpu: bool = True
 
-class UnifiedMatcher(LoggerMixin):
+    # Integración Deep Learning y fusión
+    enable_deep_learning: bool = False
+    enable_hybrid_fusion: bool = False
+    fusion_strategy: str = "weighted"  # 'weighted', 'max', 'average'
+    dl_weight: float = 0.5
+    deep_learning_config: Dict[str, Any] = field(default_factory=dict)
+
+class UnifiedMatcher(LoggerMixin, IFeatureMatcher):
     """Matcher unificado para imágenes balísticas"""
     
     def __init__(self, config: Optional[Union[Dict, MatchingConfig]] = None):
@@ -284,6 +317,22 @@ class UnifiedMatcher(LoggerMixin):
         }
         
         self.logger.info(f"Matcher unificado inicializado (nivel: {self.config.level.value}, algoritmo: {self.config.algorithm.value})")
+
+        # Inicializar adaptador de Deep Learning si está habilitado
+        self.dl_adapter = None
+        if getattr(self.config, 'enable_deep_learning', False) and DL_ADAPTER_AVAILABLE:
+            try:
+                self.dl_adapter = DeepLearningPipelineAdapter()
+                # Inicializar modelo con configuración proporcionada
+                init_ok = self.dl_adapter.initialize(self.config.deep_learning_config)
+                if init_ok:
+                    self.logger.info("Adaptador de Deep Learning inicializado correctamente")
+                else:
+                    self.logger.warning("No se pudo inicializar el adaptador de Deep Learning")
+                    self.dl_adapter = None
+            except Exception as e:
+                self.logger.warning(f"Fallo inicializando adaptador de Deep Learning: {e}")
+                self.dl_adapter = None
     
     def _initialize_detectors(self) -> Dict[AlgorithmType, Any]:
         """
@@ -544,7 +593,7 @@ class UnifiedMatcher(LoggerMixin):
             self.logger.error(f"Error en preprocesamiento: {e}")
             return image
     
-    def match_features(self, features1: Dict[str, Any], features2: Dict[str, Any],
+    def match_features_detailed(self, features1: Dict[str, Any], features2: Dict[str, Any],
                       algorithm: Optional[AlgorithmType] = None) -> MatchResult:
         """
         Realiza matching entre dos conjuntos de características
@@ -670,7 +719,7 @@ class UnifiedMatcher(LoggerMixin):
                 "max": float(np.max(distances)) if distances else 0.0
             }
             
-            # Calcular quality scores de las imágenes usando el extractor balístico
+            # Calcular quality scores de las imágenes (con extractor o fallback)
             image1_quality = 0.0
             image2_quality = 0.0
             
@@ -680,9 +729,9 @@ class UnifiedMatcher(LoggerMixin):
                     img1 = features1["original_image"]
                     img2 = features2["original_image"]
                     
-                    # Calcular quality scores usando el extractor balístico
-                    image1_quality = self.ballistic_extractor._calculate_quality_score(img1, [])
-                    image2_quality = self.ballistic_extractor._calculate_quality_score(img2, [])
+                    # Calcular quality scores con método robusto
+                    image1_quality = self._calculate_image_quality_score(img1, [])
+                    image2_quality = self._calculate_image_quality_score(img2, [])
                     
                     self.logger.debug(f"Quality scores calculados: img1={image1_quality:.3f}, img2={image2_quality:.3f}")
                 else:
@@ -802,6 +851,36 @@ class UnifiedMatcher(LoggerMixin):
             confidence = self._calculate_cmc_confidence(cmc_result)
             
             # Preparar datos del match específicos para CMC
+            num_x = int(self.cmc_algorithm.parameters.num_cells_x)
+            num_y = int(self.cmc_algorithm.parameters.num_cells_y)
+
+            # Construir mapas de calor a partir de resultados por celda
+            correlation_map = np.zeros((num_y, num_x), dtype=float)
+            cmc_map = np.zeros((num_y, num_x), dtype=float)
+            cell_results_serialized = []
+            try:
+                for r in getattr(cmc_result, 'cell_results', []):
+                    # r.cell_index = (row, col)
+                    row = int(r.cell_index[0])
+                    col = int(r.cell_index[1])
+                    if 0 <= row < num_y and 0 <= col < num_x:
+                        correlation_map[row, col] = float(getattr(r, 'ccf_max', 0.0) or 0.0)
+                        cmc_map[row, col] = 1.0 if bool(getattr(r, 'is_cmc', False)) else 0.0
+                    # Serialización amigable para GUI
+                    cell_results_serialized.append({
+                        'row': row,
+                        'col': col,
+                        'ccf_max': float(getattr(r, 'ccf_max', 0.0) or 0.0),
+                        'theta': float(getattr(r, 'theta', 0.0) or 0.0),
+                        'x_offset': float(getattr(r, 'x_offset', 0.0) or 0.0),
+                        'y_offset': float(getattr(r, 'y_offset', 0.0) or 0.0),
+                        'is_cmc': bool(getattr(r, 'is_cmc', False)),
+                        'confidence': float(getattr(r, 'confidence', 0.0) or 0.0),
+                    })
+            except Exception:
+                # En caso de estructura inesperada, mantener mapas vacíos
+                pass
+
             match_data = {
                 "cmc_score": cmc_result.cmc_score,
                 "cmc_count": cmc_result.cmc_count,
@@ -809,9 +888,16 @@ class UnifiedMatcher(LoggerMixin):
                 "valid_cells": cmc_result.valid_cells,
                 "convergence_score": cmc_result.convergence_score,
                 "is_match": cmc_result.is_match,
-                "num_cells_x": self.cmc_algorithm.parameters.num_cells_x,
-                "num_cells_y": self.cmc_algorithm.parameters.num_cells_y,
-                "ccf_threshold": self.cmc_algorithm.parameters.ccf_threshold
+                "num_cells_x": num_x,
+                "num_cells_y": num_y,
+                "ccf_threshold": self.cmc_algorithm.parameters.ccf_threshold,
+                # Datos detallados para visualización
+                "cell_results": cell_results_serialized,
+                "maps": {
+                    "ccf_max": correlation_map.tolist(),
+                    "cmc": cmc_map.tolist(),
+                    "shape": [num_y, num_x]
+                }
             }
             
             processing_time = time.time() - start_time
@@ -1211,6 +1297,66 @@ class UnifiedMatcher(LoggerMixin):
         except Exception as e:
             self.logger.error(f"Error calculando calidad de matches: {e}")
             return 0.0
+
+    def _calculate_image_quality_score(self, image: np.ndarray, keypoints: List = None) -> float:
+        """
+        Calcula un score de calidad de la imagen con fallback.
+
+        Intenta usar el extractor balístico si está disponible; de lo contrario,
+        utiliza un cálculo básico de calidad basado en contraste, SNR estimado y
+        uniformidad de iluminación.
+
+        Args:
+            image: Imagen (grises o color) para evaluar.
+            keypoints: Lista de keypoints (opcional), no usada en el fallback.
+
+        Returns:
+            Score de calidad en el rango [0, 1].
+        """
+        try:
+            if hasattr(self, 'ballistic_extractor') and self.ballistic_extractor is not None:
+                return float(self.ballistic_extractor._calculate_quality_score(image, keypoints or []))
+        except Exception as e:
+            self.logger.warning(f"Extractor balístico falló al calcular calidad: {e}. Usando fallback básico.")
+
+        try:
+            if image is None:
+                return 0.0
+
+            # Asegurar imagen en escala de grises
+            if len(image.shape) == 3:
+                gray = cv2.cvtColor(image, cv2.COLOR_RGB2GRAY)
+            else:
+                gray = image
+
+            gray = gray.astype(np.float32)
+            mean_intensity = float(np.mean(gray))
+            std_intensity = float(np.std(gray))
+
+            # Contraste normalizado
+            contrast_norm = std_intensity / (mean_intensity + 1e-6)
+            contrast_norm = float(np.clip(contrast_norm, 0.0, 1.0))
+
+            # SNR estimado: mean/std, normalizado aprox en [0,1]
+            snr_est = mean_intensity / (std_intensity + 1e-6)
+            snr_est_norm = float(np.clip(snr_est / 50.0, 0.0, 1.0))
+
+            # Uniformidad: menor variación tras suavizado indica mejor uniformidad
+            blurred = cv2.GaussianBlur(gray, (7, 7), 0)
+            std_blurred = float(np.std(blurred))
+            uniformity = 1.0 - (std_blurred / (std_intensity + 1e-6))
+            uniformity = float(np.clip(uniformity, 0.0, 1.0))
+
+            # Ponderación
+            w_contrast, w_snr, w_uniformity = 0.4, 0.4, 0.2
+            quality = (w_contrast * contrast_norm +
+                       w_snr * snr_est_norm +
+                       w_uniformity * uniformity)
+
+            return float(np.clip(quality, 0.0, 1.0))
+        except Exception as e:
+            self.logger.warning(f"Fallback de calidad de imagen falló: {e}")
+            return 0.0
     
     def compare_images(self, img1: np.ndarray, img2: np.ndarray,
                       algorithm: Optional[AlgorithmType] = None) -> MatchResult:
@@ -1226,12 +1372,84 @@ class UnifiedMatcher(LoggerMixin):
             Resultado de la comparación
         """
         try:
-            # Extraer características
-            features1 = self.extract_features(img1, algorithm)
-            features2 = self.extract_features(img2, algorithm)
+            # Extraer características (método detallado)
+            features1 = self.extract_features_detailed(img1, algorithm)
+            features2 = self.extract_features_detailed(img2, algorithm)
             
-            # Realizar matching
-            result = self.match_features(features1, features2, algorithm)
+            # Realizar matching tradicional (método detallado)
+            result = self.match_features_detailed(features1, features2, algorithm)
+
+            # Integración Deep Learning y fusión, si está disponible
+            try:
+                if self.dl_adapter is not None and getattr(self.config, 'enable_deep_learning', False):
+                    # Guardar imágenes temporales para el adaptador DL (requiere rutas)
+                    tmp1 = tempfile.NamedTemporaryFile(suffix=".png", delete=False)
+                    tmp2 = tempfile.NamedTemporaryFile(suffix=".png", delete=False)
+                    try:
+                        cv2.imwrite(tmp1.name, img1)
+                        cv2.imwrite(tmp2.name, img2)
+                        dl_result = self.dl_adapter.process_images(tmp1.name, tmp2.name)
+                        # Extraer score de similitud DL
+                        dl_score = getattr(dl_result, 'similarity_score', 0.0)
+                        result.dl_similarity_score = float(dl_score) if dl_score is not None else 0.0
+                        result.dl_model_used = getattr(self.dl_adapter, 'model_type', '') or ''
+
+                        # Fusión si está habilitada
+                        if getattr(self.config, 'enable_hybrid_fusion', False):
+                            strategy = getattr(self.config, 'fusion_strategy', 'weighted')
+                            weight = float(getattr(self.config, 'dl_weight', 0.5))
+                            base_score = float(result.similarity_score)
+                            dl_s = float(result.dl_similarity_score)
+                            if strategy == 'weighted':
+                                fused = (1.0 - weight) * base_score + weight * dl_s
+                            elif strategy == 'max':
+                                fused = max(base_score, dl_s)
+                            elif strategy == 'average':
+                                fused = (base_score + dl_s) / 2.0
+                            else:
+                                fused = (base_score + dl_s) / 2.0
+
+                            # Registrar detalles de fusión
+                            result.fusion_strategy = strategy
+                            result.fusion_weight = weight
+                            result.fused_similarity_score = fused
+
+                            # Mantener score tradicional en metadata y actualizar score principal al combinado
+                            result.match_data.setdefault('fusion', {})
+                            result.match_data['fusion'].update({
+                                'traditional_similarity': base_score,
+                                'dl_similarity': dl_s,
+                                'strategy': strategy,
+                                'weight': weight
+                            })
+                            result.similarity_score = fused
+
+                            # Mantener la ponderación por calidad si está disponible
+                            combined_quality = float(getattr(result, 'combined_quality_score', 0.0))
+                            if combined_quality > 0.0:
+                                weighted_fused = fused * combined_quality
+                                result.quality_weighted_similarity = weighted_fused
+                                try:
+                                    result.match_data['fusion']['quality_weighted_similarity'] = weighted_fused
+                                    result.match_data['fusion']['quality_factor'] = combined_quality
+                                except Exception:
+                                    pass
+
+                        # Añadir info DL a match_data
+                        result.match_data.setdefault('deep_learning', {})
+                        result.match_data['deep_learning'].update({
+                            'similarity_score': result.dl_similarity_score,
+                            'model_used': result.dl_model_used
+                        })
+                    finally:
+                        try:
+                            tmp1.close(); tmp2.close()
+                            os.unlink(tmp1.name)
+                            os.unlink(tmp2.name)
+                        except Exception:
+                            pass
+            except Exception as e:
+                self.logger.warning(f"Integración de Deep Learning falló: {e}")
             
             return result
             
@@ -1550,6 +1768,7 @@ class UnifiedMatcher(LoggerMixin):
                 "match_result": {
                     "algorithm": match_result.algorithm,
                     "similarity_score": match_result.similarity_score,
+                    "fused_similarity_score": match_result.fused_similarity_score,
                     "confidence": match_result.confidence,
                     "total_keypoints1": match_result.total_keypoints1,
                     "total_keypoints2": match_result.total_keypoints2,
@@ -1558,7 +1777,11 @@ class UnifiedMatcher(LoggerMixin):
                     "processing_time": match_result.processing_time,
                     "geometric_consistency": match_result.geometric_consistency,
                     "match_quality": match_result.match_quality,
-                    "keypoint_density": match_result.keypoint_density
+                    "keypoint_density": match_result.keypoint_density,
+                    "dl_similarity_score": match_result.dl_similarity_score,
+                    "dl_model_used": match_result.dl_model_used,
+                    "fusion_strategy": match_result.fusion_strategy,
+                    "fusion_weight": match_result.fusion_weight
                 },
                 "match_data": match_result.match_data,
                 "descriptor_distance_stats": match_result.descriptor_distance_stats,
@@ -1605,7 +1828,12 @@ class UnifiedMatcher(LoggerMixin):
                 "processing_times": [],
                 "keypoint_counts": [],
                 "match_counts": [],
-                "quality_scores": []
+                "quality_scores": [],
+                # Métricas DL y fusión (opcionales)
+                "dl_same": [],
+                "dl_different": [],
+                "fused_same": [],
+                "fused_different": []
             }
             
             # Procesar cada par de imágenes
@@ -1613,12 +1841,26 @@ class UnifiedMatcher(LoggerMixin):
                 # Comparar imágenes
                 result = self.compare_images(img1, img2, alg)
                 
-                # Guardar resultados
+                # Recuperar puntajes base, DL y fusionados
+                base_score = result.match_data.get("fusion", {}).get("traditional_similarity", result.similarity_score)
+                dl_score = getattr(result, "dl_similarity_score", 0.0)
+                fused_score = result.fused_similarity_score if result.fused_similarity_score else result.similarity_score
+
+                # Guardar resultados (tradicional)
                 if same_weapon:
-                    alg_results["same_weapon"].append(result.similarity_score)
+                    alg_results["same_weapon"].append(base_score)
                 else:
-                    alg_results["different_weapon"].append(result.similarity_score)
-                    
+                    alg_results["different_weapon"].append(base_score)
+
+                # Guardar DL si está disponible
+                if getattr(self.config, 'enable_deep_learning', False) and self.dl_adapter is not None:
+                    if same_weapon:
+                        alg_results["dl_same"].append(dl_score)
+                        alg_results["fused_same"].append(fused_score)
+                    else:
+                        alg_results["dl_different"].append(dl_score)
+                        alg_results["fused_different"].append(fused_score)
+
                 alg_results["processing_times"].append(result.processing_time)
                 alg_results["keypoint_counts"].append((result.total_keypoints1 + result.total_keypoints2) / 2)
                 alg_results["match_counts"].append(result.good_matches)
@@ -1632,20 +1874,65 @@ class UnifiedMatcher(LoggerMixin):
                 "std_similarity_different": np.std(alg_results["different_weapon"]) if alg_results["different_weapon"] else 0,
                 "discrimination_score": (np.mean(alg_results["same_weapon"]) - np.mean(alg_results["different_weapon"])) 
                                       if alg_results["same_weapon"] and alg_results["different_weapon"] else 0,
-                "mean_processing_time": np.mean(alg_results["processing_times"]),
-                "mean_keypoints": np.mean(alg_results["keypoint_counts"]),
-                "mean_matches": np.mean(alg_results["match_counts"]),
+                # Métricas DL
+                "dl_mean_similarity_same": np.mean(alg_results["dl_same"]) if alg_results["dl_same"] else 0,
+                "dl_mean_similarity_different": np.mean(alg_results["dl_different"]) if alg_results["dl_different"] else 0,
+                "dl_discrimination_score": (np.mean(alg_results["dl_same"]) - np.mean(alg_results["dl_different"]))
+                                          if alg_results["dl_same"] and alg_results["dl_different"] else 0,
+                # Métricas fusionadas
+                "fused_mean_similarity_same": np.mean(alg_results["fused_same"]) if alg_results["fused_same"] else 0,
+                "fused_mean_similarity_different": np.mean(alg_results["fused_different"]) if alg_results["fused_different"] else 0,
+                "fused_discrimination_score": (np.mean(alg_results["fused_same"]) - np.mean(alg_results["fused_different"]))
+                                             if alg_results["fused_same"] and alg_results["fused_different"] else 0,
+                # Otras métricas
+                "mean_processing_time": np.mean(alg_results["processing_times"]) if alg_results["processing_times"] else 0,
+                "mean_keypoints": np.mean(alg_results["keypoint_counts"]) if alg_results["keypoint_counts"] else 0,
+                "mean_matches": np.mean(alg_results["match_counts"]) if alg_results["match_counts"] else 0,
                 "mean_quality": np.mean(alg_results["quality_scores"]) if alg_results["quality_scores"] else 0
             }
         
         # Calcular resumen
+        # Construir resumen con guardas para colecciones vacías
+        best_similarity = None
+        best_discrimination = None
+        fastest = None
+        best_dl_similarity = None
+        best_fused_similarity = None
+
+        if results:
+            try:
+                best_similarity = max(results.items(), key=lambda x: x[1]["mean_similarity_same"])[0]
+            except Exception:
+                best_similarity = None
+            try:
+                best_discrimination = max(results.items(), key=lambda x: x[1]["discrimination_score"])[0]
+            except Exception:
+                best_discrimination = None
+            try:
+                fastest = min(results.items(), key=lambda x: x[1]["mean_processing_time"])[0]
+            except Exception:
+                fastest = None
+
+            dl_candidates = [item for item in results.items() if item[1].get("dl_mean_similarity_same", 0) > 0]
+            if dl_candidates:
+                try:
+                    best_dl_similarity = max(dl_candidates, key=lambda x: x[1]["dl_mean_similarity_same"])[0]
+                except Exception:
+                    best_dl_similarity = None
+
+            fused_candidates = [item for item in results.items() if item[1].get("fused_mean_similarity_same", 0) > 0]
+            if fused_candidates:
+                try:
+                    best_fused_similarity = max(fused_candidates, key=lambda x: x[1]["fused_mean_similarity_same"])[0]
+                except Exception:
+                    best_fused_similarity = None
+
         summary = {
-            "best_similarity": max(results.items(), key=lambda x: x[1]["mean_similarity_same"])[0] 
-                             if results else None,
-            "best_discrimination": max(results.items(), key=lambda x: x[1]["discrimination_score"])[0] 
-                                if results else None,
-            "fastest": min(results.items(), key=lambda x: x[1]["mean_processing_time"])[0] 
-                     if results else None
+            "best_similarity": best_similarity,
+            "best_discrimination": best_discrimination,
+            "best_dl_similarity": best_dl_similarity,
+            "best_fused_similarity": best_fused_similarity,
+            "fastest": fastest
         }
         
         return {
@@ -1655,6 +1942,198 @@ class UnifiedMatcher(LoggerMixin):
             "same_weapon_pairs": sum(1 for _, _, same in image_pairs if same),
             "different_weapon_pairs": sum(1 for _, _, same in image_pairs if not same)
         }
+    
+    # Interface-compliant methods for IFeatureMatcher
+    def extract_features(self, image: np.ndarray) -> np.ndarray:
+        """
+        Interface-compliant method for feature extraction
+        Returns descriptors as numpy array for interface compatibility
+        """
+        features_dict = self.extract_features_detailed(image)
+        descriptors = features_dict.get("descriptors")
+        if descriptors is not None:
+            return descriptors
+        else:
+            # Return empty array if no descriptors
+            return np.array([])
+    
+    def match_features(self, features1: np.ndarray, features2: np.ndarray) -> Dict[str, float]:
+        """
+        Interface-compliant method for feature matching
+        Takes descriptors as numpy arrays and returns simplified match info
+        """
+        # Create feature dictionaries from descriptors
+        features_dict1 = {"descriptors": features1, "keypoints": []}
+        features_dict2 = {"descriptors": features2, "keypoints": []}
+        
+        # Use existing detailed matching method
+        match_result = self.match_features_detailed(features_dict1, features_dict2)
+        
+        # Return simplified match information
+        return {
+            "similarity_score": match_result.similarity_score,
+            "confidence": match_result.confidence,
+            "total_matches": float(match_result.total_matches),
+            "good_matches": float(match_result.good_matches)
+        }
+    
+    def calculate_similarity(self, matches: Dict[str, float]) -> float:
+        """
+        Interface-compliant method for similarity calculation
+        """
+        return matches.get("similarity_score", 0.0)
+    
+    def get_algorithm_info(self) -> Dict[str, str]:
+        """
+        Interface-compliant method for algorithm information
+        """
+        return {
+            "name": "UnifiedMatcher",
+            "version": "1.0",
+            "algorithm": self.config.algorithm.value,
+            "description": "Unified ballistic feature matcher supporting multiple algorithms",
+            "supported_algorithms": ", ".join([alg.value for alg in AlgorithmType])
+        }
+
+    # Rename existing method to avoid conflicts with interface
+    def extract_features_detailed(self, image: np.ndarray, 
+                        algorithm: Optional[Union[AlgorithmType, str]] = None) -> Dict[str, Any]:
+        """
+        Original detailed feature extraction method (renamed for clarity)
+        
+        Args:
+            image: Imagen a procesar
+            algorithm: Algoritmo a utilizar (opcional)
+            
+        Returns:
+            Diccionario con características extraídas
+        """
+        try:
+            # Usar algoritmo especificado o el de la configuración
+            if isinstance(algorithm, str):
+                # Convertir string a AlgorithmType
+                try:
+                    alg = AlgorithmType(algorithm)
+                except ValueError:
+                    self.logger.warning(f"Algoritmo '{algorithm}' no válido. Usando ORB.")
+                    alg = AlgorithmType.ORB
+            else:
+                alg = algorithm or self.config.algorithm
+            
+            # Caso especial para CMC
+            if alg == AlgorithmType.CMC:
+                # Para CMC, solo preprocesamos la imagen
+                if len(image.shape) == 3:
+                    gray = cv2.cvtColor(image, cv2.COLOR_RGB2GRAY)
+                else:
+                    gray = image.copy()
+                
+                processed = self._preprocess_image(gray)
+                
+                return {
+                    "algorithm": alg.value,
+                    "image": processed,
+                    "keypoints": [],
+                    "descriptors": None,
+                    "num_keypoints": 0,
+                    "keypoint_density": 0.0,
+                    "image_shape": processed.shape,
+                    "original_image": image  # Incluir imagen original para cálculo de quality score
+                }
+            
+            # Verificar que el algoritmo está disponible
+            if alg not in self.feature_detectors:
+                self.logger.warning(f"Algoritmo {alg.value} no disponible. Usando ORB.")
+                alg = AlgorithmType.ORB
+            
+            # Convertir a escala de grises si es necesario
+            if len(image.shape) == 3:
+                gray = cv2.cvtColor(image, cv2.COLOR_RGB2GRAY)
+            else:
+                gray = image.copy()
+            
+            # Preprocesar imagen
+            processed = self._preprocess_image(gray)
+            
+            # Extraer características usando GPU si está disponible
+            keypoints = None
+            descriptors = None
+            
+            if self.gpu_accelerator and self.gpu_accelerator.is_gpu_enabled():
+                try:
+                    if alg == AlgorithmType.ORB:
+                        keypoints, descriptors = self.gpu_accelerator.extract_orb_features(
+                            processed, self.config.max_features)
+                    elif alg == AlgorithmType.SIFT:
+                        keypoints, descriptors = self.gpu_accelerator.extract_sift_features(
+                            processed, self.config.max_features)
+                    elif alg == AlgorithmType.AKAZE:
+                        keypoints, descriptors = self.gpu_accelerator.extract_akaze_features(processed)
+                    elif alg == AlgorithmType.BRISK:
+                        keypoints, descriptors = self.gpu_accelerator.extract_brisk_features(processed)
+                    elif alg == AlgorithmType.KAZE:
+                        keypoints, descriptors = self.gpu_accelerator.extract_kaze_features(processed)
+                    
+                    if keypoints is not None and descriptors is not None:
+                        self.logger.debug(f"Características extraídas con GPU usando {alg.value}")
+                    else:
+                        raise Exception("GPU feature extraction returned None")
+                        
+                except Exception as e:
+                    self.logger.warning(f"Error en extracción GPU con {alg.value}: {e}")
+                    keypoints = None
+                    descriptors = None
+            
+            # Fallback a CPU si GPU falló o no está disponible
+            if keypoints is None or descriptors is None:
+                keypoints, descriptors = self.feature_detectors[alg].detectAndCompute(processed, None)
+            
+            # Verificar resultados
+            if keypoints is None or len(keypoints) == 0:
+                self.logger.warning(f"No se detectaron keypoints con {alg.value}")
+                return {
+                    "algorithm": alg.value,
+                    "keypoints": [],
+                    "descriptors": None,
+                    "num_keypoints": 0
+                }
+            
+            if descriptors is None:
+                self.logger.warning(f"No se pudieron extraer descriptores con {alg.value}")
+                return {
+                    "algorithm": alg.value,
+                    "keypoints": keypoints,
+                    "descriptors": None,
+                    "num_keypoints": len(keypoints)
+                }
+            
+            # Calcular densidad de keypoints
+            image_area = processed.shape[0] * processed.shape[1]
+            keypoint_density = len(keypoints) / image_area if image_area > 0 else 0
+            
+            # Calcular quality score de la imagen
+            quality_score = self._calculate_image_quality_score(processed, keypoints)
+            
+            return {
+                "algorithm": alg.value,
+                "keypoints": keypoints,
+                "descriptors": descriptors,
+                "num_keypoints": len(keypoints),
+                "keypoint_density": keypoint_density,
+                "image_shape": processed.shape,
+                "quality_score": quality_score,
+                "original_image": image  # Incluir imagen original para cálculo de quality score
+            }
+            
+        except Exception as e:
+            self.logger.error(f"Error en extracción de características: {e}")
+            return {
+                "algorithm": algorithm.value if isinstance(algorithm, AlgorithmType) else str(algorithm),
+                "keypoints": [],
+                "descriptors": None,
+                "num_keypoints": 0,
+                "error": str(e)
+            }
 
 # Función de ayuda para crear configuración desde string
 def create_matching_config(level: str = "standard") -> MatchingConfig:

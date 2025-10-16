@@ -375,6 +375,126 @@ class DynamicResultsPanel(QWidget):
         
         layout.addWidget(main_splitter)
         
+    def _confidence_label(self, confidence: float) -> str:
+        try:
+            if confidence >= 0.8:
+                return "Alta"
+            elif confidence >= 0.6:
+                return "Media"
+            else:
+                return "Baja"
+        except Exception:
+            return "N/A"
+        
+    def display_results(self, results):
+        """Muestra resultados en el panel a partir de dict o lista.
+        Soporta estructuras del pipeline y listas de coincidencias.
+        """
+        # Limpiar resultados anteriores
+        self.clear_results()
+        
+        # Normalizar origen de resultados
+        data = results.get('analysis_results') if isinstance(results, dict) else results
+        if data is None:
+            data = results
+        
+        # Manejo de lista de resultados [{id, similarity, confidence, match_type, ...}]
+        if isinstance(data, list):
+            similarities = []
+            confidences = []
+            for item in data:
+                fid = item.get('id', 'Resultado')
+                sim = float(item.get('similarity', 0.0))
+                conf = float(item.get('confidence', 0.0))
+                match_type = item.get('match_type', 'Desconocido')
+                details = f"Tipo: {match_type} | Confianza: {conf:.2f}"
+                self.add_result_card(fid, sim, self._confidence_label(conf), details)
+                similarities.append(sim)
+                confidences.append(conf)
+            
+            # Conclusión AFTE agregada si hay campo explícito en primer elemento
+            afte_conclusion = None
+            afte_conf = None
+            if len(data) > 0:
+                afte_conclusion = data[0].get('afte_conclusion')
+                afte_conf = data[0].get('confidence')
+            if afte_conclusion is not None and afte_conf is not None:
+                self.update_afte_conclusion(str(afte_conclusion), float(afte_conf))
+            
+            # Estadísticas básicas
+            avg_sim = np.mean(similarities) if similarities else 0.0
+            stats = {
+                "Características Analizadas": len(data),
+                "Coincidencias Encontradas": sum(1 for s in similarities if s >= 0.6),
+                "Score Promedio": f"{avg_sim:.3f}",
+            }
+            # Añadir tiempo si viene del contenedor superior
+            if isinstance(results, dict) and 'analysis_time_ms' in results:
+                ms = float(results.get('analysis_time_ms', 0.0))
+                stats["Tiempo de Análisis"] = f"{ms/1000:.1f}s"
+            self.update_statistics(stats)
+            return
+        
+        # Manejo de diccionario de resultados de pipeline
+        if isinstance(data, dict):
+            features = data.get('features')
+            scores = data.get('scores')
+            # Si existen features/scores, mapear a tarjetas
+            if isinstance(features, (list, tuple)) and isinstance(scores, (list, tuple)):
+                similarities = []
+                for name, score in zip(features, scores):
+                    s = float(score)
+                    similarities.append(s)
+                    self.add_result_card(str(name), s, self._confidence_label(s), "")
+                # Conclusión AFTE
+                conclusion = data.get('afte_conclusion', 'Inconclusivo')
+                confidence = float(data.get('confidence', np.mean(similarities) if similarities else 0.0))
+                self.update_afte_conclusion(str(conclusion), confidence)
+                # Estadísticas
+                avg_sim = np.mean(similarities) if similarities else 0.0
+                stats = {
+                    "Características Analizadas": len(similarities),
+                    "Coincidencias Encontradas": sum(1 for s in similarities if s >= 0.6),
+                    "Score Promedio": f"{avg_sim:.3f}",
+                }
+                if isinstance(results, dict) and 'analysis_time_ms' in results:
+                    ms = float(results.get('analysis_time_ms', 0.0))
+                    stats["Tiempo de Análisis"] = f"{ms/1000:.1f}s"
+                algo = data.get('algorithm') or (results.get('algorithm') if isinstance(results, dict) else None)
+                if algo:
+                    stats["Algoritmo Utilizado"] = str(algo)
+                self.update_statistics(stats)
+                return
+            
+            # Estructura tipo comparación directa
+            if 'similarity_score' in data or 'afte_conclusion' in data:
+                sim = float(data.get('similarity_score', 0.0))
+                conf = float(data.get('confidence', 0.0))
+                match_type = data.get('match_type', 'Desconocido')
+                details = f"Tipo: {match_type} | Confianza: {conf:.2f}"
+                self.add_result_card("Comparación Directa", sim, self._confidence_label(conf), details)
+                if 'afte_conclusion' in data:
+                    self.update_afte_conclusion(str(data.get('afte_conclusion', 'Inconclusivo')), conf if conf else sim)
+                stats = {
+                    "Características Analizadas": 1,
+                    "Coincidencias Encontradas": 1 if sim >= 0.6 else 0,
+                    "Score Promedio": f"{sim:.3f}",
+                }
+                if isinstance(results, dict) and 'analysis_time_ms' in results:
+                    ms = float(results.get('analysis_time_ms', 0.0))
+                    stats["Tiempo de Análisis"] = f"{ms/1000:.1f}s"
+                self.update_statistics(stats)
+                return
+            
+            # Si hay 'results' como lista interna, usarla
+            inner_results = data.get('results')
+            if isinstance(inner_results, list):
+                self.display_results(inner_results if inner_results is not None else [])
+                return
+        
+        # Fallback: sin estructura reconocida
+        self.add_result_card("Resultados", 0.0, "N/A", "Estructura de resultados no reconocida")
+
     def add_result_card(self, feature_name, score, confidence_level, details=""):
         """Añade una nueva tarjeta de resultado"""
         card = ResultCard(feature_name, score, confidence_level, details)
@@ -435,3 +555,21 @@ class DynamicResultsPanel(QWidget):
             "Calidad de Imagen": "Excelente"
         }
         self.update_statistics(stats)
+
+
+# Alias para compatibilidad con importaciones existentes
+ResultsPanel = DynamicResultsPanel
+
+
+if __name__ == "__main__":
+    import sys
+    from PyQt5.QtWidgets import QApplication
+    
+    app = QApplication(sys.argv)
+    
+    # Crear y mostrar el panel de resultados
+    panel = DynamicResultsPanel()
+    panel.set_sample_results()
+    panel.show()
+    
+    sys.exit(app.exec_())

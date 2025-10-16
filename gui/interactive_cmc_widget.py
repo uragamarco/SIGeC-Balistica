@@ -17,7 +17,18 @@ import matplotlib.patches as patches
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.figure import Figure
 from matplotlib.widgets import Cursor
-import seaborn as sns
+# Importaciones de visualización con fallback cuando seaborn no está disponible
+try:
+    import seaborn as sns
+except Exception:
+    class MockSeaborn:
+        def set_style(self, *args, **kwargs):
+            pass
+        def heatmap(self, *args, **kwargs):
+            pass
+        def scatterplot(self, *args, **kwargs):
+            pass
+    sns = MockSeaborn()
 
 
 class CMCCurveData:
