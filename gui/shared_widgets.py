@@ -1255,6 +1255,19 @@ class NISTStandardsWidget(QWidget):
         self.quality_spinbox.setValue(self.config['image_quality_threshold'])
         self.resolution_spinbox.setValue(self.config['spatial_resolution_min'])
 
+        
+    def set_configuration_level(self, level: str):
+        self.current_level = level
+        lvl = (level or '').lower()
+        if lvl == 'basic':
+            self.config['validation_level'] = 'basic'
+        elif lvl == 'intermediate':
+            self.config['validation_level'] = 'standard'
+        else:
+            self.config['validation_level'] = 'strict'
+        self._update_ui_from_config()
+        self.configuration_changed.emit(self.config.copy())
+
 
 class AFTEAnalysisWidget(QWidget):
     """Widget para configuración de análisis AFTE"""
@@ -1376,6 +1389,26 @@ class AFTEAnalysisWidget(QWidget):
         self.confidence_spinbox.setValue(self.config['confidence_threshold'])
         self.features_spinbox.setValue(self.config['minimum_features'])
 
+        
+    def set_configuration_level(self, level: str):
+        self.current_level = level
+        lvl = (level or '').lower()
+        # In basic level keep AFTE simpler
+        if lvl == 'basic':
+            self.config['feature_analysis'] = True
+            self.config['statistical_analysis'] = False
+            self.config['minimum_features'] = max(3, self.config.get('minimum_features', 6))
+        elif lvl == 'intermediate':
+            self.config['feature_analysis'] = True
+            self.config['statistical_analysis'] = True
+            self.config['minimum_features'] = max(5, self.config.get('minimum_features', 6))
+        else:  # advanced
+            self.config['feature_analysis'] = True
+            self.config['statistical_analysis'] = True
+            self.config['minimum_features'] = max(6, self.config.get('minimum_features', 6))
+        self._update_ui_from_config()
+        self.configuration_changed.emit(self.config.copy())
+
 
 class DeepLearningWidget(QWidget):
     """Widget para configuración de Deep Learning"""
@@ -1387,6 +1420,7 @@ class DeepLearningWidget(QWidget):
         self.config = {
             'enabled': False,  # Deshabilitado por defecto según contexto
             'model_type': 'CNN',
+            'model': 'CNN',  # Alias para compatibilidad con resúmenes
             'use_pretrained': True,
             'confidence_threshold': 0.75,
             'batch_size': 16,
@@ -1517,6 +1551,46 @@ class DeepLearningWidget(QWidget):
         self.gpu_checkbox.setChecked(self.config['gpu_acceleration'])
         self.confidence_spinbox.setValue(self.config['confidence_threshold'])
         self.batch_spinbox.setValue(self.config['batch_size'])
+        # Mantener alias 'model' sincronizado para resúmenes
+        self.config['model'] = self.config.get('model_type', self.config.get('model', ''))
+
+        
+    def set_configuration_level(self, level: str):
+        self.current_level = level
+        lvl = (level or '').lower()
+        if lvl == 'basic':
+            # Keep DL simple/disabled at basic level
+            self.config['enabled'] = False
+            self.config['use_pretrained'] = True
+            self.config['feature_extraction'] = True
+            self.config['similarity_matching'] = False
+            self.config['gpu_acceleration'] = False
+            self.config['model_type'] = self.config.get('model_type', 'CNN')
+            self.config['model'] = self.config['model_type']
+            self.config['confidence_threshold'] = max(0.5, self.config.get('confidence_threshold', 0.75))
+            self.config['batch_size'] = min(16, self.config.get('batch_size', 16))
+        elif lvl == 'intermediate':
+            # Enable DL with recommended defaults
+            self.config['enabled'] = True
+            self.config['use_pretrained'] = True
+            self.config['feature_extraction'] = True
+            self.config['similarity_matching'] = True
+            self.config['gpu_acceleration'] = True
+            self.config['model_type'] = 'ResNet'
+            self.config['confidence_threshold'] = max(0.7, self.config.get('confidence_threshold', 0.8))
+            self.config['batch_size'] = max(16, self.config.get('batch_size', 16))
+        else:  # advanced
+            # Advanced: enable full features and larger batches
+            self.config['enabled'] = True
+            self.config['use_pretrained'] = self.config.get('use_pretrained', True)
+            self.config['feature_extraction'] = True
+            self.config['similarity_matching'] = True
+            self.config['gpu_acceleration'] = True
+            self.config['model_type'] = 'Siamese'
+            self.config['confidence_threshold'] = max(0.85, self.config.get('confidence_threshold', 0.85))
+            self.config['batch_size'] = max(32, self.config.get('batch_size', 32))
+        self._update_ui_from_config()
+        self.configuration_changed.emit(self.config.copy())
 
 
 class ImageProcessingWidget(QWidget):
@@ -1677,6 +1751,31 @@ class ImageProcessingWidget(QWidget):
         self.denoise_combo.setCurrentText(self.config['denoise_method'])
         self.edge_combo.setCurrentText(self.config['edge_method'])
         self.roi_combo.setCurrentText(self.config['roi_method'])
+
+    def set_configuration_level(self, level: str):
+        self.current_level = level
+        lvl = (level or '').lower()
+        if lvl == 'basic':
+            self.config['enabled'] = True
+            self.config['enhance_contrast'] = True
+            self.config['denoise'] = True
+            self.config['edge_enhancement'] = False
+            self.config['illumination_correction'] = True
+            self.config['orientation_normalization'] = True
+            self.config['roi_detection'] = True
+            self.config['spatial_calibration'] = False
+            self.config['contrast_method'] = 'adaptive'
+            self.config['denoise_method'] = 'bilateral'
+            self.config['edge_method'] = 'unsharp_mask'
+            self.config['roi_method'] = 'automatic'
+        elif lvl == 'intermediate':
+            self.config['edge_enhancement'] = True
+            self.config['spatial_calibration'] = True
+        else:  # advanced
+            # Advanced leaves all toggles available; ensure enabled
+            self.config['enabled'] = True
+        self._update_ui_from_config()
+        self.configuration_changed.emit(self.config.copy())
 
 
 # ============================================================================

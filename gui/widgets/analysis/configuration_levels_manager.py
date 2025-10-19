@@ -534,26 +534,36 @@ class ConfigurationLevelsManager(QWidget):
     
     def reset_configuration(self):
         """Reset configuration to defaults."""
-        # Reset all widgets to default state
-        if hasattr(self, 'basic_nist'):
-            self.basic_nist.reset_configuration()
-        if hasattr(self, 'basic_afte'):
-            self.basic_afte.reset_configuration()
-        if hasattr(self, 'intermediate_nist'):
-            self.intermediate_nist.reset_configuration()
-        if hasattr(self, 'intermediate_afte'):
-            self.intermediate_afte.reset_configuration()
-        if hasattr(self, 'intermediate_dl'):
-            self.intermediate_dl.reset_configuration()
-        if hasattr(self, 'advanced_nist'):
-            self.advanced_nist.reset_configuration()
-        if hasattr(self, 'advanced_afte'):
-            self.advanced_afte.reset_configuration()
-        if hasattr(self, 'advanced_dl'):
-            self.advanced_dl.reset_configuration()
-        if hasattr(self, 'advanced_img'):
-            self.advanced_img.reset_configuration()
+        # Reset all widgets to default state (fallback to set_configuration({}) if reset not available)
+        def safe_reset(widget):
+            if widget is None:
+                return
+            if hasattr(widget, 'reset_configuration') and callable(getattr(widget, 'reset_configuration')):
+                try:
+                    widget.reset_configuration()
+                    return
+                except Exception:
+                    pass
+            if hasattr(widget, 'set_configuration') and callable(getattr(widget, 'set_configuration')):
+                try:
+                    widget.set_configuration({})
+                except Exception:
+                    pass
+        
+        safe_reset(getattr(self, 'basic_nist', None))
+        safe_reset(getattr(self, 'basic_afte', None))
+        safe_reset(getattr(self, 'intermediate_nist', None))
+        safe_reset(getattr(self, 'intermediate_afte', None))
+        safe_reset(getattr(self, 'intermediate_dl', None))
+        safe_reset(getattr(self, 'advanced_nist', None))
+        safe_reset(getattr(self, 'advanced_afte', None))
+        safe_reset(getattr(self, 'advanced_dl', None))
+        safe_reset(getattr(self, 'advanced_img', None))
         
         # Reset to basic level
         self.set_level('basic')
         self.basic_button.setChecked(True)
+
+    def reset_to_defaults(self):
+        """Compatibility alias to reset all configurations to default values."""
+        self.reset_configuration()

@@ -894,3 +894,92 @@ class ImageProcessingWidget(QWidget):
                 errors.append("Código personalizado debe contener función 'process_image'")
                 
         return len(errors) == 0, errors
+
+    def set_configuration_level(self, level: str):
+        """Set default options according to the selected configuration level.
+        Accepted values (case-insensitive): 'Basic', 'Intermediate', 'Advanced'.
+        """
+        lvl = (level or '').strip().lower()
+        if lvl == 'basic':
+            # Enable processing with minimal, safe defaults
+            self.enable_processing_cb.setChecked(True)
+            # Enhancement: keep simple
+            self.gamma_enable_cb.setChecked(False)
+            self.histogram_eq_cb.setChecked(False)
+            self.clahe_cb.setChecked(False)
+            self.brightness_slider.setValue(0)
+            self.contrast_slider.setValue(0)
+            self.gamma_slider.setValue(100)
+            # Filtering: minimal blur only
+            self.gaussian_blur_cb.setChecked(True)
+            self.gaussian_kernel_spin.setValue(max(3, self.gaussian_kernel_spin.value()))
+            self.gaussian_sigma_spin.setValue(max(1.0, self.gaussian_sigma_spin.value()))
+            self.median_filter_cb.setChecked(False)
+            self.bilateral_cb.setChecked(False)
+            self.unsharp_mask_cb.setChecked(False)
+            self.laplacian_cb.setChecked(False)
+            # Morphology: off by default
+            self.erosion_cb.setChecked(False)
+            self.dilation_cb.setChecked(False)
+            self.opening_cb.setChecked(False)
+            self.closing_cb.setChecked(False)
+            self.gradient_cb.setChecked(False)
+            self.tophat_cb.setChecked(False)
+            self.blackhat_cb.setChecked(False)
+            # Advanced: disabled
+            self.fft_filter_cb.setChecked(False)
+            self.color_conversion_cb.setChecked(False)
+            self.custom_processing_cb.setChecked(False)
+        elif lvl == 'intermediate':
+            # Balanced defaults for typical comparison workflows
+            self.enable_processing_cb.setChecked(True)
+            # Enhancement
+            self.gamma_enable_cb.setChecked(True)
+            self.histogram_eq_cb.setChecked(True)
+            self.clahe_cb.setChecked(True)
+            # Filtering
+            self.gaussian_blur_cb.setChecked(True)
+            self.median_filter_cb.setChecked(True)
+            self.bilateral_cb.setChecked(False)
+            self.unsharp_mask_cb.setChecked(True)
+            self.laplacian_cb.setChecked(False)
+            # Morphology: enable basic opening/closing pipeline
+            self.erosion_cb.setChecked(True)
+            self.dilation_cb.setChecked(True)
+            self.opening_cb.setChecked(True)
+            self.closing_cb.setChecked(False)
+            self.gradient_cb.setChecked(False)
+            self.tophat_cb.setChecked(False)
+            self.blackhat_cb.setChecked(False)
+            # Advanced
+            self.fft_filter_cb.setChecked(False)
+            self.color_conversion_cb.setChecked(True)
+            self.custom_processing_cb.setChecked(False)
+        else:
+            # Advanced: enable comprehensive options
+            self.enable_processing_cb.setChecked(True)
+            # Enhancement
+            self.gamma_enable_cb.setChecked(True)
+            self.histogram_eq_cb.setChecked(True)
+            self.clahe_cb.setChecked(True)
+            # Filtering
+            self.gaussian_blur_cb.setChecked(True)
+            self.median_filter_cb.setChecked(True)
+            self.bilateral_cb.setChecked(True)
+            self.unsharp_mask_cb.setChecked(True)
+            self.laplacian_cb.setChecked(True)
+            # Morphology: full set
+            self.erosion_cb.setChecked(True)
+            self.dilation_cb.setChecked(True)
+            self.opening_cb.setChecked(True)
+            self.closing_cb.setChecked(True)
+            self.gradient_cb.setChecked(True)
+            self.tophat_cb.setChecked(True)
+            self.blackhat_cb.setChecked(True)
+            # Advanced tools
+            self.fft_filter_cb.setChecked(True)
+            self.color_conversion_cb.setChecked(True)
+            # Keep custom processing off by default to avoid code execution surprises
+            self.custom_processing_cb.setChecked(False)
+        # Emit updated configuration
+        self.emit_configuration_changed()

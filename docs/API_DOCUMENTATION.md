@@ -44,7 +44,7 @@ SIGeC-Balisticar is a comprehensive ballistic analysis system that provides adva
 The main processing pipeline that orchestrates the entire ballistic analysis workflow.
 
 ```python
-from core.unified_pipeline import ScientificPipeline, PipelineConfiguration
+from core import ScientificPipeline, PipelineConfiguration
 
 # Initialize pipeline
 config = PipelineConfiguration(level="forensic")
@@ -100,7 +100,7 @@ handler.handle_error(exception, ErrorSeverity.HIGH, context="image_processing")
 Advanced image preprocessing with NIST compliance.
 
 ```python
-from image_processing.unified_preprocessor import UnifiedPreprocessor, PreprocessingConfig
+from image_processing import UnifiedPreprocessor, PreprocessingConfig
 
 config = PreprocessingConfig(level="forensic")
 preprocessor = UnifiedPreprocessor(config)
@@ -115,7 +115,7 @@ quality_report = preprocessor.get_quality_report()
 Region of Interest detection using advanced algorithms.
 
 ```python
-from image_processing.unified_roi_detector import UnifiedROIDetector, ROIDetectionConfig
+from image_processing import UnifiedROIDetector, ROIDetectionConfig
 
 config = ROIDetectionConfig(level="advanced")
 detector = UnifiedROIDetector(config)
@@ -130,12 +130,13 @@ visualization = detector.visualize_roi(image, roi_regions)
 Extract ballistic features from images.
 
 ```python
-from image_processing.feature_extractor import FeatureExtractor
+from image_processing import FeatureExtractor, extract_features
 
 extractor = FeatureExtractor()
 
 # Extract features
 features = extractor.extract_features(image)
+features_func = extract_features(image)
 keypoints = extractor.extract_keypoints(image)
 descriptors = extractor.extract_descriptors(image, keypoints)
 ```
@@ -149,14 +150,15 @@ descriptors = extractor.extract_descriptors(image, keypoints)
 Advanced feature matching with multiple algorithms.
 
 ```python
-from matching.unified_matcher import UnifiedMatcher, MatchingConfig, AlgorithmType
+from matching import UnifiedMatcher, MatchingConfig, AlgorithmType
 
 config = MatchingConfig(algorithm=AlgorithmType.SIFT)
 matcher = UnifiedMatcher(config)
 
 # Interface methods (IFeatureMatcher)
+# You can optionally override the algorithm per call
 features1 = matcher.extract_features(image1)
-features2 = matcher.extract_features(image2)
+features2 = matcher.extract_features(image2, algorithm=AlgorithmType.SIFT)
 matches = matcher.match_features(features1, features2)
 similarity = matcher.calculate_similarity(matches)
 info = matcher.get_algorithm_info()
@@ -167,7 +169,7 @@ info = matcher.get_algorithm_info()
 Consecutive Matching Characteristics analysis.
 
 ```python
-from matching.cmc_algorithm import CMCAlgorithm, CMCParameters
+from matching import CMCAlgorithm, CMCParameters
 
 params = CMCParameters(min_cmc_count=6, confidence_threshold=0.8)
 cmc = CMCAlgorithm(params)
@@ -187,7 +189,7 @@ confidence = result.confidence
 Comprehensive database management with vector search capabilities.
 
 ```python
-from database.unified_database import UnifiedDatabase
+from database import UnifiedDatabase
 
 # Interface methods (IDatabaseManager)
 db = UnifiedDatabase()
@@ -211,7 +213,7 @@ images = db.get_images_by_case(case_id)
 High-performance vector similarity search.
 
 ```python
-from database.vector_db import VectorDatabase
+from database import VectorDatabase
 
 vector_db = VectorDatabase()
 vector_db.add_vector(vector_id, feature_vector, metadata)
@@ -227,7 +229,7 @@ similar_vectors = vector_db.search_similar(query_vector, top_k=10)
 NIST-compliant image quality assessment.
 
 ```python
-from nist_standards.quality_metrics import NISTQualityMetrics
+from nist_standards import NISTQualityMetrics
 
 metrics = NISTQualityMetrics()
 quality_report = metrics.assess_image_quality(image)
@@ -244,7 +246,7 @@ overall_quality = quality_report.overall_quality
 Automated AFTE conclusion generation.
 
 ```python
-from nist_standards.afte_conclusions import AFTEConclusionEngine, AFTEConclusion
+from nist_standards import AFTEConclusionEngine, AFTEConclusion
 
 engine = AFTEConclusionEngine()
 conclusion = engine.determine_conclusion(similarity_score, confidence, cmc_count)
@@ -259,6 +261,64 @@ elif conclusion == AFTEConclusion.INCONCLUSIVE:
 ---
 
 ## Configuration
+
+### Configuración Unificada
+
+La configuración del sistema se centraliza en `config/unified_config.py` y archivos YAML por entorno:
+
+- `config/unified_config.yaml` (desarrollo)
+- `config/unified_config_testing.yaml` (testing)
+- `config/unified_config_production.yaml` (producción)
+
+Inicialización recomendada:
+
+```python
+from config.unified_config import get_unified_config, Environment
+
+# Detecta entorno por `SIGeC-Balistica_ENV` o especifica manualmente
+cfg = get_unified_config(environment=Environment.DEVELOPMENT)
+
+# Acceso a secciones tipadas
+db = cfg.database
+img = cfg.image_processing
+match = cfg.matching
+gui = cfg.gui
+log = cfg.logging
+
+# Ejemplo: actualizar valores y guardar
+cfg.update_config('database', sqlite_path='database/ballistics_dev.db')
+cfg.update_config('matching', algorithm='ORB', level='standard')  # acepta strings
+cfg.save_config()
+```
+
+Formato YAML esperado (fragmento):
+
+```yaml
+database:
+  sqlite_path: database/ballistics.db
+  faiss_index_path: database/faiss_index
+image_processing:
+  max_image_size: 2048
+matching:
+  algorithm: ORB         # enum como string
+  level: standard        # enum como string
+  max_features: 1000
+gui:
+  theme: default
+logging:
+  level: INFO
+```
+
+Selección automática de entorno:
+
+- Establece `SIGeC-Balistica_ENV=testing` para cargar `unified_config_testing.yaml`.
+- Establece `SIGeC-Balistica_ENV=production` para cargar `unified_config_production.yaml`.
+- Sin variable, se usa `development` y `unified_config.yaml`.
+
+Validación y migración:
+
+- La clase `UnifiedConfig` valida valores críticos y convierte enums.
+- Si existen archivos legacy (`config.yaml`), se intenta migrar usando el consolidator.
 
 ### Unified Configuration
 
@@ -326,7 +386,7 @@ search_results = backend.search_database(query_image, filters)
 Interface for pipeline processors.
 
 ```python
-from interfaces.pipeline_interfaces import IPipelineProcessor, ProcessingResult
+from interfaces import IPipelineProcessor, ProcessingResult
 
 class CustomProcessor(IPipelineProcessor):
     def initialize(self, config: Dict[str, Any]) -> bool:
@@ -351,7 +411,7 @@ class CustomProcessor(IPipelineProcessor):
 Interface for feature matching algorithms.
 
 ```python
-from interfaces.matcher_interfaces import IFeatureMatcher
+from interfaces import IFeatureMatcher
 
 class CustomMatcher(IFeatureMatcher):
     def extract_features(self, image: np.ndarray) -> Dict[str, Any]:
@@ -424,6 +484,31 @@ available_deps = manager.check_dependencies()
 missing_deps = manager.get_missing_dependencies()
 ```
 
+### Fallback Registry (Centralizado)
+
+Punto de entrada único para acceder a fallbacks en toda la aplicación.
+
+```python
+from core.fallback_registry import get_fallback, FallbackRegistry, create_robust_import
+
+# Obtener fallbacks por categoría
+dl = get_fallback('deep_learning')
+torch_fb = get_fallback('torch')
+
+# Registrar un fallback personalizado
+registry = FallbackRegistry()
+registry.register_fallback('mi_categoria', object())
+
+# Importación robusta con fallback
+importer = create_robust_import('package_that_does_not_exist_xyz', 'deep_learning')
+fallback_obj = importer()  # Devuelve el fallback si el paquete no existe
+```
+
+Categorías estándar:
+- `deep_learning`, `web_service`, `image_processing`, `database`
+- `torch`, `tensorflow`, `flask`, `rawpy`
+- `core_components` (ScientificPipeline, ErrorHandler, IntelligentCache, NotificationSystem, TelemetrySystem)
+
 ---
 
 ## Examples
@@ -431,7 +516,7 @@ missing_deps = manager.get_missing_dependencies()
 ### Basic Image Analysis
 
 ```python
-from core.unified_pipeline import ScientificPipeline, create_pipeline_config
+from core import ScientificPipeline, create_pipeline_config
 
 # Create pipeline with forensic-level configuration
 config = create_pipeline_config("forensic")
@@ -454,7 +539,7 @@ pipeline.export_report(result, "analysis_report.json")
 
 ```python
 from interfaces.pipeline_interfaces import IPipelineProcessor, ProcessingResult
-from core.unified_pipeline import ScientificPipeline
+from core import ScientificPipeline
 
 class CustomBalisticProcessor(IPipelineProcessor):
     def __init__(self):
@@ -491,7 +576,7 @@ result = processor.process_images('image1.jpg', 'image2.jpg')
 ### Database Integration
 
 ```python
-from database.unified_database import UnifiedDatabase
+from database import UnifiedDatabase
 
 # Initialize database
 db = UnifiedDatabase()
@@ -1859,3 +1944,84 @@ Sunset: 2025-12-31T23:59:59Z
 *Documentación de API - SIGeC-Balistica v1.0*  
 *Última actualización: Enero 2024*  
 *© 2024 SIGeC-Balistica. Todos los derechos reservados.*
+### UnifiedConfig y selección por entorno
+
+El sistema de configuración unificado (`config/unified_config.py`) detecta y selecciona automáticamente el archivo YAML según el entorno:
+
+- `development` → `config/unified_config.yaml`
+- `testing` → `config/unified_config_testing.yaml`
+- `production` → `config/unified_config_production.yaml`
+
+La detección de entorno usa el enum `Environment` y mapea alias comunes (`dev`, `base`, `test`, `prod`). También puede establecerse mediante la variable de entorno `SIGeC-Balistica_ENV`.
+
+```python
+from config.unified_config import get_unified_config, Environment
+
+# Selección explícita
+cfg = get_unified_config(environment=Environment.PRODUCTION)
+
+# Selección implícita por variable de entorno
+# export SIGeC-Balistica_ENV=prod
+cfg = get_unified_config()
+
+# Acceso como dict
+config_dict = cfg.get_config_dict()
+```
+
+### Enums y serialización en YAML
+
+Para evitar anotaciones específicas de Python en YAML, `UnifiedConfig.save_config()` serializa enums a strings:
+
+- `matching.algorithm` → valores: `ORB`, `SIFT`, `AKAZE`, `BRISK`, `KAZE`, `CMC`
+- `matching.level` → valores: `basic`, `standard`, `advanced`
+
+Al cargar, `UnifiedConfig` convierte automáticamente esos strings a sus enums correspondientes. Evita usar representaciones como `!!python/object/apply` en YAML de producción.
+
+### Acceso y actualización vía gestor
+
+La API de alto nivel usa `UnifiedConfigManager` (capa de compatibilidad):
+
+```python
+from config.config_manager import get_unified_manager
+
+cm = get_unified_manager()
+cm.load_config("unified", "production")
+
+# Lectura
+db_path = cm.get_config_value("database.sqlite_path")
+
+# Escritura y persistencia
+cm.set_config_value("logging.level", "INFO")
+cm.save_config("unified", "production")
+```
+
+Notas:
+- Las validaciones de configuración se realizan con `UnifiedConfig.validate()`; los errores se retornan estructurados por sección.
+- `config_manager.validate_config("production")` aplica validación tipada y checks adicionales de producción.
+
+### Ejemplo por entorno
+
+Desarrollo (`config/unified_config.yaml`):
+```yaml
+matching:
+  algorithm: ORB
+  level: standard
+logging:
+  level: INFO
+```
+
+Testing (`config/unified_config_testing.yaml`):
+```yaml
+matching:
+  matcher_type: BF
+  min_matches: 10
+```
+
+Producción (`config/unified_config_production.yaml`):
+```yaml
+matching:
+  algorithm: ORB
+  level: standard
+logging:
+  level: INFO
+```

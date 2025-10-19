@@ -28,6 +28,8 @@ from gui.synchronized_viewer import SynchronizedViewer
 from gui.graphics_widgets import HeatmapWidget, GraphicsVisualizationPanel
 from gui.interactive_cmc_widget import InteractiveCMCWidget, CMCCurveData
 from gui.styles import apply_modern_qss_to_widget
+from gui.analysis_worker import OptimizedAnalysisWorker
+from gui.comparison_worker import OptimizedComparisonWorker
 try:
     import seaborn as sns
     sns.set_style("whitegrid")
@@ -69,6 +71,10 @@ class TriTabbedGUI(QWidget):
                 self.matcher = None
         except Exception:
             self.matcher = None
+
+        # Workers asíncronos
+        self.analysis_worker = None
+        self.comparison_worker = None
 
     def init_ui(self):
         layout = QVBoxLayout(self)
@@ -326,10 +332,11 @@ class TriTabbedGUI(QWidget):
 
     # --- Lógica de análisis ---
     def on_run_analysis(self):
+        # Iniciar análisis en segundo plano usando OptimizedAnalysisWorker
         if not self.selected_images:
             self.status_label.setText("Seleccione imágenes en la pestaña Carga")
             return
-
+        
         # Visualizar primera imagen como referencia
         try:
             self.analysis_visualization.load_image(self.selected_images[0])
@@ -337,133 +344,81 @@ class TriTabbedGUI(QWidget):
                 self.analysis_sections.setCurrentIndex(self.analysis_tab_indices.get('Visualización', 0))
         except Exception:
             pass
-
-        # Ejecutar análisis real si hay al menos dos imágenes y matcher disponible
-        real_analysis_done = False
-        results = []
-        if len(self.selected_images) >= 2 and self.matcher is not None and AlgorithmType is not None:
-            try:
-                img1 = cv2.imread(self.selected_images[0], cv2.IMREAD_GRAYSCALE)
-                img2 = cv2.imread(self.selected_images[1], cv2.IMREAD_GRAYSCALE)
-                if img1 is not None and img2 is not None:
-                    match_result = self.matcher.compare_images(img1, img2, AlgorithmType.CMC)
-                    md = getattr(match_result, 'match_data', {}) or {}
-
-                    # Actualizar Heatmap con correlación real si disponible
-                    try:
-                        corr = md.get('correlation_map')
-                        if corr and isinstance(corr, dict) and 'data' in corr:
-                            matrix = np.array(corr['data'])
-                            self.analysis_heatmap.set_heatmap_data(matrix, title='Mapa de Correlación CMC', colormap='viridis')
-                            if hasattr(self, 'analysis_sections'):
-                                self.analysis_sections.setCurrentIndex(self.analysis_tab_indices.get('Heatmap', 1))
-                        else:
-                            # Fallback a CMC map si existe
-                            cmc_m = md.get('cmc_map')
-                            if cmc_m and isinstance(cmc_m, dict) and 'data' in cmc_m:
-                                matrix = np.array(cmc_m['data'])
-                                self.analysis_heatmap.set_heatmap_data(matrix, title='Mapa de Celdas CMC', colormap='magma')
-                                if hasattr(self, 'analysis_sections'):
-                                    self.analysis_sections.setCurrentIndex(self.analysis_tab_indices.get('Heatmap', 1))
-                    except Exception:
-                        pass
-
-                    # Actualizar CMC con scores de correlación por celda si disponibles
-                    try:
-                        cells = md.get('cell_results', []) or []
-                        scores = [float(c.get('ccf_max', 0.0) or 0.0) for c in cells]
-                        if scores:
-                            self.analysis_cmc.update_cmc_data({'similarity_scores': scores})
-                            if hasattr(self, 'analysis_sections'):
-                                self.analysis_sections.setCurrentIndex(self.analysis_tab_indices.get('CMC', 2))
-                    except Exception:
-                        pass
-
-                    # Construir resumen de resultados
-                    results = [{
-                        'id': 'Análisis CMC',
-                        'similarity': float(getattr(match_result, 'similarity_score', 0.0) or 0.0),
-                        'confidence': float(getattr(match_result, 'confidence', 0.0) or 0.0),
-                        'match_type': 'CMC',
-                        'image_path': self.selected_images[0]
-                    }]
-                    real_analysis_done = True
-            except Exception:
-                real_analysis_done = False
-
-        if not real_analysis_done:
-            # Fallback: resultados simples (placeholder)
-            for i, p in enumerate(self.selected_images[:3]):
-                results.append({
-                    'id': f'Análisis {i+1}',
-                    'similarity': 0.75 - 0.1 * i,
-                    'confidence': 0.85 - 0.05 * i,
-                    'match_type': 'Pattern',
-                    'image_path': p
-                })
-
+        
+        # Evitar múltiples ejecuciones simultáneas
+        if self.analysis_worker is not None:
+            self.status_label.setText("Análisis en ejecución…")
+            return
+        
+        # Configurar y arrancar worker
+        self.analysis_worker = OptimizedAnalysisWorker(self)
         try:
-            self.analysis_results.display_results(results)
-        except Exception:
-            # Fallback si cambia la API
-            if hasattr(self.analysis_results, 'set_sample_results'):
-                self.analysis_results.set_sample_results()
-
-        # Ir a resultados
-        if hasattr(self, 'analysis_sections'):
-            self.analysis_sections.setCurrentIndex(self.analysis_tab_indices.get('Resultados', 5))
-
-        # Actualizar panel de gráficos con un resumen simple
-        try:
-            summary = {
-                'count': len(results),
-                'avg_similarity': float(np.mean([r['similarity'] for r in results])),
-                'avg_confidence': float(np.mean([r['confidence'] for r in results]))
-            }
-            if hasattr(self.analysis_graphics, 'update_with_results'):
-                self.analysis_graphics.update_with_results(summary)
+            # Conectar señales
+            self.analysis_worker.progress_updated.connect(self._on_analysis_progress)
+            self.analysis_worker.status_changed.connect(self._on_analysis_status)
+            self.analysis_worker.analysis_completed.connect(self._on_analysis_completed)
+            self.analysis_worker.error_occurred.connect(self._on_analysis_error)
+            self.analysis_worker.visualization_ready.connect(self._on_analysis_visualization)
+            self.analysis_worker.memory_usage_updated.connect(self._on_analysis_memory)
+            self.analysis_worker.quality_metrics_ready.connect(self._on_analysis_quality)
         except Exception:
             pass
+        
+        # Preparar parámetros
+        case_data = {
+            'source': 'TriTabbedGUI',
+            'selected_count': len(self.selected_images)
+        }
+        nist_md = self.metadata_snapshot if isinstance(self.metadata_snapshot, dict) else None
+        processing_config = {
+            'enable_parallel_analysis': True,
+            'cache_intermediate_results': True,
+            'memory_optimization': True,
+            'async_visualizations': True
+        }
+        
+        try:
+            self.analysis_worker.setup_analysis(
+                image_path=self.selected_images[0],
+                case_data=case_data,
+                nist_metadata=nist_md,
+                processing_config=processing_config
+            )
+        except Exception:
+            # Si setup falla, informar y no iniciar
+            self.status_label.setText("No se pudo configurar el análisis")
+            self.analysis_worker = None
+            return
+        
+        # Deshabilitar botón mientras corre
+        try:
+            self.btn_run_analysis.setEnabled(False)
+        except Exception:
+            pass
+        
+        self.status_label.setText("Análisis en ejecución…")
+        self.analysis_worker.start()
 
-        if not real_analysis_done:
-            # Actualizar Heatmap con datos simulados (trigger de refresco)
-            try:
-                self.analysis_heatmap.clear_external_data()
-                self.analysis_heatmap.update_heatmap()
-            except Exception:
-                pass
-
-            # Generar curvas CMC de ejemplo
-            try:
-                cmc_x = np.linspace(0, 1, 50)
-                cmc_y = np.sqrt(cmc_x)
-                self.analysis_cmc.cmc_canvas.add_curve(
-                    CMCCurveData("Modelo A", cmc_x, cmc_y, color='navy')
-                )
-                cmc_y2 = cmc_x**0.3
-                self.analysis_cmc.cmc_canvas.add_curve(
-                    CMCCurveData("Modelo B", cmc_x, cmc_y2, color='teal')
-                )
-            except Exception:
-                pass
-        self.status_label.setText("Análisis completado")
+        # Nota: Implementación asíncrona, la lógica síncrona anterior se ha eliminado.
+        # Los resultados y visualizaciones se actualizan vía señales del worker.
+        return
 
     # --- Lógica de comparación ---
     def on_compare(self):
+        # Comparación asincrónica usando OptimizedComparisonWorker
         origin = self.origin_combo.currentText()
-
+        
         # Elegir imágenes fuente
         if origin.startswith("Imágenes"):
             images = self.selected_images
         else:
-            # Simular base de datos con assets
             assets_dir = Path("assets")
             images = [str(p) for p in assets_dir.glob("*.png")][:2]
-
+        
         if len(images) < 2:
             self.status_label.setText("Necesita 2 imágenes para comparar")
             return
-
+        
         # Cargar en visor sincronizado
         try:
             pix1 = QPixmap(images[0])
@@ -471,117 +426,222 @@ class TriTabbedGUI(QWidget):
             self.sync_viewer.set_images(pix1, pix2)
         except Exception:
             pass
+        
+        # Evitar múltiples ejecuciones simultáneas
+        if self.comparison_worker is not None:
+            self.status_label.setText("Comparación en ejecución…")
+            return
+        
+        # Configurar y arrancar worker
+        self.comparison_worker = OptimizedComparisonWorker(self)
+        try:
+            # Conectar señales
+            self.comparison_worker.progress_updated.connect(self._on_comparison_progress)
+            self.comparison_worker.status_changed.connect(self._on_comparison_status)
+            self.comparison_worker.analysis_completed.connect(self._on_comparison_completed)
+            self.comparison_worker.error_occurred.connect(self._on_comparison_error)
+            self.comparison_worker.visualization_ready.connect(self._on_comparison_visualization)
+            self.comparison_worker.memory_usage_updated.connect(self._on_comparison_memory)
+            self.comparison_worker.match_found.connect(self._on_comparison_match_found)
+        except Exception:
+            pass
+        
+        comparison_config = {
+            'enable_parallel_processing': True,
+            'memory_optimization': True,
+            'cache_intermediate_results': True
+        }
+        
+        try:
+            self.comparison_worker.setup_direct_comparison(
+                image_a_path=images[0],
+                image_b_path=images[1],
+                comparison_config=comparison_config
+            )
+        except Exception:
+            self.status_label.setText("No se pudo configurar la comparación")
+            self.comparison_worker = None
+            return
+        
+        try:
+            self.btn_compare.setEnabled(False)
+        except Exception:
+            pass
+        
+        self.status_label.setText("Comparando…")
+        self.comparison_worker.start()
+    def _on_analysis_progress(self, progress: int, message: str):
+        try:
+            self.status_label.setText(f"Análisis {progress}% - {message}")
+        except Exception:
+            pass
 
-        # Ejecutar comparación real si matcher está disponible
-        real_comp_done = False
-        if self.matcher is not None and AlgorithmType is not None:
+    def _on_analysis_status(self, text: str):
+        try:
+            self.status_label.setText(text)
+        except Exception:
+            pass
+
+    def _on_analysis_memory(self, memory_mb: float):
+        try:
+            # Mostrar uso de memoria de forma compacta
+            self.status_label.setText(f"Memoria: {memory_mb:.0f} MB")
+        except Exception:
+            pass
+
+    def _on_analysis_visualization(self, viz_name: str, viz_data: object):
+        # Integraciones ligeras según tipo de visualización
+        try:
+            if viz_name == 'histogram' and isinstance(viz_data, dict):
+                # Actualizar panel de gráficos si soporta
+                summary = {'has_histogram': True}
+                if hasattr(self.analysis_graphics, 'update_with_results'):
+                    self.analysis_graphics.update_with_results(summary)
+            elif viz_name == 'feature_map' and isinstance(viz_data, dict):
+                data = viz_data.get('data')
+                if isinstance(data, dict) and 'matrix' in data:
+                    import numpy as np
+                    matrix = np.array(data['matrix'])
+                    self.analysis_heatmap.set_heatmap_data(matrix, title='Mapa de Características', colormap='viridis')
+                    if hasattr(self, 'analysis_sections'):
+                        self.analysis_sections.setCurrentIndex(self.analysis_tab_indices.get('Heatmap', 2))
+        except Exception:
+            pass
+
+    def _on_analysis_quality(self, metrics: object):
+        try:
+            if isinstance(metrics, dict):
+                oq = metrics.get('overall_quality')
+                if oq is not None:
+                    self.status_label.setText(f"Calidad global: {oq:.2f}")
+        except Exception:
+            pass
+
+    def _on_analysis_completed(self, result: object):
+        # Adaptar AnalysisResult a ResultsPanel
+        try:
+            res_list = []
+            # Similarity puede no aplicar en análisis individual; usar métrica de calidad si disponible
+            quality = 0.0
             try:
-                img1 = cv2.imread(images[0], cv2.IMREAD_GRAYSCALE)
-                img2 = cv2.imread(images[1], cv2.IMREAD_GRAYSCALE)
-                if img1 is not None and img2 is not None:
-                    match_result = self.matcher.compare_images(img1, img2, AlgorithmType.CMC)
-                    md = getattr(match_result, 'match_data', {}) or {}
-
-                    # Visualización y resultados
-                    try:
-                        if hasattr(self.comparison_visualization, 'display_comparison'):
-                            self.comparison_visualization.display_comparison(images, {'mode': 'direct'})
-                        else:
-                            self.comparison_visualization.load_image(images[0])
-                        if hasattr(self, 'comparison_sections'):
-                            self.comparison_sections.setCurrentIndex(self.comparison_tab_indices.get('Visualización', 2))
-                    except Exception:
-                        pass
-
-                    comp_results = [{
-                        'id': 'Comparación CMC',
-                        'similarity': float(getattr(match_result, 'similarity_score', 0.0) or 0.0),
-                        'confidence': float(getattr(match_result, 'confidence', 0.0) or 0.0),
-                        'match_type': 'CMC',
-                        'images': images
-                    }]
-
-                    try:
-                        self.comparison_results.display_results(comp_results)
-                    except Exception:
-                        if hasattr(self.comparison_results, 'set_sample_results'):
-                            self.comparison_results.set_sample_results()
-
-                    # Ir a resultados
-                    if hasattr(self, 'comparison_sections'):
-                        self.comparison_sections.setCurrentIndex(self.comparison_tab_indices.get('Resultados', 6))
-
-                    # Panel de gráficos con resumen
-                    try:
-                        summary = {
-                            'count': len(comp_results),
-                            'avg_similarity': float(np.mean([r.get('similarity', 0) for r in comp_results])),
-                            'avg_confidence': float(np.mean([r.get('confidence', 0) for r in comp_results]))
-                        }
-                        if hasattr(self.comparison_graphics, 'update_with_results'):
-                            self.comparison_graphics.update_with_results(summary)
-                    except Exception:
-                        pass
-
-                    # Heatmap de correlación o CMC
-                    try:
-                        corr = md.get('correlation_map')
-                        if corr and isinstance(corr, dict) and 'data' in corr:
-                            matrix = np.array(corr['data'])
-                            self.comparison_heatmap.set_heatmap_data(matrix, title='Mapa de Correlación CMC', colormap='viridis')
-                            if hasattr(self, 'comparison_sections'):
-                                self.comparison_sections.setCurrentIndex(self.comparison_tab_indices.get('Heatmap', 3))
-                        else:
-                            cmc_m = md.get('cmc_map')
-                            if cmc_m and isinstance(cmc_m, dict) and 'data' in cmc_m:
-                                matrix = np.array(cmc_m['data'])
-                                self.comparison_heatmap.set_heatmap_data(matrix, title='Mapa de Celdas CMC', colormap='magma')
-                                if hasattr(self, 'comparison_sections'):
-                                    self.comparison_sections.setCurrentIndex(self.comparison_tab_indices.get('Heatmap', 3))
-                    except Exception:
-                        pass
-
-                    # Curva CMC basada en scores de celdas
-                    try:
-                        cells = md.get('cell_results', []) or []
-                        scores = [float(c.get('ccf_max', 0.0) or 0.0) for c in cells]
-                        if scores:
-                            self.comparison_cmc.update_cmc_data({'similarity_scores': scores})
-                            if hasattr(self, 'comparison_sections'):
-                                self.comparison_sections.setCurrentIndex(self.comparison_tab_indices.get('CMC', 4))
-                    except Exception:
-                        pass
-
-                    real_comp_done = True
-            except Exception:
-                real_comp_done = False
-
-        if not real_comp_done:
-            # Fallback a comportamiento simulado anterior
-            try:
-                if hasattr(self.comparison_visualization, 'display_comparison'):
-                    self.comparison_visualization.display_comparison(images, {'mode': 'direct'})
-                else:
-                    self.comparison_visualization.load_image(images[0])
-                self.comparison_viz_tabs.setCurrentIndex(0)
+                q = getattr(result, 'quality_metrics', None)
+                if isinstance(q, dict):
+                    quality = float(q.get('overall_quality', 0.0) or 0.0)
             except Exception:
                 pass
-
-            comp_results = [{
-                'id': 'Direct Comparison',
-                'similarity': 0.82,
-                'confidence': 0.78,
-                'match_type': 'Direct',
-                'images': images
-            }]
-
+            res_list.append({
+                'id': 'Análisis Optimizado',
+                'similarity': quality,
+                'confidence': float(getattr(result, 'confidence', 0.0) or 0.0),
+                'match_type': 'Individual',
+                'image_path': getattr(result, 'image_path', self.selected_images[0] if self.selected_images else None)
+            })
+            
+            if hasattr(self.analysis_results, 'display_results'):
+                self.analysis_results.display_results(res_list)
+            elif hasattr(self.analysis_results, 'set_sample_results'):
+                self.analysis_results.set_sample_results()
+            
+            if hasattr(self, 'analysis_sections'):
+                self.analysis_sections.setCurrentIndex(self.analysis_tab_indices.get('Resultados', 5))
+            
+            # Rehabilitar botón y limpiar worker
             try:
-                self.comparison_results.display_results(comp_results)
+                self.btn_run_analysis.setEnabled(True)
             except Exception:
-                if hasattr(self.comparison_results, 'set_sample_results'):
-                    self.comparison_results.set_sample_results()
+                pass
+            self.analysis_worker = None
+            self.status_label.setText("Análisis completado")
+        except Exception:
+            try:
+                self.btn_run_analysis.setEnabled(True)
+            except Exception:
+                pass
+            self.analysis_worker = None
 
-            # Actualizar panel de gráficos con resumen de comparación
+    def _on_analysis_error(self, message: str, details: str = ""):
+        try:
+            self.status_label.setText(f"Error en análisis: {message}")
+        except Exception:
+            pass
+        try:
+            self.btn_run_analysis.setEnabled(True)
+        except Exception:
+            pass
+        self.analysis_worker = None
+
+    def _on_comparison_progress(self, progress: int, message: str):
+        try:
+            self.status_label.setText(f"Comparación {progress}% - {message}")
+        except Exception:
+            pass
+
+    def _on_comparison_status(self, text: str):
+        try:
+            self.status_label.setText(text)
+        except Exception:
+            pass
+
+    def _on_comparison_memory(self, memory_mb: float):
+        try:
+            self.status_label.setText(f"Memoria: {memory_mb:.0f} MB")
+        except Exception:
+            pass
+
+    def _on_comparison_visualization(self, viz_name: str, viz_data: object):
+        try:
+            # Si se entrega un futuro, esperar de forma no bloqueante
+            from concurrent.futures import Future
+            if isinstance(viz_data, Future):
+                def _done(fut: Future):
+                    data = None
+                    try:
+                        data = fut.result()
+                    except Exception:
+                        data = None
+                    # Programar actualización en hilo de GUI
+                    from PyQt5.QtCore import QTimer
+                    QTimer.singleShot(0, lambda: self._apply_comparison_visualization(viz_name, data))
+                viz_data.add_done_callback(_done)
+            else:
+                self._apply_comparison_visualization(viz_name, viz_data)
+        except Exception:
+            pass
+
+    def _apply_comparison_visualization(self, viz_name: str, data: object):
+        try:
+            if viz_name == 'match_visualization' and isinstance(data, dict):
+                # Mostrar visualización básica y llevar a pestaña correspondiente
+                if hasattr(self.comparison_visualization, 'load_image') and self.selected_images:
+                    self.comparison_visualization.load_image(self.selected_images[0])
+                if hasattr(self, 'comparison_sections'):
+                    self.comparison_sections.setCurrentIndex(self.comparison_tab_indices.get('Visualización', 2))
+        except Exception:
+            pass
+
+    def _on_comparison_match_found(self, match: object):
+        # Podríamos actualizar resultados incrementales si se requiere
+        pass
+
+    def _on_comparison_completed(self, result: object):
+        try:
+            comp_results = [{
+                'id': 'Comparación Optimizada',
+                'similarity': float(getattr(result, 'similarity_score', 0.0) or 0.0),
+                'confidence': float((getattr(result, 'comparison_results', {}) or {}).get('similarity_analysis', {}).get('confidence', 0.0)),
+                'match_type': 'CMC',
+                'images': self.selected_images[:2]
+            }]
+            
+            if hasattr(self.comparison_results, 'display_results'):
+                self.comparison_results.display_results(comp_results)
+            elif hasattr(self.comparison_results, 'set_sample_results'):
+                self.comparison_results.set_sample_results()
+            
+            if hasattr(self, 'comparison_sections'):
+                self.comparison_sections.setCurrentIndex(self.comparison_tab_indices.get('Resultados', 6))
+            
+            # Panel de gráficos con resumen
             try:
                 summary = {
                     'count': len(comp_results),
@@ -592,25 +652,27 @@ class TriTabbedGUI(QWidget):
                     self.comparison_graphics.update_with_results(summary)
             except Exception:
                 pass
-
-            # Heatmap y CMC simulados
+            
             try:
-                self.comparison_heatmap.clear_external_data()
-                self.comparison_heatmap.update_heatmap()
+                self.btn_compare.setEnabled(True)
             except Exception:
                 pass
+            self.comparison_worker = None
+            self.status_label.setText("Comparación completada")
+        except Exception:
             try:
-                cmc_x = np.linspace(0, 1, 50)
-                cmc_y = cmc_x**0.6
-                self.comparison_cmc.cmc_canvas.add_curve(
-                    CMCCurveData("Comparación A", cmc_x, cmc_y, color='darkred')
-                )
-                cmc_y2 = cmc_x**0.4
-                self.comparison_cmc.cmc_canvas.add_curve(
-                    CMCCurveData("Comparación B", cmc_x, cmc_y2, color='darkgreen')
-                )
+                self.btn_compare.setEnabled(True)
             except Exception:
                 pass
+            self.comparison_worker = None
 
-        self.status_label.setText("Comparación completada")
-from gui.graphics_widgets import GraphicsVisualizationPanel
+    def _on_comparison_error(self, message: str, details: str = ""):
+        try:
+            self.status_label.setText(f"Error en comparación: {message}")
+        except Exception:
+            pass
+        try:
+            self.btn_compare.setEnabled(True)
+        except Exception:
+            pass
+        self.comparison_worker = None

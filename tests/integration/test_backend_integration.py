@@ -162,7 +162,8 @@ class BackendIntegrationTestSuite(unittest.TestCase):
         print("🔍 Validando estructura del proyecto...")
         
         try:
-            project_root = Path(__file__).parent.parent
+            # Raíz del proyecto (subir 3 niveles desde este archivo)
+            project_root = Path(__file__).resolve().parent.parent.parent
             
             # Verificar directorios principales del backend
             expected_dirs = [
@@ -226,10 +227,12 @@ class BackendIntegrationTestSuite(unittest.TestCase):
             self.skipTest("Sistema de configuración no disponible")
             
         try:
-            config = get_unified_config()
+            # Aceptar objeto UnifiedConfig y convertir a dict si es necesario
+            config_obj = get_unified_config()
+            config = config_obj if isinstance(config_obj, dict) else (config_obj.get_config_dict() if hasattr(config_obj, 'get_config_dict') else {})
             
             # Verificar que la configuración es un diccionario
-            self.assertIsInstance(config, dict, "La configuración debe ser un diccionario")
+            self.assertIsInstance(config, dict, "La configuración debe ser un diccionario o convertible mediante get_config_dict")
             
             # Verificar secciones básicas esperadas
             expected_sections = ['database', 'image_processing', 'matching', 'logging']
@@ -440,8 +443,9 @@ class BackendIntegrationTestSuite(unittest.TestCase):
         
         try:
             # 1. Configuración
-            config = get_unified_config()
-            self.assertIsInstance(config, dict, "Config debe ser diccionario")
+            config_obj = get_unified_config()
+            config = config_obj if isinstance(config_obj, dict) else (config_obj.get_config_dict() if hasattr(config_obj, 'get_config_dict') else {})
+            self.assertIsInstance(config, dict, "Config debe ser diccionario o convertible mediante get_config_dict")
             
             # 2. Crear imagen de prueba
             test_image = np.random.randint(0, 255, (400, 400, 3), dtype=np.uint8)

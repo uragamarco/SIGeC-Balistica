@@ -106,7 +106,7 @@ class CoreIntegration(QObject):
         except Exception as e:
             logging.error(f"Error inicializando componentes core: {e}")
             # Usar fallbacks centralizados en lugar de mocks temporales
-            from utils.fallback_implementations import get_fallback
+            from core.fallback_registry import get_fallback
             core_fallbacks = get_fallback('core_components')
             
             if self.scientific_pipeline is None:

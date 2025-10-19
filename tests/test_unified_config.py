@@ -9,7 +9,7 @@ de configuración unificado, incluyendo validación, migración, y
 compatibilidad con configuraciones legacy.
 
 Autor: SIGeC-BalisticaTeam
-Fecha: Diciembre 2024
+Fecha: Octubre 2025
 """
 
 import os
@@ -47,6 +47,7 @@ from config.unified_config import (
     get_deep_learning_config,
     get_nist_config
 )
+from matching.unified_matcher import AlgorithmType, MatchingLevel
 
 class TestDatabaseConfig:
     """Pruebas para DatabaseConfig"""
@@ -502,6 +503,106 @@ class TestUnifiedConfig:
         assert 'database' in json_data
         assert 'gui' in json_data
         assert 'matching' in json_data
+
+    @patch('config.unified_config.Path.cwd')
+    def test_default_config_file_mapping(self, mock_cwd):
+        """Prueba mapeo de archivos de configuración por entorno"""
+        mock_cwd.return_value = self.temp_path
+
+        # Crear archivos indicadores
+        (self.temp_path / "main.py").touch()
+        (self.temp_path / "gui").mkdir()
+        (self.temp_path / "matching").mkdir()
+
+        # Sin variable de entorno -> development
+        with patch.dict(os.environ, {}, clear=True):
+            cfg_dev = UnifiedConfig()
+            assert cfg_dev.environment == Environment.DEVELOPMENT
+            assert cfg_dev.config_file == "config/unified_config.yaml"
+
+        # testing
+        with patch.dict(os.environ, {'SIGeC-Balistica_ENV': 'testing'}, clear=True):
+            cfg_test = UnifiedConfig()
+            assert cfg_test.environment == Environment.TESTING
+            assert cfg_test.config_file == "config/unified_config_testing.yaml"
+
+        # production
+        with patch.dict(os.environ, {'SIGeC-Balistica_ENV': 'production'}, clear=True):
+            cfg_prod = UnifiedConfig()
+            assert cfg_prod.environment == Environment.PRODUCTION
+            assert cfg_prod.config_file == "config/unified_config_production.yaml"
+
+        # Sinónimos
+        with patch.dict(os.environ, {'SIGeC-Balistica_ENV': 'prod'}, clear=True):
+            cfg_prod_syn = UnifiedConfig()
+            assert cfg_prod_syn.environment == Environment.PRODUCTION
+            assert cfg_prod_syn.config_file == "config/unified_config_production.yaml"
+
+        with patch.dict(os.environ, {'SIGeC-Balistica_ENV': 'test'}, clear=True):
+            cfg_test_syn = UnifiedConfig()
+            assert cfg_test_syn.environment == Environment.TESTING
+            assert cfg_test_syn.config_file == "config/unified_config_testing.yaml"
+
+        with patch.dict(os.environ, {'SIGeC-Balistica_ENV': 'dev'}, clear=True):
+            cfg_dev_syn = UnifiedConfig()
+            assert cfg_dev_syn.environment == Environment.DEVELOPMENT
+            assert cfg_dev_syn.config_file == "config/unified_config.yaml"
+
+    @patch('config.unified_config.Path.cwd')
+    def test_environment_yaml_loading_enum_conversion(self, mock_cwd):
+        """Prueba carga de YAML por entorno y conversión de enums"""
+        mock_cwd.return_value = self.temp_path
+
+        # Crear archivos indicadores
+        (self.temp_path / "main.py").touch()
+        (self.temp_path / "gui").mkdir()
+        (self.temp_path / "matching").mkdir()
+
+        # Crear YAML específico de testing con valores distintivos
+        config_dir = self.temp_path / "config"
+        config_dir.mkdir(parents=True, exist_ok=True)
+        testing_yaml = config_dir / "unified_config_testing.yaml"
+        yaml_data = {
+            'database': {
+                'sqlite_path': 'database/testing.db',
+                'faiss_index_path': 'database/faiss_index'
+            },
+            'gui': {
+                'theme': 'dark',
+                'language': 'en'
+            },
+            'matching': {
+                'algorithm': 'SIFT',  # string que debe convertirse a enum
+                'level': 'advanced',   # string que debe convertirse a enum
+                'min_matches': 12
+            }
+        }
+        with open(testing_yaml, 'w', encoding='utf-8') as f:
+            yaml.dump(yaml_data, f)
+
+        # Establecer entorno testing y cargar desde YAML temporal explícito
+        with patch.dict(os.environ, {'SIGeC-Balistica_ENV': 'testing'}, clear=True):
+            cfg = UnifiedConfig(config_file=str(testing_yaml))
+
+        # Verificar que se leyó el archivo de testing
+        assert cfg.environment == Environment.TESTING
+        assert Path(cfg.config_file) == testing_yaml
+
+        # Verificar conversión de enums y valores aplicados
+        assert cfg.matching.algorithm == AlgorithmType.SIFT
+        assert cfg.matching.level == MatchingLevel.ADVANCED
+        assert cfg.matching.min_matches == 12
+        assert cfg.gui.theme == 'dark'
+        assert cfg.gui.language == 'en'
+
+        # Guardar y verificar que se serializa como strings
+        cfg.save_config()
+        with open(testing_yaml, 'r', encoding='utf-8') as f:
+            saved = yaml.safe_load(f)
+        assert isinstance(saved['matching']['algorithm'], str)
+        assert isinstance(saved['matching']['level'], str)
+        assert saved['matching']['algorithm'] == 'SIFT'
+        assert saved['matching']['level'] == 'advanced'
     
     @patch('config.unified_config.Path.cwd')
     def test_get_absolute_path(self, mock_cwd):

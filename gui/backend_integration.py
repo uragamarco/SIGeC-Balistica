@@ -18,6 +18,8 @@ Autor: SIGeC-BalisticaTeam
 Fecha: Octubre 2025
 """
 
+from __future__ import annotations
+
 import os
 import sys
 import logging
@@ -26,59 +28,115 @@ from pathlib import Path
 from typing import Dict, List, Optional, Any, Tuple, Union
 from dataclasses import dataclass
 from enum import Enum
-# Importaciones del sistema real - Comentadas temporalmente para pruebas
-from core.unified_pipeline import AFTEConclusion
-
-# Clases mock temporales para pruebas
-class AFTEConclusion:
-    def __init__(self, conclusion="Inconclusive", confidence=0.5):
-        self.conclusion = conclusion
-        self.confidence = confidence
 import numpy as np
 from PyQt5.QtCore import QObject, pyqtSignal, QThread, QTimer
 from PyQt5.QtWidgets import QApplication
 
-# Importaciones con manejo centralizado de fallbacks
-from utils.dependency_manager import safe_import
+# Asegurar que el project root esté en sys.path para imports relativos al proyecto
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
+if str(PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(PROJECT_ROOT))
 
-# Usar importación segura para todos los módulos
-UnifiedConfig = safe_import('config.unified_config', 'config')
-get_unified_config = safe_import('config.unified_config', 'config')
-get_database_config = safe_import('config.unified_config', 'config')
-get_image_processing_config = safe_import('config.unified_config', 'config')
-get_matching_config = safe_import('config.unified_config', 'config')
-get_gui_config = safe_import('config.unified_config', 'config')
-get_nist_config = safe_import('config.unified_config', 'config')
+# Configuración unificada (import directo)
+from config.unified_config import (
+    UnifiedConfig,
+    get_unified_config,
+    get_database_config,
+    get_image_processing_config,
+    get_matching_config,
+    get_gui_config,
+    get_nist_config,
+)
 
-UnifiedStatisticalAnalysis = safe_import('common.statistical_core', 'statistical')
-NISTStatisticalIntegration = safe_import('common.nist_integration', 'nist')
-UnifiedPreprocessor = safe_import('image_processing.unified_preprocessor', 'image_processing')
-UnifiedMatcher = safe_import('matching.unified_matcher', 'matching')
-MatchingLevel = safe_import('matching.unified_matcher', 'matching')
-AlgorithmType = safe_import('matching.unified_matcher', 'matching')
+# Core y componentes (imports directos con try/except para robustez)
+try:
+    from core.unified_pipeline import ScientificPipeline, PipelineResult
+    CORE_PIPELINE_AVAILABLE = True
+except Exception:
+    CORE_PIPELINE_AVAILABLE = False
+    ScientificPipeline = None
+    PipelineResult = None
 
-# Verificar disponibilidad de módulos
-CONFIG_AVAILABLE = UnifiedConfig is not None
-STATISTICAL_CORE_AVAILABLE = UnifiedStatisticalAnalysis is not None
-NIST_INTEGRATION_AVAILABLE = NISTStatisticalIntegration is not None
-IMAGE_PROCESSING_AVAILABLE = UnifiedPreprocessor is not None
-MATCHING_AVAILABLE = all([UnifiedMatcher is not None, MatchingLevel is not None, AlgorithmType is not None])
+try:
+    # AFTEConclusion proviene de pipeline_config
+    from core.pipeline_config import AFTEConclusion
+    AFTE_AVAILABLE = True
+except Exception:
+    AFTE_AVAILABLE = False
+    AFTEConclusion = None
 
-# Importar utilidades con manejo centralizado
-get_logger = safe_import('utils.logger', 'utils')
-SystemValidator = safe_import('utils.validators', 'utils')
-MemoryCache = safe_import('core.intelligent_cache', 'core_components')
-UTILS_AVAILABLE = all([get_logger is not None, SystemValidator is not None, MemoryCache is not None])
+# Estadística y NIST
+try:
+    from common.statistical_core import UnifiedStatisticalAnalysis
+    STATISTICAL_CORE_AVAILABLE = True
+except Exception:
+    STATISTICAL_CORE_AVAILABLE = False
+    UnifiedStatisticalAnalysis = None
 
-# Importar core pipeline con manejo centralizado
-ScientificPipeline = safe_import('core.unified_pipeline', 'core_components')
-ErrorRecoveryManager = safe_import('core.error_handler', 'core_components')
-IntelligentCache = safe_import('core.intelligent_cache', 'core_components')
-CORE_AVAILABLE = all([ScientificPipeline is not None, ErrorRecoveryManager is not None, IntelligentCache is not None])
+try:
+    from common.nist_integration import NISTStatisticalIntegration
+    NIST_INTEGRATION_AVAILABLE = True
+except Exception:
+    NIST_INTEGRATION_AVAILABLE = False
+    NISTStatisticalIntegration = None
 
-# Importar base de datos con manejo centralizado
-UnifiedDatabase = safe_import('database.unified_database', 'database')
-DATABASE_AVAILABLE = UnifiedDatabase is not None
+# Procesamiento de imágenes
+try:
+    from image_processing.unified_preprocessor import UnifiedPreprocessor
+    IMAGE_PROCESSING_AVAILABLE = True
+except Exception:
+    IMAGE_PROCESSING_AVAILABLE = False
+    UnifiedPreprocessor = None
+
+# Matching y enums
+try:
+    from matching.unified_matcher import UnifiedMatcher, MatchingLevel, AlgorithmType
+    MATCHING_AVAILABLE = True
+except Exception:
+    MATCHING_AVAILABLE = False
+    UnifiedMatcher = None
+    MatchingLevel = None
+    AlgorithmType = None
+
+# Base de datos
+try:
+    from database.unified_database import UnifiedDatabase
+    DATABASE_AVAILABLE = True
+except Exception:
+    DATABASE_AVAILABLE = False
+    UnifiedDatabase = None
+
+# Utilidades
+try:
+    from utils.logger import get_logger
+    LOGGER_AVAILABLE = True
+except Exception:
+    LOGGER_AVAILABLE = False
+    def get_logger(*args, **kwargs):
+        return logging.getLogger(__name__)
+
+try:
+    from utils.validators import SystemValidator  # Si no existe, se manejará en except
+    VALIDATORS_AVAILABLE = True
+except Exception:
+    VALIDATORS_AVAILABLE = False
+    SystemValidator = None
+
+# Core: gestor de errores y cache
+try:
+    from core.error_handler import ErrorRecoveryManager
+    ERROR_HANDLER_AVAILABLE = True
+except Exception:
+    ERROR_HANDLER_AVAILABLE = False
+    ErrorRecoveryManager = None
+
+try:
+    from core.intelligent_cache import IntelligentCache, MemoryCache
+    CACHE_AVAILABLE = True
+except Exception:
+    CACHE_AVAILABLE = False
+    IntelligentCache = None
+    MemoryCache = None
 
 # Configurar logging
 logger = logging.getLogger(__name__)
@@ -194,9 +252,8 @@ class BackendIntegration(QObject):
         """Inicializa todos los componentes del backend"""
         try:
             # Configuración unificada
-            if CONFIG_AVAILABLE:
-                self.config = get_unified_config()
-                logger.info("Configuración unificada cargada")
+            self.config = get_unified_config()
+            logger.info("Configuración unificada cargada")
             
             # Análisis estadístico
             if STATISTICAL_CORE_AVAILABLE:
@@ -227,16 +284,20 @@ class BackendIntegration(QObject):
                 logger.info("Base de datos inicializada")
             
             # Pipeline científico unificado
-            if CORE_AVAILABLE:
+            if CORE_PIPELINE_AVAILABLE:
                 self.scientific_pipeline = ScientificPipeline()
-                self.error_handler = ErrorRecoveryManager()
-                self.intelligent_cache = IntelligentCache()
-                logger.info("Pipeline científico y componentes core inicializados")
+                logger.info("Pipeline científico inicializado")
             
-            # Utilidades del sistema
-            if UTILS_AVAILABLE:
+            # Gestor de errores
+            if ERROR_HANDLER_AVAILABLE:
+                self.error_handler = ErrorRecoveryManager()
+                logger.info("Gestor de errores inicializado")
+            
+            # Utilidades del sistema (caché)
+            if CACHE_AVAILABLE:
+                self.intelligent_cache = IntelligentCache()
                 self.memory_cache = MemoryCache()
-                logger.info("Utilidades del sistema inicializadas")
+                logger.info("Sistema de caché inicializado")
                 
         except Exception as e:
             logger.error(f"Error inicializando componentes del backend: {e}")
@@ -245,18 +306,18 @@ class BackendIntegration(QObject):
     def get_system_status(self) -> Dict[str, Any]:
         """Obtiene el estado del sistema"""
         return {
-            'config_available': CONFIG_AVAILABLE and self.config is not None,
-            'statistical_available': STATISTICAL_CORE_AVAILABLE and self.statistical_analyzer is not None,
-            'nist_available': NIST_INTEGRATION_AVAILABLE and self.nist_integration is not None,
-            'image_processing_available': IMAGE_PROCESSING_AVAILABLE and self.image_processor is not None,
-            'matching_available': MATCHING_AVAILABLE and self.matcher is not None,
-            'database_available': DATABASE_AVAILABLE and self.database is not None,
-            'scientific_pipeline_available': CORE_AVAILABLE and self.scientific_pipeline is not None,
-            'error_handler_available': CORE_AVAILABLE and self.error_handler is not None,
-            'intelligent_cache_available': CORE_AVAILABLE and self.intelligent_cache is not None,
-            'memory_cache_available': UTILS_AVAILABLE and self.memory_cache is not None,
-            'utils_available': UTILS_AVAILABLE,
-            'core_available': CORE_AVAILABLE,
+            'config_available': self.config is not None,
+            'statistical_available': self.statistical_analyzer is not None,
+            'nist_available': self.nist_integration is not None,
+            'image_processing_available': self.image_processor is not None,
+            'matching_available': self.matcher is not None,
+            'database_available': self.database is not None,
+            'scientific_pipeline_available': self.scientific_pipeline is not None,
+            'error_handler_available': self.error_handler is not None,
+            'intelligent_cache_available': self.intelligent_cache is not None,
+            'memory_cache_available': self.memory_cache is not None,
+            'utils_available': any([LOGGER_AVAILABLE, VALIDATORS_AVAILABLE]),
+            'core_available': any([CORE_PIPELINE_AVAILABLE, ERROR_HANDLER_AVAILABLE, CACHE_AVAILABLE]),
             'current_status': self.current_status.value,
             'backend_version': '1.0.0'
         }
@@ -267,11 +328,11 @@ class BackendIntegration(QObject):
             return {}
         
         return {
-            'database': get_database_config().__dict__ if CONFIG_AVAILABLE else {},
-            'image_processing': get_image_processing_config().__dict__ if CONFIG_AVAILABLE else {},
-            'matching': get_matching_config().__dict__ if CONFIG_AVAILABLE else {},
-            'gui': get_gui_config().__dict__ if CONFIG_AVAILABLE else {},
-            'nist': get_nist_config().__dict__ if CONFIG_AVAILABLE else {}
+            'database': get_database_config().__dict__ if self.config else {},
+            'image_processing': get_image_processing_config().__dict__ if self.config else {},
+            'matching': get_matching_config().__dict__ if self.config else {},
+            'gui': get_gui_config().__dict__ if self.config else {},
+            'nist': get_nist_config().__dict__ if self.config else {}
         }
     
     def update_configuration(self, section: str, **kwargs) -> bool:
@@ -331,7 +392,7 @@ class BackendIntegration(QObject):
             'quality_assessment': []
         }
         
-        if MATCHING_AVAILABLE:
+        if MATCHING_AVAILABLE and AlgorithmType is not None:
             algorithms['feature_extraction'] = [alg.value for alg in AlgorithmType]
             algorithms['matching'] = ['BF', 'FLANN', 'HYBRID']
         
@@ -342,7 +403,7 @@ class BackendIntegration(QObject):
     
     def get_matching_levels(self) -> List[str]:
         """Obtiene los niveles de matching disponibles"""
-        if MATCHING_AVAILABLE:
+        if MATCHING_AVAILABLE and MatchingLevel is not None:
             return [level.value for level in MatchingLevel]
         return ['basic', 'standard', 'advanced']
     

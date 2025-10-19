@@ -151,18 +151,19 @@ class DependencyManager:
         if package_name not in self.dependencies:
             # Intentar importar módulos internos/desconocidos directamente
             try:
-                module = importlib.import_module(package_name)
+                importlib.import_module(package_name)
                 return DependencyInfo(
                     name=package_name,
                     import_name=package_name,
                     status=DependencyStatus.AVAILABLE
                 )
-            except ImportError as e:
+            except ImportError:
+                # Dep. no registrada y no importable: marcar como MISSING
                 return DependencyInfo(
                     name=package_name,
                     import_name=package_name,
-                    status=DependencyStatus.IMPORT_ERROR,
-                    error_message=str(e)
+                    status=DependencyStatus.MISSING,
+                    error_message="Dependencia no registrada"
                 )
         
         dep_info = self.dependencies[package_name]
@@ -396,23 +397,23 @@ class DependencyManager:
     
     # Implementaciones de fallback
     def _torch_fallback(self):
-        """Fallback para PyTorch - ahora usa el fallback centralizado"""
-        from utils.fallback_implementations import get_fallback
+        """Fallback para PyTorch - usa el registro central en core"""
+        from core.fallback_registry import get_fallback
         return get_fallback('torch')
     
     def _tensorflow_fallback(self):
-        """Fallback para TensorFlow - ahora usa el fallback centralizado"""
-        from utils.fallback_implementations import get_fallback
+        """Fallback para TensorFlow - usa el registro central en core"""
+        from core.fallback_registry import get_fallback
         return get_fallback('tensorflow')
     
     def _flask_fallback(self):
-        """Fallback para Flask - ahora usa el fallback centralizado"""
-        from utils.fallback_implementations import get_fallback
+        """Fallback para Flask - usa el registro central en core"""
+        from core.fallback_registry import get_fallback
         return get_fallback('flask')
     
     def _rawpy_fallback(self):
-        """Fallback para RawPy - ahora usa el fallback centralizado"""
-        from utils.fallback_implementations import get_fallback
+        """Fallback para RawPy - usa el registro central en core"""
+        from core.fallback_registry import get_fallback
         return get_fallback('rawpy')
 
 

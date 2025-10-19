@@ -12,13 +12,13 @@ Componentes principales:
 
 # Importaciones principales
 try:
-    from .unified_matcher import UnifiedMatcher, MatchResult, MatchingConfig, AlgorithmType, MatchingLevel
+    from .unified_matcher import UnifiedMatcher, MatchResult, MatchingConfig, AlgorithmType, MatchingLevel, create_matching_config
     UNIFIED_MATCHER_AVAILABLE = True
 except ImportError:
     UNIFIED_MATCHER_AVAILABLE = False
 
 try:
-    from .cmc_algorithm import CMCAlgorithm, CMCParameters, CMCMatchResult
+    from .cmc_algorithm import CMCAlgorithm, CMCParameters, CMCMatchResult, CMCCell, CMCResult, create_cmc_algorithm
     CMC_AVAILABLE = True
 except ImportError:
     CMC_AVAILABLE = False
@@ -32,14 +32,18 @@ if UNIFIED_MATCHER_AVAILABLE:
         'MatchResult', 
         'MatchingConfig',
         'AlgorithmType',
-        'MatchingLevel'
+        'MatchingLevel',
+        'create_matching_config'
     ])
 
 if CMC_AVAILABLE:
     __all__.extend([
         'CMCAlgorithm',
         'CMCParameters',
-        'CMCMatchResult'
+        'CMCMatchResult',
+        'CMCCell',
+        'CMCResult',
+        'create_cmc_algorithm'
     ])
 
 __version__ = "1.0.0"

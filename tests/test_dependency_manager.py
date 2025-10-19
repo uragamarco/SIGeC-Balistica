@@ -21,7 +21,7 @@ from utils.dependency_manager import (
     dependency_manager, check_dependencies, safe_import, install_missing,
     generate_dependency_report
 )
-from utils.fallback_implementations import (
+from core.fallback_registry import (
     DeepLearningFallback, WebServiceFallback, ImageProcessingFallback,
     DatabaseFallback, FallbackRegistry, get_fallback
 )

@@ -738,19 +738,53 @@ class AnalysisTab(QWidget):
     
     def on_level_changed(self, level: str):
         """Handle analysis level change"""
-        # Record level change
-        record_user_action('level_changed', 'analysis_tab', {
-            'new_level': level,
-            'previous_level': self.current_configuration.get('level', 'unknown')
-        })
-        
-        self.current_configuration['level'] = level
-        self.configuration_changed.emit(self.current_configuration)
-        self.update_analysis_button_state()
-        
-        # Update configuration panel based on level
-        if hasattr(self, 'config_levels_manager'):
-            self.config_levels_manager.set_level(level)
+        # Prevent re-entrant recursion from levelChanged -> set_level -> levelChanged
+        if getattr(self, '_handling_level_change', False):
+            return
+        self._handling_level_change = True
+        try:
+            # Record level change (telemetry guarded)
+            try:
+                record_user_action('level_changed', 'analysis_tab', data={
+                    'new_level': level,
+                    'previous_level': self.current_configuration.get('level', 'unknown')
+                })
+            except Exception as e:
+                print(f"Telemetry record_user_action failed: {e}")
+            
+            # Update local configuration state
+            self.current_configuration['level'] = level
+            self.configuration_changed.emit(self.current_configuration)
+            self.update_analysis_button_state()
+
+            # Update stepper UI if available
+            if hasattr(self, 'analysis_stepper') and hasattr(self.analysis_stepper, 'set_configuration_level'):
+                try:
+                    self.analysis_stepper.set_configuration_level(level)
+                except Exception as e:
+                    print(f"Stepper level update failed: {e}")
+            
+            # Update configuration panel based on level (ensure correct attribute, avoid signal loops)
+            if hasattr(self, 'config_manager'):
+                try:
+                    current = None
+                    if hasattr(self.config_manager, 'get_current_level'):
+                        current = self.config_manager.get_current_level()
+                    if current != level:
+                        try:
+                            self.config_manager.blockSignals(True)
+                        except Exception:
+                            pass
+                        self.config_manager.set_level(level)
+                except Exception as e:
+                    print(f"Config manager level update failed: {e}")
+                finally:
+                    try:
+                        self.config_manager.blockSignals(False)
+                    except Exception:
+                        pass
+        finally:
+            self._handling_level_change = False
 
     def on_images_changed(self, images: List[str]):
         """Handle image selection change"""
@@ -779,7 +813,6 @@ class AnalysisTab(QWidget):
                     'evidence_id': img_name,
                     'laboratory': 'SIGeC',
                     'firearm_type': '',
-                    'bullet_specimen_name': os.path.splitext(img_name)[0],
                 }
                 self.nist_metadata_widget.set_metadata(prefill)
                 # Sincronizar con el gestor de estado si existe

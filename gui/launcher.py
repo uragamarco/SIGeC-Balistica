@@ -72,11 +72,11 @@ def main():
     print()
     
     try:
-        # Importar y ejecutar la aplicación
-        from gui.main_window import main as app_main
-        
-        # Ejecutar la aplicación
-        sys.exit(app_main())
+        # Usar el lanzador consolidado con diagnósticos
+        from launch_gui import launch_gui
+
+        # Ejecutar la aplicación a través del lanzador unificado
+        sys.exit(launch_gui())
         
     except ImportError as e:
         print(f"✗ Error de importación: {e}")

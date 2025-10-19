@@ -27,11 +27,52 @@ Esta guía te ayudará a migrar del sistema de configuración anterior al nuevo 
 - Duplicación de valores
 - Difícil mantenimiento
 
-### Ahora (Sistema en Capas)
-- **Configuración unificada** en `config/config_layers.yaml`
-- **Herencia de configuración** entre entornos
-- **Sobrescritura mediante variables de entorno**
-- **Gestión centralizada** a través de `UnifiedConfigManager`
+### Ahora (Configuración Unificada por Entorno)
+- **Configuración unificada tipada** en `config/unified_config.py`
+- **Archivos YAML por entorno**: `unified_config.yaml`, `unified_config_testing.yaml`, `unified_config_production.yaml`
+- **Selección de entorno** por `SIGeC-Balistica_ENV`
+- **Migración automática** desde configuraciones legacy usando `config/config_consolidator.py`
+
+### Fallbacks Centralizados
+- **Antes:** importaciones dispersas desde `utils/fallback_implementations` y lógica ad-hoc.
+- **Ahora:** un único punto de entrada en `core/fallback_registry.py`.
+
+```python
+# Nuevo (recomendado):
+from core.fallback_registry import get_fallback
+fb = get_fallback('deep_learning')
+
+# Antiguo (OBSOLETO):
+# from utils.fallback_implementations import get_fallback
+```
+
+Acciones de migración:
+- Actualizar importaciones en `gui/core_integration.py`, `utils/dependency_manager.py`, tests y módulos que consuman fallbacks.
+- Añadir tests unitarios para `core/fallback_registry.py` y asegurar categorías estándar disponibles.
+
+### Diferencias entre YAML por entorno
+
+Cada archivo YAML refleja el mismo esquema tipado, con variaciones mínimas por entorno:
+
+- `config/unified_config.yaml` (desarrollo): valores por defecto y rutas locales.
+- `config/unified_config_testing.yaml` (testing): enfocada a pruebas, sin cambios funcionales salvo overrides puntuales.
+- `config/unified_config_production.yaml` (producción): iguales en estructura; evita anotaciones de objetos Python en `matching`.
+
+Importante: En producción, asegúrate de que `matching.algorithm` y `matching.level` estén serializados como strings. Evita entradas como `!!python/object/apply:...`.
+
+```yaml
+# Correcto (producción)
+matching:
+  algorithm: ORB
+  level: standard
+
+# Incorrecto (producirá advertencias y puede fallar serialización)
+matching:
+  algorithm: !!python/object/apply:matching.unified_matcher.AlgorithmType
+  - ORB
+  level: !!python/object/apply:matching.unified_matcher.MatchingLevel
+  - standard
+```
 
 ## Pasos de Migración
 
@@ -57,16 +98,31 @@ Los siguientes archivos son **obsoletos** y pueden eliminarse después de la mig
 
 ### 3. Migración Automática
 
-El sistema incluye **migración automática** de configuraciones existentes:
+El sistema incluye **migración automática** de configuraciones existentes. `UnifiedConfig` intentará usar el consolidator y, si no está disponible, aplicará una migración básica:
 
 ```python
-from config.config_manager import get_unified_manager
+from config.unified_config import get_unified_config, Environment
 
-# El gestor detecta y migra automáticamente configuraciones antiguas
-config_manager = get_unified_manager()
+# Inicializar y migrar (si hay legacy)
+cfg = get_unified_config(environment=Environment.DEVELOPMENT, force_reload=True)
 
-# Cargar configuración (migra automáticamente si es necesario)
-config = config_manager.load_config("unified", "base")
+# Acceder a valores tipados
+db_path = cfg.database.sqlite_path
+theme = cfg.gui.theme
+```
+
+### 3.b Migración de Fallbacks
+
+```python
+# Buscar y reemplazar importaciones antiguas
+grep -R "utils.fallback_implementations" -n .
+
+# Usar el registro centralizado
+from core.fallback_registry import get_fallback, FallbackRegistry
+
+torch_fb = get_fallback('torch')
+registry = FallbackRegistry()
+registry.register_fallback('mi_categoria', object())
 ```
 
 ### 4. Verificar Migración
@@ -99,13 +155,10 @@ database:
 
 **Ahora:**
 ```yaml
-# config/config_layers.yaml
-base:
-  database:
-    type: "unified"
-    host: "localhost"
-    port: 5432
-    name: "ballistic_db"
+# config/unified_config.yaml
+database:
+  sqlite_path: database/ballistics.db
+  faiss_index_path: database/faiss_index
 ```
 
 ### Configuración GUI
@@ -120,14 +173,11 @@ window_size: [1200, 800]
 
 **Ahora:**
 ```yaml
-# config/config_layers.yaml
-base:
-  gui:
-    theme: "modern"
-    enable_gpu: true
-    window:
-      width: 1200
-      height: 800
+# config/unified_config.yaml
+gui:
+  theme: default
+  window_width: 1200
+  window_height: 800
 ```
 
 ### Configuración de Procesamiento de Imágenes
@@ -217,14 +267,28 @@ config = config_manager.load_config("unified", "production")
 El nuevo sistema soporta sobrescritura mediante variables de entorno:
 
 ```bash
-# Configurar entorno
-export SIGEC_ENVIRONMENT="production"
+# Seleccionar entorno
+export SIGeC-Balistica_ENV="production"
 
-# Sobrescribir valores específicos
-export SIGEC_DATABASE_HOST="prod-db-server.company.com"
-export SIGEC_DATABASE_PORT="5432"
-export SIGEC_GUI_THEME="dark"
-export SIGEC_LOGGING_LEVEL="INFO"
+# Nota: Las sobrescrituras de valores específicos vía variables de entorno
+# no están soportadas actualmente. Usa la API tipada o edita el YAML.
+
+Alias soportados para entorno:
+- `base`, `dev`, `development` → desarrollo
+- `test`, `testing` → testing
+- `prod`, `production` → producción
+```
+
+### Sobrescritura de valores (API tipada)
+
+```python
+from config.unified_config import get_unified_config, Environment
+
+cfg = get_unified_config(environment=Environment.PRODUCTION)
+cfg.update_config('logging', level='INFO')
+cfg.update_config('database', sqlite_path='database/ballistics_prod.db')
+cfg.update_config('matching', algorithm='ORB', level='standard')
+cfg.save_config()
 ```
 
 ## Validación y Testing
@@ -232,9 +296,11 @@ export SIGEC_LOGGING_LEVEL="INFO"
 ### Validar Configuración
 ```python
 # Validar configuración cargada
-is_valid = config_manager.validate_config("unified", "production")
-if not is_valid:
-    print("Error en la configuración de producción")
+errors = config_manager.validate_config("unified", "production")
+if errors:
+    print("Errores en la configuración de producción:")
+    for e in errors:
+        print(f"- {e}")
 ```
 
 ### Testing de Migración
@@ -335,3 +401,23 @@ Si encuentras problemas durante la migración:
 4. **Consulta esta guía** para patrones de migración comunes
 
 Para soporte adicional, consulta la documentación del proyecto o contacta al equipo de desarrollo.
+### Selección de entorno y validación
+
+```python
+from config.config_manager import get_unified_manager
+
+cm = get_unified_manager()
+
+# Selección explícita
+cm.load_config("unified", "testing")
+
+# Validación tipada
+errors = cm.validate_config("unified", "testing")
+if errors:
+    print("Errores de configuración:")
+    for e in errors:
+        print(f"- {e}")
+
+# Validación adicional de producción
+prod_errors = cm.validate_config("production", "production")
+```

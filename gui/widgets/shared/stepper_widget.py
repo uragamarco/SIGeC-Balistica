@@ -118,6 +118,8 @@ class StepperWidget(QWidget):
         self.steps = steps
         self.current_step = 0
         self.step_indicators = []
+        # Compatibility alias for legacy code expecting 'step_widgets'
+        self.step_widgets = self.step_indicators
         
         self.setup_ui()
         self.update_steps()
@@ -175,8 +177,21 @@ class StepperWidget(QWidget):
         nav_layout.addWidget(self.next_button)
         layout.addLayout(nav_layout)
         
-    def set_current_step(self, step: int):
-        """Set the current active step"""
+    def set_current_step(self, step):
+        """Set the current active step; accepts index or step id/title."""
+        # Map string id/title to index if needed
+        if isinstance(step, str):
+            idx = None
+            for i, s in enumerate(self.steps):
+                if isinstance(s, dict):
+                    if s.get('id') == step or s.get('title') == step:
+                        idx = i
+                        break
+            if idx is None:
+                print(f"Warning: Unknown step '{step}'")
+                return
+            step = idx
+        
         if 0 <= step < len(self.steps):
             self.current_step = step
             self.update_steps()
@@ -188,7 +203,7 @@ class StepperWidget(QWidget):
             else:
                 step_id = f"step_{step}"
             self.stepActivated.emit(step_id)
-            
+        
     def next_step(self):
         """Go to next step"""
         if self.current_step < len(self.steps) - 1:
@@ -231,7 +246,21 @@ class StepperWidget(QWidget):
     def get_current_step(self) -> int:
         """Get current step index"""
         return self.current_step
-        
+    
+    def get_current_step_id(self) -> str:
+        """Helper: retorna el id del paso actual sin cambiar contratos existentes."""
+        idx = self.get_current_step()
+        if 0 <= idx < len(self.steps):
+            step = self.steps[idx]
+            try:
+                # steps are dicts; prefer explicit id
+                step_id = step.get('id')
+                if step_id:
+                    return step_id
+            except Exception:
+                pass
+        return f"step_{idx}"
+    
     def is_last_step(self) -> bool:
         """Check if current step is the last one"""
         return self.current_step == len(self.steps) - 1
@@ -240,3 +269,35 @@ class StepperWidget(QWidget):
         """Mark a specific step as completed"""
         if 0 <= step < len(self.step_indicators):
             self.step_indicators[step].set_completed(True)
+
+    def set_step_completed(self, step):
+        """Compatibility alias: mark a step completed by index or id/title."""
+        if isinstance(step, str):
+            for i, s in enumerate(self.steps):
+                if isinstance(s, dict) and (s.get('id') == step or s.get('title') == step):
+                    step = i
+                    break
+        if isinstance(step, int):
+            self.mark_step_completed(step)
+
+    def enable_step(self, step):
+        """Enable a step by index or id/title for navigation/validation."""
+        if isinstance(step, str):
+            for i, s in enumerate(self.steps):
+                if isinstance(s, dict) and (s.get('id') == step or s.get('title') == step):
+                    step = i
+                    break
+        if isinstance(step, int) and 0 <= step < len(self.step_indicators):
+            self.step_indicators[step].set_enabled(True)
+            self.update_steps()
+
+    def disable_step(self, step):
+        """Disable a step by index or id/title for navigation/validation."""
+        if isinstance(step, str):
+            for i, s in enumerate(self.steps):
+                if isinstance(s, dict) and (s.get('id') == step or s.get('title') == step):
+                    step = i
+                    break
+        if isinstance(step, int) and 0 <= step < len(self.step_indicators):
+            self.step_indicators[step].set_enabled(False)
+            self.update_steps()

@@ -472,7 +472,7 @@ class CMCAlgorithm:
         # Calculate overall results
         total_cells = len(cells1)
         valid_cells = len(valid_cells1)
-        is_match = cmc_count >= self.params.cmc_threshold
+        is_match = bool(cmc_count >= self.params.cmc_threshold)
         
         # Calculate CMC score (normalized)
         cmc_score = cmc_count / max(valid_cells, 1) if valid_cells > 0 else 0.0

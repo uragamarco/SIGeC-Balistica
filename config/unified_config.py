@@ -747,24 +747,36 @@ class UnifiedConfig:
     
     def _migrate_legacy_configs(self) -> None:
         """Migra configuraciones legacy al sistema unificado"""
-        legacy_files = [
-            self.project_root / "config.yaml",
-            self.project_root / "tests" / "config.yaml"
-        ]
-        
-        migrated_any = False
-        
-        for legacy_file in legacy_files:
-            if legacy_file.exists():
-                try:
-                    self._migrate_single_config(legacy_file)
-                    migrated_any = True
-                except Exception as e:
-                    logger.error(f"Error migrando {legacy_file}: {e}")
-        
-        if migrated_any:
-            logger.info("Configuraciones legacy migradas exitosamente")
-            self.save_config()
+        # 1) Intentar migración amplia usando el consolidator
+        try:
+            from .config_consolidator import ConfigConsolidator
+            consolidator = ConfigConsolidator(self.project_root)
+            report = consolidator.consolidate_configurations(dry_run=False)
+            if report.errors:
+                logger.warning(f"Errores durante consolidación: {report.errors}")
+            else:
+                logger.info(
+                    f"Consolidación completada: {report.migrated_sources} fuentes migradas, "
+                    f"{report.conflicts_resolved} conflictos resueltos"
+                )
+        except Exception as e:
+            logger.info(f"Consolidator no disponible o falló, aplicando migración básica: {e}")
+            # 2) Fallback: migración básica de archivos conocidos
+            legacy_files = [
+                self.project_root / "config.yaml",
+                self.project_root / "tests" / "config.yaml"
+            ]
+            migrated_any = False
+            for legacy_file in legacy_files:
+                if legacy_file.exists():
+                    try:
+                        self._migrate_single_config(legacy_file)
+                        migrated_any = True
+                    except Exception as err:
+                        logger.error(f"Error migrando {legacy_file}: {err}")
+            if migrated_any:
+                logger.info("Configuraciones legacy migradas exitosamente")
+                self.save_config()
     
     def _migrate_single_config(self, config_file: Path) -> None:
         """Migra un archivo de configuración individual"""

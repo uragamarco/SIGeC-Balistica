@@ -28,6 +28,10 @@ except ImportError:
     WEBENGINE_AVAILABLE = False
     print("QWebEngineView no disponible - visualizaciones interactivas limitadas")
 
+# Permitir desactivar WebEngine por entorno
+if os.environ.get('SIGEC_DISABLE_WEBENGINE') == '1':
+    WEBENGINE_AVAILABLE = False
+
 try:
     import matplotlib
     matplotlib.use('Qt5Agg')
@@ -206,6 +210,7 @@ class PlotlyWidget(VisualizationWidget):
         
     def setup_ui(self):
         """Configura la interfaz con WebEngine para Plotly"""
+        global WEBENGINE_AVAILABLE
         super().setup_ui()
         
         if not WEBENGINE_AVAILABLE:
@@ -218,7 +223,19 @@ class PlotlyWidget(VisualizationWidget):
             return
             
         # Crear WebView para Plotly
-        self.webview = QWebEngineView()
+        try:
+            self.webview = QWebEngineView()
+        except Exception as e:
+            # Fallback si falla la instanciación por entorno
+            logger.warning(f"Fallo al crear QWebEngineView, desactivando WebEngine: {e}")
+            self.webview = None
+            WEBENGINE_AVAILABLE = False
+            error_label = QLabel("Visualización interactiva desactivada por entorno")
+            error_label.setAlignment(Qt.AlignCenter)
+            error_label.setStyleSheet("color: orange; font-size: 14px;")
+            content_layout = QVBoxLayout(self.content_area)
+            content_layout.addWidget(error_label)
+            return
         
         # Layout del área de contenido
         content_layout = QVBoxLayout(self.content_area)

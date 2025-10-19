@@ -66,32 +66,68 @@ except ImportError:
         
         def __init__(self, parent=None):
             super().__init__(parent)
+            self._config = {'enabled': True}
             layout = QVBoxLayout(self)
             layout.addWidget(QLabel("NIST Standards Widget (Fallback)"))
+        def get_configuration(self):
+            return self._config.copy()
+        def set_configuration(self, cfg):
+            self._config.update(cfg or {})
+            self.configuration_changed.emit(self._config.copy())
+        def set_configuration_level(self, level: str):
+            pass
     
     class AFTEAnalysisWidget(QWidget):
         configuration_changed = pyqtSignal(dict)
         
         def __init__(self, parent=None):
             super().__init__(parent)
+            self._config = {'enabled': True}
             layout = QVBoxLayout(self)
             layout.addWidget(QLabel("AFTE Analysis Widget (Fallback)"))
+        def get_configuration(self):
+            return self._config.copy()
+        def set_configuration(self, cfg):
+            self._config.update(cfg or {})
+            self.configuration_changed.emit(self._config.copy())
+        def set_configuration_level(self, level: str):
+            pass
     
     class DeepLearningWidget(QWidget):
         configuration_changed = pyqtSignal(dict)
         
         def __init__(self, parent=None):
             super().__init__(parent)
+            # Include 'model' alias to satisfy summary expectations
+            self._config = {'enabled': False, 'model': 'CNN'}
             layout = QVBoxLayout(self)
             layout.addWidget(QLabel("Deep Learning Widget (Fallback)"))
+        def get_configuration(self):
+            return self._config.copy()
+        def set_configuration(self, cfg):
+            self._config.update(cfg or {})
+            # Keep alias in sync if model_type provided
+            if 'model_type' in self._config:
+                self._config['model'] = self._config.get('model_type', self._config.get('model', 'CNN'))
+            self.configuration_changed.emit(self._config.copy())
+        def set_configuration_level(self, level: str):
+            pass
     
     class ImageProcessingWidget(QWidget):
         configuration_changed = pyqtSignal(dict)
         
         def __init__(self, parent=None):
             super().__init__(parent)
+            self._config = {'enabled': True}
             layout = QVBoxLayout(self)
             layout.addWidget(QLabel("Image Processing Widget (Fallback)"))
+        def get_configuration(self):
+            return self._config.copy()
+        def set_configuration(self, cfg):
+            self._config.update(cfg or {})
+            self.configuration_changed.emit(self._config.copy())
+        def set_configuration_level(self, level: str):
+            pass
 
 # Comparison-specific widgets
 from .widgets.comparison import (

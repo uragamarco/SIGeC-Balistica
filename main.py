@@ -291,6 +291,20 @@ def create_application():
         plugin_dir = os.path.join(pyqt5_path, 'Qt5', 'plugins')
         os.environ['QT_QPA_PLATFORM_PLUGIN_PATH'] = plugin_dir
         
+        # Endurecer entorno de QtWebEngine para evitar crashes en entornos restringidos
+        os.environ.setdefault('QTWEBENGINE_DISABLE_SANDBOX', '1')
+        os.environ.setdefault('QTWEBENGINE_CHROMIUM_FLAGS', '--no-sandbox --disable-gpu --disable-software-rasterizer')
+        
+        # Asegurar XDG_RUNTIME_DIR válido
+        runtime_dir = os.environ.get('XDG_RUNTIME_DIR', '')
+        if not runtime_dir or not os.path.exists(runtime_dir):
+            tmp_runtime = os.path.join('/tmp', 'sigec-qt-runtime')
+            try:
+                os.makedirs(tmp_runtime, exist_ok=True)
+            except Exception:
+                tmp_runtime = '/tmp'
+            os.environ['XDG_RUNTIME_DIR'] = tmp_runtime
+        
         # FORZAR el uso del display real (no offscreen)
         if 'QT_QPA_PLATFORM' in os.environ:
             del os.environ['QT_QPA_PLATFORM']
@@ -324,8 +338,17 @@ def create_application():
         try:
             from PyQt5.QtWebEngineWidgets import QWebEngineView
             logger.info("✓ QtWebEngineWidgets importado correctamente")
+            # Probar instanciación para confirmar funcionalidad real
+            try:
+                _tmp_webview = QWebEngineView()
+                _tmp_webview.deleteLater()
+                logger.debug("✓ QWebEngineView instanciado correctamente")
+            except Exception as e:
+                logger.warning(f"QWebEngineView falló al instanciarse, aplicando fallback: {e}")
+                os.environ['SIGEC_DISABLE_WEBENGINE'] = '1'
         except ImportError:
             logger.warning("QtWebEngineWidgets no disponible, algunas funciones pueden estar limitadas")
+            os.environ['SIGEC_DISABLE_WEBENGINE'] = '1'
         
         logger.info("✓ Aplicación PyQt5 creada exitosamente")
         return app

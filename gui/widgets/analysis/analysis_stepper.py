@@ -243,15 +243,22 @@ class AnalysisStepper(StepperWidget):
     
     def validate_current_step(self):
         """Validate the current step and enable/disable navigation."""
-        current_step = self.get_current_step()
+        # Map index to step id
+        current = self.get_current_step()
+        step_id = None
+        if isinstance(current, int):
+            if 0 <= current < len(self.steps):
+                step_id = self.steps[current].get('id')
+        elif isinstance(current, str):
+            step_id = current
         
-        if current_step == 'image_selection':
+        if step_id == 'image_selection':
             return len(self.selected_images) > 0
-        elif current_step == 'configuration':
+        elif step_id == 'configuration':
             return self.configuration_level is not None
-        elif current_step == 'analysis':
+        elif step_id == 'analysis':
             return len(self.selected_images) > 0 and self.configuration_level is not None
-        elif current_step == 'results':
+        elif step_id == 'results':
             return self.analysis_results is not None
         
         return False
@@ -383,10 +390,15 @@ class AnalysisStepper(StepperWidget):
 
     def get_analysis_summary(self):
         """Get a summary of the current analysis configuration."""
+        # Completed steps: infer from indicators (completed flag)
+        completed = []
+        for i, indicator in enumerate(getattr(self, 'step_indicators', [])):
+            if getattr(indicator, 'is_completed', False):
+                completed.append(self.steps[i].get('id', f'step_{i}'))
+        
         return {
             'images_count': len(self.selected_images),
             'configuration_level': self.configuration_level,
             'current_step': self.get_current_step(),
-            'completed_steps': [step_id for step_id, step in self.steps.items() 
-                              if step['status'] == 'completed']
+            'completed_steps': completed
         }

@@ -1791,9 +1791,10 @@ class UnifiedMatcher(LoggerMixin, IFeatureMatcher):
             # Crear directorio si no existe
             os.makedirs(os.path.dirname(output_path), exist_ok=True)
             
-            # Guardar reporte
+            # Guardar reporte (convierte tipos NumPy en tipos nativos JSON-safe)
+            safe_data = self._json_safe(report_data)
             with open(output_path, 'w', encoding='utf-8') as f:
-                json.dump(report_data, f, indent=2, ensure_ascii=False)
+                json.dump(safe_data, f, indent=2, ensure_ascii=False)
             
             self.logger.info(f"Reporte de matching exportado: {output_path}")
             return True
@@ -1801,6 +1802,36 @@ class UnifiedMatcher(LoggerMixin, IFeatureMatcher):
         except Exception as e:
             self.logger.error(f"Error exportando reporte: {e}")
             return False
+
+    def _json_safe(self, obj):
+        """
+        Convierte estructuras con tipos NumPy a tipos nativos compatibles con JSON.
+        """
+        import numpy as np
+        if isinstance(obj, dict):
+            return {str(self._json_safe(k)): self._json_safe(v) for k, v in obj.items()}
+        elif isinstance(obj, list):
+            return [self._json_safe(v) for v in obj]
+        elif isinstance(obj, tuple):
+            # JSON no distingue tuplas, usar lista
+            return [self._json_safe(v) for v in obj]
+        elif isinstance(obj, np.integer):
+            return int(obj)
+        elif isinstance(obj, np.floating):
+            return float(obj)
+        elif isinstance(obj, np.bool_):
+            return bool(obj)
+        elif isinstance(obj, np.ndarray):
+            return obj.tolist()
+        elif hasattr(obj, "tolist"):
+            try:
+                return obj.tolist()
+            except Exception:
+                pass
+        elif isinstance(obj, (int, float, bool, str)) or obj is None:
+            return obj
+        # Fallback a string para objetos no soportados
+        return str(obj)
     
     def evaluate_algorithms(self, image_pairs: List[Tuple[np.ndarray, np.ndarray, bool]]) -> Dict[str, Any]:
         """
@@ -1944,48 +1975,28 @@ class UnifiedMatcher(LoggerMixin, IFeatureMatcher):
         }
     
     # Interface-compliant methods for IFeatureMatcher
-    def extract_features(self, image: np.ndarray) -> np.ndarray:
+    def extract_features(self, image: np.ndarray, algorithm: Optional[AlgorithmType] = None) -> Dict[str, Any]:
         """
-        Interface-compliant method for feature extraction
-        Returns descriptors as numpy array for interface compatibility
+        Unified interface method for feature extraction.
+        Accepts optional algorithm (e.g., AlgorithmType.CMC) and returns a detailed feature dict.
         """
-        features_dict = self.extract_features_detailed(image)
-        descriptors = features_dict.get("descriptors")
-        if descriptors is not None:
-            return descriptors
-        else:
-            # Return empty array if no descriptors
-            return np.array([])
-    
-    def match_features(self, features1: np.ndarray, features2: np.ndarray) -> Dict[str, float]:
+        return self.extract_features_detailed(image, algorithm)
+
+    def match_features(self, features1: Dict[str, Any], features2: Dict[str, Any], algorithm: Optional[AlgorithmType] = None) -> MatchResult:
         """
-        Interface-compliant method for feature matching
-        Takes descriptors as numpy arrays and returns simplified match info
+        Unified interface method for feature matching using detailed feature dicts.
         """
-        # Create feature dictionaries from descriptors
-        features_dict1 = {"descriptors": features1, "keypoints": []}
-        features_dict2 = {"descriptors": features2, "keypoints": []}
-        
-        # Use existing detailed matching method
-        match_result = self.match_features_detailed(features_dict1, features_dict2)
-        
-        # Return simplified match information
-        return {
-            "similarity_score": match_result.similarity_score,
-            "confidence": match_result.confidence,
-            "total_matches": float(match_result.total_matches),
-            "good_matches": float(match_result.good_matches)
-        }
-    
+        return self.match_features_detailed(features1, features2, algorithm)
+
     def calculate_similarity(self, matches: Dict[str, float]) -> float:
         """
-        Interface-compliant method for similarity calculation
+        Interface-compliant method for similarity calculation.
         """
         return matches.get("similarity_score", 0.0)
     
     def get_algorithm_info(self) -> Dict[str, str]:
         """
-        Interface-compliant method for algorithm information
+        Interface-compliant method for algorithm information.
         """
         return {
             "name": "UnifiedMatcher",

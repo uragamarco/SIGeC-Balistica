@@ -3,7 +3,7 @@ Interface abstracta para Preprocesamiento de Imágenes Balísticas
 """
 
 from abc import ABC, abstractmethod
-from typing import Dict, List, Tuple, Optional
+from typing import Dict, List, Tuple, Optional, Any
 import numpy as np
 
 class IImagePreprocessor(ABC):

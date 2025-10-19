@@ -30,32 +30,68 @@ except ImportError:
         
         def __init__(self, parent=None):
             super().__init__(parent)
+            self._config = {'enabled': True}
             layout = QVBoxLayout(self)
             layout.addWidget(QLabel("NIST Standards Widget (Fallback)"))
+        def get_configuration(self):
+            return self._config.copy()
+        def set_configuration(self, cfg):
+            self._config.update(cfg or {})
+            self.configuration_changed.emit(self._config.copy())
+        def set_configuration_level(self, level: str):
+            pass
     
     class AFTEAnalysisWidget(QWidget):
         configuration_changed = pyqtSignal(dict)
         
         def __init__(self, parent=None):
             super().__init__(parent)
+            self._config = {'enabled': True}
             layout = QVBoxLayout(self)
             layout.addWidget(QLabel("AFTE Analysis Widget (Fallback)"))
+        def get_configuration(self):
+            return self._config.copy()
+        def set_configuration(self, cfg):
+            self._config.update(cfg or {})
+            self.configuration_changed.emit(self._config.copy())
+        def set_configuration_level(self, level: str):
+            pass
     
     class DeepLearningWidget(QWidget):
         configuration_changed = pyqtSignal(dict)
         
         def __init__(self, parent=None):
             super().__init__(parent)
+            # Include 'model' alias to satisfy summary expectations
+            self._config = {'enabled': False, 'model': 'CNN'}
             layout = QVBoxLayout(self)
             layout.addWidget(QLabel("Deep Learning Widget (Fallback)"))
+        def get_configuration(self):
+            return self._config.copy()
+        def set_configuration(self, cfg):
+            self._config.update(cfg or {})
+            # Keep alias in sync if model_type provided
+            if 'model_type' in self._config:
+                self._config['model'] = self._config.get('model_type', self._config.get('model', 'CNN'))
+            self.configuration_changed.emit(self._config.copy())
+        def set_configuration_level(self, level: str):
+            pass
     
     class ImageProcessingWidget(QWidget):
         configuration_changed = pyqtSignal(dict)
         
         def __init__(self, parent=None):
             super().__init__(parent)
+            self._config = {'enabled': True}
             layout = QVBoxLayout(self)
             layout.addWidget(QLabel("Image Processing Widget (Fallback)"))
+        def get_configuration(self):
+            return self._config.copy()
+        def set_configuration(self, cfg):
+            self._config.update(cfg or {})
+            self.configuration_changed.emit(self._config.copy())
+        def set_configuration_level(self, level: str):
+            pass
 
 
 class ComparisonStepper(StepperWidget):
@@ -102,7 +138,44 @@ class ComparisonStepper(StepperWidget):
         
         # Add comparison-specific navigation buttons
         self.setup_comparison_navigation()
-    
+
+    def update_step_descriptions(self, step_descriptions=None):
+        """Compatibility alias: actualiza descripciones de pasos en bloque.
+        Si no se proporciona, usa descripciones por defecto similares a AnalysisStepper."""
+        if step_descriptions is None:
+            step_descriptions = {
+                'image_selection': 'Select and validate evidence images',
+                'comparison_mode': 'Choose direct comparison or database search',
+                'configuration': 'Configure parameters for comparison',
+                'comparison': 'Run the ballistic comparison',
+                'results': 'Review and export comparison results'
+            }
+        # Actualizar lista de pasos y los indicadores
+        try:
+            for i, step in enumerate(self.steps):
+                sid = step.get('id', f'step_{i}')
+                if sid in step_descriptions:
+                    step['description'] = step_descriptions[sid]
+                    if i < len(self.step_indicators):
+                        self.step_indicators[i].description = step_descriptions[sid]
+                        self.step_indicators[i].update()
+        except Exception:
+            pass
+
+    def update_step_description(self, step_id: str, description: str):
+        """Update description text for a specific step by id or title."""
+        try:
+            for idx, step in enumerate(self.steps):
+                if (isinstance(step, dict) and step.get('id') == step_id) or step.get('title') == step_id:
+                    if idx < len(self.step_indicators):
+                        indicator = self.step_indicators[idx]
+                        # StepIndicator stores description used in paintEvent
+                        indicator.description = description
+                        indicator.update()
+                    break
+        except Exception:
+            pass
+
     def setup_comparison_navigation(self):
         """Setup comparison-specific navigation buttons"""
         nav_layout = QHBoxLayout()

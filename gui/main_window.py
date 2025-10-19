@@ -41,7 +41,7 @@ except ImportError:
         LANGUAGE = "es"
 
 # Importar estilos y widgets
-from .styles import SIGeCBallisticaTheme, apply_SIGeC_Balistica_theme
+from .styles import apply_SIGeC_Balistica_theme
 from .shared_widgets import StepIndicator, ProgressCard
 from .settings_dialog import SettingsDialog
 from .history_dialog import HistoryDialog
@@ -103,10 +103,6 @@ class MainWindow(QMainWindow):
         self.setWindowTitle("SIGeC-Balistica - Sistema de Análisis Forense")
         self.setGeometry(100, 100, gui_config.window_width, gui_config.window_height)
         
-        # Configurar tema
-        self.theme = SIGeCBallisticaTheme()
-        apply_SIGeC_Balistica_theme(self)
-        
         # Configurar interfaz
         self.setup_ui()
         
@@ -143,8 +139,7 @@ class MainWindow(QMainWindow):
         self.setup_tabs()
         main_layout.addWidget(self.tab_widget)
         
-        # Aplicar estilos del tema básico
-        self.setStyleSheet(self.theme.get_stylesheet())
+        # Estilos aplicados globalmente desde QApplication
         
         
     def setup_tabs(self):

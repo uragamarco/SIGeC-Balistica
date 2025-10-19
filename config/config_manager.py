@@ -27,6 +27,7 @@ from .unified_config import (
     get_unified_config,
     reset_unified_config,
     Environment,
+    ConfigValidationError,
 )
 
 # Importar gestores específicos para compatibilidad
@@ -187,8 +188,12 @@ class UnifiedConfigManager:
                     with open(config_file, 'r', encoding='utf-8') as f:
                         file_config = json.load(f)
                         config[config_file.stem] = file_config
+                except json.JSONDecodeError as e:
+                    logger.warning(f"JSON inválido en {config_file}: {e}. Archivo ignorado.")
                 except Exception as e:
                     logger.warning(f"Error cargando {config_file}: {e}")
+        else:
+            logger.info(f"Directorio de configuración de deep learning no encontrado: {self.deep_learning_config_dir}")
         return config
     
     def get_config_value(self, key: str, default: Any = None, 
@@ -319,7 +324,8 @@ class UnifiedConfigManager:
             if self.deep_learning_config_dir.exists():
                 configs = [f.stem for f in self.deep_learning_config_dir.rglob("*.json")]
         elif config_type in ["unified", "gui", "testing", "production"]:
-            configs = ["base", "testing", "production"]
+            # Entornos soportados por UnifiedConfig
+            configs = ["development", "testing", "production"]
         
         return sorted(configs)
     
@@ -334,19 +340,30 @@ class UnifiedConfigManager:
         Returns:
             Lista de errores encontrados
         """
-        errors = []
-        config = self.load_config(config_type, environment)
-        
-        if not config:
-            errors.append(f"Configuración {config_type} vacía o no encontrada")
-            return errors
-        
-        # Validaciones específicas por tipo
-        if config_type == "unified":
-            errors.extend(self._validate_unified_config(config))
-        elif config_type == "production":
-            errors.extend(self._validate_production_config(config))
-        
+        errors: List[str] = []
+        env_enum = self._map_environment(environment)
+
+        # Validación tipada con UnifiedConfig
+        try:
+            ucfg = get_unified_config(environment=env_enum, force_reload=True)
+            ucfg.validate()
+        except ConfigValidationError as e:
+            # Extraer líneas de errores prefijadas por "- "
+            for line in str(e).splitlines():
+                line = line.strip()
+                if line.startswith("-"):
+                    errors.append(line[1:].strip())
+        except Exception as e:
+            errors.append(f"Error validando configuración {config_type}: {e}")
+
+        # Validaciones adicionales específicas de producción
+        if config_type == "production":
+            try:
+                config_dict = ucfg.get_config_dict()
+            except Exception:
+                config_dict = self.load_config(config_type, environment) or {}
+            errors.extend(self._validate_production_config(config_dict))
+
         return errors
     
     def _validate_unified_config(self, config: Dict[str, Any]) -> List[str]:
@@ -361,14 +378,33 @@ class UnifiedConfigManager:
         return errors
     
     def _validate_production_config(self, config: Dict[str, Any]) -> List[str]:
-        """Valida configuración de producción"""
+        """Valida configuración de producción según UnifiedConfig"""
         errors = []
-        required_fields = ['environment', 'database', 'security']
-        
-        for field in required_fields:
-            if field not in config:
-                errors.append(f"Campo requerido '{field}' no encontrado")
-        
+        # Validaciones mínimas basadas en UnifiedConfig
+        # 1) Secciones requeridas
+        for section in ['database', 'image_processing', 'matching', 'gui', 'logging']:
+            if section not in config:
+                errors.append(f"Sección requerida '{section}' no encontrada")
+        # 2) Campos de database esenciales
+        db = config.get('database', {}) if isinstance(config.get('database'), dict) else {}
+        for field in ['sqlite_path', 'faiss_index_path', 'db_path']:
+            if field not in db:
+                errors.append(f"database.{field} es requerido")
+        # 3) Logging level válido
+        log_cfg = config.get('logging', {}) if isinstance(config.get('logging'), dict) else {}
+        level = log_cfg.get('level')
+        if level and level not in ['DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL']:
+            errors.append("logging.level debe ser uno de: DEBUG, INFO, WARNING, ERROR, CRITICAL")
+        # 4) Matching enum serializado correctamente (acepta string o Enum)
+        match_cfg = config.get('matching', {}) if isinstance(config.get('matching'), dict) else {}
+        algo = match_cfg.get('algorithm')
+        lvl = match_cfg.get('level')
+        def _is_enum_like(v: Any) -> bool:
+            return hasattr(v, 'value') or (hasattr(v, '__class__') and v.__class__.__name__.endswith('Enum'))
+        if 'algorithm' in match_cfg and not (isinstance(algo, str) or _is_enum_like(algo)):
+            errors.append("matching.algorithm debe ser string o Enum (ORB, SIFT, AKAZE, BRISK, KAZE, CMC)")
+        if 'level' in match_cfg and not (isinstance(lvl, str) or _is_enum_like(lvl)):
+            errors.append("matching.level debe ser string o Enum (basic, standard, advanced)")
         return errors
 
 # Instancia global del gestor unificado

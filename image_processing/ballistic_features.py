@@ -345,7 +345,7 @@ class BallisticFeatureExtractor:
                 self.parallel_config.max_workers_process = img_config.max_workers
                 self.parallel_config.max_workers_thread = img_config.max_workers
                 self.parallel_config.memory_limit_gb = img_config.memory_limit_mb / 1024.0
-                self.parallel_config.chunk_size = optimized_config['chunk_size']
+                self.parallel_config.chunk_size = getattr(img_config, 'chunk_size', self.parallel_config.chunk_size)
                 
                 self.logger.info("Configuración optimizada aplicada desde config/parallel_config_optimized.py")
                 
